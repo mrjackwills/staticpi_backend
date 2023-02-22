@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-	currently powering <a href='https://www.staticpi,com' target='_blank' rel='noopener noreferrer'>staticpi.com</a>
+	currently powering <a href='https://www.staticpi.com' target='_blank' rel='noopener noreferrer'>staticpi.com</a>
 </p>
 
 <p align="center">
