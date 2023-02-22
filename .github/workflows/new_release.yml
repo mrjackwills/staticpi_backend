@@ -1,0 +1,41 @@
+name: Release CI
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      ##################################
+      ## Build binary for release page #
+      ##################################
+
+      # Install stable rust, and associated tools
+      - name: install rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Build for linux x86_64
+      - name: build release linux_x86_64
+        run: cargo build --release
+      # Compress ouput into tar
+      - name: compress staticpi_linux_x86_64 binary
+        run: tar -C target/release -czf ./staticpi_linux_x86_64.tar.gz staticpi
+      
+      ###################
+      ## Create release #
+      ###################
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: ${{ github.ref_name }}
+          body_path: ".github/release-body.md"
+          draft: false
+          files: |
+             staticpi_linux_x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

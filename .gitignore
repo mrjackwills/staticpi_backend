@@ -1,0 +1,9 @@
+/target
+**/*.env
+pg_dump.tar
+/location_local
+/nginx_confs
+*.pgpass
+/db_data
+/docker/data
+/docker/env

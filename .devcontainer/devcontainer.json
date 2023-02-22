@@ -1,0 +1,68 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.217.4/containers/rust
+{
+	"name": "Rust",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			// Use the VARIANT arg to pick a Debian OS version: buster, bullseye
+			// Use bullseye when on local on arm64/Apple Silicon.
+			"VARIANT": "bullseye",
+			"BUILDKIT_INLINE_CACHE": "0"
+		}
+	},
+	"runArgs": [
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",
+		"seccomp=unconfined",
+		"--net=host"
+	],
+	"mounts": [
+		"source=/dev/shm,target=/dev/shm,type=bind",
+		"source=/etc/localtime,target=/etc/localtime,type=bind,readonly"
+	],
+
+	"postCreateCommand": "cargo install cargo-watch typos-cli",
+	"postStartCommand": "sudo mkdir -p /dev/shm/staticpi/backups /dev/shm/staticpi/pg_data /dev/shm/staticpi/redis_data /dev/shm/staticpi/logs && sudo chown -R vscode:vscode /dev/shm/staticpi",
+
+
+	"customizations": {
+		"vscode": {
+				// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"bmuskalla.vscode-tldr",
+				"christian-kohler.path-intellisense",
+				"ms-vscode.live-server",
+				"mutantdino.resourcemonitor",
+				"rangav.vscode-thunder-client",
+				"rust-lang.rust-analyzer",
+				"serayuzgur.crates",
+				"tamasfe.even-better-toml",
+				"timonwong.shellcheck",
+				"vadimcn.vscode-lldb"
+			],
+
+			"settings": {
+				"lldb.executable": "/usr/bin/lldb",
+				// VS Code don't watch files under ./target
+				"files.watcherExclude": {
+					"**/target/**": true
+				},
+				"rust-analyzer.checkOnSave.command": "clippy"
+			}
+		}
+	},
+
+	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest",
+			"moby": true,
+			"dockerDashComposeVersion":"v2"
+		},
+		"ghcr.io/devcontainers/features/git:1": {
+				"version":"os-provided"
+			}
+	}
+}
