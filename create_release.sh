@@ -212,10 +212,8 @@ check_typos () {
 	ask_continue
 }
 
-
 # Full flow to create a new release
 release_flow() {
-
 	check_typos
 
 	check_git

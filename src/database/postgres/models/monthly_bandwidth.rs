@@ -60,14 +60,11 @@ SELECT
     COALESCE(SUM(hb.size_in_bytes), 0)::BIGINT AS size_in_bytes, ru.registered_user_id
 FROM
     hourly_bandwidth hb
-LEFT JOIN
-    device de
-ON 
-    hb.device_id = de.device_id
+LEFT JOIN device de USING(device_id)
 LEFT JOIN
     registered_user ru
 ON 
-    de.registered_user_id = ru.registered_user_id
+    ru.registered_user_id = de.registered_user_id
 WHERE
     extract(year from hb.timestamp) = extract (year from CURRENT_DATE)
 AND
@@ -80,10 +77,7 @@ AND
             ru.registered_user_id
         FROM
             device de
-        LEFT JOIN
-            registered_user ru
-        ON
-            de.registered_user_id = ru.registered_user_id
+			LEFT JOIN registered_user ru USING(registered_user_id)
         WHERE
             device_id = $1
     )
@@ -111,17 +105,13 @@ GROUP BY
         let query = r"
 SELECT
     hb.size_in_bytes::BIGINT AS size_in_bytes, $1 AS registered_user_id
-
 FROM
     hourly_bandwidth hb
-LEFT JOIN
-    device de
-ON
-    hb.device_id = de.device_id
+LEFT JOIN device de USING(device_id)
 LEFT JOIN
     registered_user ru
 ON
-    de.registered_user_id = ru.registered_user_id
+    ru.registered_user_id = de.registered_user_id
 WHERE
     extract(year from hb.timestamp) = extract (year from CURRENT_DATE)
 AND

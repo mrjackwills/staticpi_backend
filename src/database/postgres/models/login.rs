@@ -47,10 +47,7 @@ WHERE
 		registered_user_id
 	FROM
 		registered_user
-	LEFT JOIN
-		email_address
-	ON
-		email_address.email_address_id = registered_user.email_address_id
+	LEFT JOIN email_address USING(email_address_id)
 	WHERE
 		email_address.email = $1)";
         sqlx::query(query).bind(email).execute(postgres).await?;

@@ -63,14 +63,14 @@ WHERE ip_id
 IN (
 	SELECT ip_address.ip_id
 	FROM ip_address
-	LEFT JOIN api_key ON api_key.ip_id = ip_address.ip_id
-	LEFT JOIN connection ON connection.ip_id = ip_address.ip_id
-	LEFT JOIN device ON device.ip_id = ip_address.ip_id
-	LEFT JOIN login_history ON login_history.ip_id = ip_address.ip_id
-	LEFT JOIN password_reset ON password_reset.ip_id = ip_address.ip_id
-	LEFT JOIN registered_user ON registered_user.ip_id = ip_address.ip_id
-	LEFT JOIN two_fa_backup ON two_fa_backup.ip_id = ip_address.ip_id
-	LEFT JOIN two_fa_secret ON two_fa_secret.ip_id = ip_address.ip_id
+	LEFT JOIN api_key USING(ip_id)
+	LEFT JOIN connection USING(ip_id)
+	LEFT JOIN device USING(ip_id)
+	LEFT JOIN login_history USING(ip_id)
+	LEFT JOIN password_reset USING(ip_id)
+	LEFT JOIN registered_user USING(ip_id)
+	LEFT JOIN two_fa_backup USING(ip_id)
+	LEFT JOIN two_fa_secret USING(ip_id)
 	WHERE api_key.ip_id IS NULL
 	AND connection.ip_id IS NULL
 	AND device.ip_id IS NULL
@@ -106,13 +106,13 @@ WHERE user_agent_id
 IN (
 	SELECT user_agent.user_agent_id
 	FROM user_agent
-	LEFT JOIN api_key ON api_key.user_agent_id = user_agent.user_agent_id
-	LEFT JOIN device ON device.user_agent_id = user_agent.user_agent_id
-	LEFT JOIN login_history ON login_history.user_agent_id = user_agent.user_agent_id
-	LEFT JOIN password_reset ON password_reset.user_agent_id = user_agent.user_agent_id
-	LEFT JOIN registered_user ON registered_user.user_agent_id = user_agent.user_agent_id
-	LEFT JOIN two_fa_backup ON two_fa_backup.user_agent_id = user_agent.user_agent_id
-	LEFT JOIN two_fa_secret ON two_fa_secret.user_agent_id = user_agent.user_agent_id
+	LEFT JOIN api_key USING(user_agent_id)
+	LEFT JOIN device USING(user_agent_id)
+	LEFT JOIN login_history USING(user_agent_id)
+	LEFT JOIN password_reset USING(user_agent_id)
+	LEFT JOIN registered_user USING(user_agent_id)
+	LEFT JOIN two_fa_backup USING(user_agent_id)
+	LEFT JOIN two_fa_secret USING(user_agent_id)
 	WHERE api_key.ip_id IS NULL
 	AND device.user_agent_id IS NULL
 	AND login_history.user_agent_id IS NULL

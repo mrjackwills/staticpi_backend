@@ -74,18 +74,12 @@ SELECT
     ) AS two_fa_backup_count
 FROM
     password_reset pr
-LEFT JOIN
-    registered_user ru
-ON 
-    pr.registered_user_id = ru.registered_user_id
-LEFT JOIN
-    two_fa_secret tfs
-ON
-    pr.registered_user_id = tfs.registered_user_id
+LEFT JOIN registered_user ru USING(registered_user_id)
+LEFT JOIN two_fa_secret tfs USING(registered_user_id)
 LEFT JOIN
     email_address ea
 ON
-    ru.email_address_id = ea.email_address_id
+    ea.email_address_id = ru.email_address_id
 WHERE
     ea.email = $1
 AND
@@ -119,18 +113,12 @@ SELECT
     ) AS two_fa_backup_count
 FROM
     password_reset pr
-LEFT JOIN
-    registered_user ru
-ON 
-    pr.registered_user_id = ru.registered_user_id
+LEFT JOIN registered_user ru USING(registered_user_id)
+LEFT JOIN two_fa_secret tfs USING(registered_user_id)
 LEFT JOIN
     email_address ea
 ON
-    ru.email_address_id = ea.email_address_id
-LEFT JOIN
-    two_fa_secret tfs
-ON
-    pr.registered_user_id = tfs.registered_user_id
+    ea.email_address_id = ru.email_address_id
 WHERE
     pr.reset_string = $1
 AND

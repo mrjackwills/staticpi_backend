@@ -97,10 +97,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-        LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -114,10 +111,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-        LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -131,10 +125,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -150,10 +141,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -169,10 +157,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-        LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -184,10 +169,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -199,10 +181,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -216,10 +195,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -233,10 +209,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -252,10 +225,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -271,10 +241,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -286,10 +253,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-            LEFT JOIN
-            device de
-        ON
-            de.device_id = hb.device_id
+		LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -299,23 +263,10 @@ SELECT
     ) AS client_bytes_total_out
 FROM
     registered_user ru
-LEFT JOIN
-    two_fa_secret tfs
-ON
-    ru.registered_user_id = tfs.registered_user_id
-LEFT JOIN
-    login_attempt la
-ON
-    ru.registered_user_id = la.registered_user_id
-LEFT JOIN
-    user_level ul
-ON
-    ru.user_level_id = ul.user_level_id
-LEFT JOIN
-    email_address ea
-ON
-    ru.email_address_id = ea.email_address_id";
-
+LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+LEFT JOIN login_attempt la USING(registered_user_id)
+LEFT JOIN user_level ul USING(user_level_id)
+LEFT JOIN email_address ea USING(email_address_id)";
         let users = sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?;
 
         let mut output = vec![];
