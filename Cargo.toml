@@ -13,7 +13,7 @@ readme = "README.md"
 [dependencies]
 argon2 = "0.4"
 axum = {version="0.6", features=["ws", "headers"]}
-axum-extra = {version = "0.5",features =["cookie-private"] }
+axum-extra = {version = "0.6",features =["cookie-private"] }
 cookie = "0.17"
 dotenvy="0.15"
 futures = "0.3"
