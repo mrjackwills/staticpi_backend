@@ -170,10 +170,7 @@ SELECT
     de.device_id, dn.name_of_device
 FROM
     device de
-LEFT JOIN
-    device_name dn
-ON 
-    de.device_name_id = dn.device_name_id
+LEFT JOIN device_name dn USING(device_name_id)
 WHERE
     dn.name_of_device = $1
 AND
@@ -245,22 +242,13 @@ SELECT
     dn.name_of_device
 FROM 
     device de
-LEFT JOIN
-    api_key ap
-ON
-    de.api_key_id = ap.api_key_id
-LEFT JOIN
-    device_name dn
-ON
-    de.device_name_id = dn.device_name_id
-LEFT JOIN
-    registered_user ru
-ON
-    de.registered_user_id = ru.registered_user_id
+LEFT JOIN registered_user ru USING(registered_user_id)
+LEFT JOIN api_key ap USING(api_key_id)
+LEFT JOIN device_name dn USING(device_name_id)
 LEFT JOIN
     user_level ul
 ON
-    ru.user_level_id = ul.user_level_id
+    ul.user_level_id = ru.user_level_id
 WHERE
     de.active = TRUE
 AND
@@ -288,22 +276,13 @@ SELECT
     dn.name_of_device
 FROM 
     device de
+LEFT JOIN registered_user ru USING(registered_user_id)
+LEFT JOIN api_key ap USING(api_key_id)
+LEFT JOIN device_name dn USING(device_name_id)
 LEFT JOIN
-    api_key ap
+	user_level ul
 ON
-    de.api_key_id = ap.api_key_id
-LEFT JOIN
-    device_name dn
-ON
-    de.device_name_id = dn.device_name_id
-LEFT JOIN
-    registered_user ru
-ON
-    de.registered_user_id = ru.registered_user_id
-LEFT JOIN
-    user_level ul
-ON
-    ru.user_level_id = ul.user_level_id
+	ul.user_level_id = ru.user_level_id
 WHERE
     de.active = TRUE
 AND
@@ -728,10 +707,7 @@ SELECT
             ip.ip
         FROM
             connection co
-        LEFT JOIN
-            ip_address ip
-        ON
-            co.ip_id = ip.ip_id
+        LEFT JOIN ip_address ip USING(ip_id)
         WHERE
             co.device_id = de.device_id
         AND
@@ -924,14 +900,8 @@ SELECT
     ) AS timestamp_offline
 FROM 
     device de
-LEFT JOIN
-    api_key ap
-ON
-    de.api_key_id = ap.api_key_id
-LEFT JOIN
-    device_name dn
-ON
-    de.device_name_id = dn.device_name_id
+LEFT JOIN api_key ap USING(api_key_id)
+LEFT JOIN device_name dn USING(device_name_id)
 WHERE
     de.active = TRUE
 AND

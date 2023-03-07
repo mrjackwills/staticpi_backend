@@ -11,9 +11,9 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-argon2 = "0.4"
-axum = {version="0.6", features=["ws", "headers"]}
-axum-extra = {version = "0.5",features =["cookie-private"] }
+argon2 = "0.5"
+axum = {version="0.6", features=["ws", "headers", "macros"]}
+axum-extra = {version = "0.7",features =["cookie-private"] }
 cookie = "0.17"
 dotenvy="0.15"
 futures = "0.3"
@@ -34,9 +34,9 @@ sha1 = "0.10"
 sqlx = {version="0.6", features = ["runtime-tokio-rustls", "postgres", "time", "ipnetwork", "bigdecimal" ]}
 thiserror="1.0"
 time = { version="0.3", features=["serde", "parsing", "local-offset"] }
-tokio = {version = "1.25", features=["full"]}
+tokio = {version = "1.26", features=["full"]}
 tower = { version = "0.4", features = ["full"] }
-tower-http = {version="0.3", features = ["full"] }
+tower-http = {version="0.4", features = ["full"] }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = {version="0.3", features = ["json"]}

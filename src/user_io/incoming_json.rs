@@ -13,7 +13,10 @@ pub mod ij {
 
     use axum::{
         async_trait,
-        extract::{rejection::JsonRejection, FromRequest, FromRequestParts},
+        extract::{
+            rejection::{JsonDataError, JsonRejection},
+            FromRequest, FromRequestParts,
+        },
         http::{request::Parts, Request},
     };
     use serde::{self, de::DeserializeOwned, Deserialize};
@@ -30,26 +33,31 @@ pub mod ij {
     where
         E: Error + 'static,
     {
-        if let Some(err) = find_error_source::<serde_json::Error>(&e) {
-            if err.to_string().contains("missing field") {
+        if let Some(err) = find_error_source::<JsonDataError>(&e) {
+            let text = err.body_text();
+            if text.contains("missing field") {
                 return ApiError::MissingKey(
-                    err.to_string()
-                        .split_once("missing field `")
+                    text.split_once("missing field `")
                         .map_or("", |f| f.1)
                         .split_once('`')
-                        .map_or(String::new(), |f| f.0.trim().to_owned()),
+                        .map_or("", |f| f.0.trim())
+                        .to_owned(),
                 );
-            } else if err.to_string().contains("unknown field") {
+            } else if text.contains("unknown field") {
                 return ApiError::InvalidValue("invalid input".to_owned());
-            } else if err.to_string().contains("at line") {
+            } else if text.contains("at line") {
                 return ApiError::InvalidValue(
-                    err.to_string()
-                        .split_once("at line")
-                        .map_or(String::new(), |f| f.0.trim().to_owned()),
+                    text.split_once("at line")
+                        .map_or("", |f| f.0)
+                        .split_once(':')
+                        .map_or("", |f| f.1)
+                        .split_once(':')
+                        .map_or("", |f| f.1.trim())
+                        .to_owned(),
                 );
             }
         }
-        ApiError::Internal("downcast".to_owned())
+        ApiError::Internal("downcast error".to_owned())
     }
 
     /// attempt to downcast `err` into a `T` and if that fails recursively try and
@@ -58,8 +66,8 @@ pub mod ij {
     where
         T: Error + 'static,
     {
-        err.downcast_ref::<T>().map_or(
-            err.source().and_then(|source| find_error_source(source)),
+        err.downcast_ref::<T>().map_or_else(
+            || err.source().and_then(|source| find_error_source(source)),
             Some,
         )
     }

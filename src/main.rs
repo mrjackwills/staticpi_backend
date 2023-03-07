@@ -5,7 +5,7 @@
     clippy::pedantic,
     clippy::todo,
     clippy::unused_async,
-    clippy::unwrap_used,
+    clippy::unwrap_used
 )]
 #![allow(clippy::module_name_repetitions, clippy::doc_markdown)]
 // Only allow when debugging

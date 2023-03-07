@@ -102,22 +102,10 @@ SELECT
     ul.*
 FROM
     registered_user ru
-LEFT JOIN
-    two_fa_secret tfs
-ON
-    ru.registered_user_id = tfs.registered_user_id
-LEFT JOIN
-    login_attempt la
-ON
-    ru.registered_user_id = la.registered_user_id
-LEFT JOIN
-    user_level ul
-ON
-    ru.user_level_id = ul.user_level_id
-LEFT JOIN
-    email_address ea
-ON
-    ru.email_address_id = ea.email_address_id";
+LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+LEFT JOIN login_attempt la USING(registered_user_id)
+LEFT JOIN user_level ul USING(user_level_id)
+LEFT JOIN email_address ea USING(email_address_id)";
         Ok(sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?)
     }
 
@@ -140,22 +128,10 @@ SELECT
     ul.*
 FROM
     registered_user ru
-LEFT JOIN
-    two_fa_secret tfs
-ON
-    ru.registered_user_id = tfs.registered_user_id
-LEFT JOIN
-    login_attempt la
-ON
-    ru.registered_user_id = la.registered_user_id
-LEFT JOIN
-    user_level ul
-ON
-    ru.user_level_id = ul.user_level_id
-LEFT JOIN
-    email_address ea
-ON
-    ru.email_address_id = ea.email_address_id
+LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+LEFT JOIN login_attempt la USING(registered_user_id)
+LEFT JOIN user_level ul USING(user_level_id)
+LEFT JOIN email_address ea USING(email_address_id)
 WHERE
     ea.email = $1
 AND
@@ -254,7 +230,7 @@ WHERE device_name_id
 IN (
 	SELECT device_name.device_name_id
 	FROM device_name
-	LEFT JOIN device ON device.device_name_id = device_name.device_name_id
+	LEFT JOIN device USING(device_name_id)
 	WHERE device.device_name_id IS NULL
 );";
         sqlx::query(device_name_query)
@@ -311,22 +287,11 @@ SELECT
     ul.*
 FROM
     registered_user ru
-LEFT JOIN
-    two_fa_secret tfs
-ON
-    ru.registered_user_id = tfs.registered_user_id
-LEFT JOIN
-    login_attempt la
-ON
-    ru.registered_user_id = la.registered_user_id
-LEFT JOIN
-    user_level ul
-ON
-    ru.user_level_id = ul.user_level_id
-LEFT JOIN
-    email_address ea
-ON
-    ru.email_address_id = ea.email_address_id
+
+LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+LEFT JOIN login_attempt la USING(registered_user_id)
+LEFT JOIN email_address ea USING(email_address_id)
+LEFT JOIN user_level ul USING(user_level_id)
 WHERE
     ea.email = $1";
         Ok(sqlx::query_as::<_, Self>(query)

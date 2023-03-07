@@ -56,18 +56,12 @@ SELECT
     co.timestamp_online::TEXT, co.timestamp_offline::TEXT
 FROM
     connection co
-LEFT JOIN
-    device de
-ON
-    co.device_id = de.device_id
+LEFT JOIN ip_address ipa USING(ip_id)
+LEFT JOIN device de USING(device_id)
 LEFT JOIN
     device_name dn
 ON
-    de.device_name_id = dn.device_name_id
-LEFT JOIN
-    ip_address ipa
-ON
-    co.ip_id = ipa.ip_id
+    dn.device_name_id = de.device_name_id
 WHERE
     de.registered_user_id = $1
 AND	

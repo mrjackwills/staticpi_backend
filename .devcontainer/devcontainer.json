@@ -7,8 +7,7 @@
 		"args": {
 			// Use the VARIANT arg to pick a Debian OS version: buster, bullseye
 			// Use bullseye when on local on arm64/Apple Silicon.
-			"VARIANT": "bullseye",
-			"BUILDKIT_INLINE_CACHE": "0"
+			"VARIANT": "bullseye"
 		}
 	},
 	"runArgs": [
@@ -23,7 +22,7 @@
 	],
 
 	"postCreateCommand": "cargo install cargo-watch typos-cli",
-	"postStartCommand": "sudo mkdir -p /dev/shm/staticpi/backups /dev/shm/staticpi/pg_data /dev/shm/staticpi/redis_data /dev/shm/staticpi/logs && sudo chown -R vscode:vscode /dev/shm/staticpi",
+	"postStartCommand": "sudo mkdir -p /dev/shm/staticpi/backups /dev/shm/staticpi/pg_data /dev/shm/staticpi/redis_data /dev/shm/staticpi/logs /dev/shm/staticpi/target && sudo chown -R vscode:vscode /dev/shm/staticpi",
 
 
 	"customizations": {

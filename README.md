@@ -95,7 +95,7 @@ cross build --target x86_64-unknown-linux-musl --release
 
 ## Tests
 
-Requires postgres & redis to both be operational and built with valid structure - <a href="https://github.com/mrjackwills/staticpi_backend/blob/main/src/docker.init/init_db.sql" target='_blank' rel='noopener noreferrer'>init_db.sql</a>.
+Requires postgres & redis to both be operational and built with valid structure - <a href="https://github.com/mrjackwills/staticpi_backend/blob/main/docker/init/init_db.sql" target='_blank' rel='noopener noreferrer'>init_db.sql</a>.
 
 ```shell
 # Watch

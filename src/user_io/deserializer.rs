@@ -1,4 +1,3 @@
-
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{
@@ -11,7 +10,7 @@ use crate::{
     connections::ConnectionType,
     database::{
         new_types::{ContactMessageId, DeviceId},
-        rate_limit::RateLimit
+        rate_limit::RateLimit,
     },
 };
 

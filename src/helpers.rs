@@ -131,7 +131,6 @@ fn calculate_hash<T: Hash>(x: T) -> u64 {
     hasher.finish()
 }
 
-/// Check if a given password in is HIBP using K-Anonymity
 pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
     let mut sha_digest = Sha1::default();
     sha_digest.update(password.as_bytes());
@@ -166,12 +165,14 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 mod tests {
+    use crate::servers::test_setup::UNSAFE_PASSWORD;
+
     use super::*;
 
     // WARNING - This tests against a live third party api via https
     #[tokio::test]
     async fn helpers_pwned_password() {
-        let result = pwned_password("iloveyou1234").await;
+        let result = pwned_password(UNSAFE_PASSWORD).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
 

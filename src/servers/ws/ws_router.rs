@@ -146,20 +146,6 @@ impl WsRouter {
             .await;
     }
 
-    // /// On a pong, abort the auto close, and initialise a new one
-    // async fn pong_abort_close(input: &mut HandlerData<'_>) {
-    //     // input.connections.lock().await.auto_close_abort(input);
-    //     AutoClose::init(
-    //         input.connection_id,
-    //         input.connections,
-    //         input.device.device_id,
-    //         input.device_type,
-    //         input.ulid,
-    //         input.postgres,
-    //     )
-    //     .await;
-    // }
-
     /// Check if the rate limit is ok, skip if a Close message, or a PONG message with a msg_length of 0
     async fn rate_limit_ok(input: &HandlerData<'_>, msg: &Message) -> bool {
         match msg {
@@ -249,16 +235,6 @@ impl WsRouter {
         let limiter = RateLimit::from(&device);
         let mut handler_data =
             HandlerData::new(connection_id, device_type, &device, &limiter, &state, ulid);
-
-        // AutoClose::init(
-        //     connection_id,
-        //     &state.connections,
-        //     device.device_id,
-        //     device_type,
-        //     ulid,
-        //     &state.postgres,
-        // )
-        // .await;
 
         while let Ok(Some(msg)) = receiver.try_next().await {
             handler_data.msg_size = get_message_size(&msg);

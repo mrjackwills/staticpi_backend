@@ -1496,6 +1496,7 @@ mod tests {
             .unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
         let result = result.json::<Response>().await.unwrap().response;
+        // let result = result.text().await.unwrap();
         assert_eq!(result, "missing password");
 
         // Invalid password sent

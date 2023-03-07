@@ -626,7 +626,6 @@ impl Default for Connections {
     }
 }
 
-
 // previous autoclose implementation, mayeb re-introduce?
 // pub struct AutoClose;
 

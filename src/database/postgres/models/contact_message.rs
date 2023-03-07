@@ -52,14 +52,10 @@ SELECT
 	cm.contact_message_id, cm.message, cm.timestamp::TEXT, ea.email, ip.ip, ua.user_agent_string AS user_agent, ru.registered_user_id
 FROM
 	contact_message cm
-JOIN
-	ip_address ip ON cm.ip_id = ip.ip_id
-JOIN
-	user_agent ua ON cm.user_agent_id = ua.user_agent_id
-LEFT JOIN
-	registered_user ru ON cm.registered_user_id = ru.registered_user_id
-JOIN
-	email_address ea ON cm.email_address_id = ea.email_address_id
+LEFT JOIN email_address ea USING(email_address_id)
+LEFT JOIN ip_address ip USING(ip_id)
+LEFT JOIN user_agent ua USING(user_agent_id)
+LEFT JOIN registered_user ru USING(registered_user_id)
 ORDER BY cm.timestamp ASC, ru.registered_user_id ASC";
         Ok(sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?)
     }
