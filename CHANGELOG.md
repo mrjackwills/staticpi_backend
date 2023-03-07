@@ -17,8 +17,3 @@
 
 ### Tests
 + use UNSAFE_PASSWORD const, [3a061a07a7ccdf980fa53c9296a519d78f407192]
-
-
-
-### Features
-+ init commit
