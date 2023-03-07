@@ -455,7 +455,7 @@ impl AdminRouter {
             Err(ApiError::InvalidValue(String::from("unknown user")))
         }
     }
-	
+
     /// remove a connection
     async fn connection_remove(
         State(state): State<ApplicationState>,

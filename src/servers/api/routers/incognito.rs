@@ -1229,7 +1229,7 @@ mod tests {
 
         let body = TestSetup::gen_register_body(
             TEST_FULL_NAME,
-            "superman1234",
+            UNSAFE_PASSWORD,
             &test_setup.app_env.invite,
             TEST_EMAIL,
             true,
@@ -2182,7 +2182,7 @@ mod tests {
             api_base_url(&test_setup.app_env),
             reset_secret
         );
-        let body = HashMap::from([("password", "iloveyou1234")]);
+        let body = HashMap::from([("password", UNSAFE_PASSWORD)]);
         let result = client.patch(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
         assert_eq!(

@@ -11,24 +11,24 @@ use crate::api_error::ApiError;
 #[allow(clippy::unwrap_used)]
 #[cfg(not(release))]
 static PARAMS: Lazy<Params> = Lazy::new(|| {
-	ParamsBuilder::new()
-	.m_cost(4096)
-	.t_cost(1)
-	.p_cost(1)
-	.build()
-	.unwrap()
+    ParamsBuilder::new()
+        .m_cost(4096)
+        .t_cost(1)
+        .p_cost(1)
+        .build()
+        .unwrap()
 });
 
 /// This takes 19 seconds when testing, hence the above `not-release` version
 #[cfg(release)]
 #[allow(clippy::unwrap_used)]
 static PARAMS: Lazy<Params> = Lazy::new(|| {
-	ParamsBuilder::new()
-	.m_cost(24 * 1024)
-	.t_cost(64)
-	.p_cost(1)
-	.build()
-	.unwrap()
+    ParamsBuilder::new()
+        .m_cost(24 * 1024)
+        .t_cost(64)
+        .p_cost(1)
+        .build()
+        .unwrap()
 });
 
 fn get_hasher() -> Argon2<'static> {

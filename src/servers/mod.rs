@@ -365,6 +365,8 @@ pub mod test_setup {
     pub const TEST_PASSWORD_HASH: &str = "$argon2id$v=19$m=4096,t=1,p=1$D/DKFfvJbZOBICD6y/798w$ifr1qDS9aQLyRPT+57ZOKmfUnrju+fbkEpiK6w2ADuo";
     pub const TEST_FULL_NAME: &str = "Test user full name";
 
+    pub const UNSAFE_PASSWORD: &str = "iloveyou1234";
+
     pub const TEST_USER_AGENT: &str = "test_user_agent";
 
     pub const ANON_EMAIL: &str = "anon_user@email.com";
@@ -955,13 +957,13 @@ pub mod test_setup {
             .unwrap()
         }
 
-		// device de
-			// ON
-				// co.device_id = de.device_id
-				// LEFT JOIN
-				// ip_address ipa
-			// ON
-				// co.ip_id = ipa.ip_id
+        // device de
+        // ON
+        // co.device_id = de.device_id
+        // LEFT JOIN
+        // ip_address ipa
+        // ON
+        // co.ip_id = ipa.ip_id
         /// will sleep before query!
         pub async fn get_connections(
             &self,

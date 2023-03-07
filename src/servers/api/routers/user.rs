@@ -146,7 +146,6 @@ impl UserRouter {
     async fn user_delete(
         State(state): State<ApplicationState>,
         user: ModelUser,
-        // jar: PrivateCookieJar,
         ij::IncomingJson(body): ij::IncomingJson<ij::PasswordToken>,
     ) -> Result<StatusCode, ApiError> {
         if user.user_level == UserLevel::Admin {
@@ -570,7 +569,7 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::{
         api_base_url, sleep, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
-        ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD,
+        ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
     use crate::user_io::incoming_json::ij::DevicePost;
 
@@ -1402,6 +1401,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
+        // println!("{:#?}", result.text().await.unwrap())
         let result = result.json::<Response>().await.unwrap().response;
         assert_eq!(result, "missing full_name");
 
@@ -1592,7 +1592,7 @@ mod tests {
         for password in [
             format!("new_password{}", TEST_EMAIL.to_uppercase()),
             TEST_PASSWORD.to_owned(),
-            "iloveyou1234".to_owned(),
+            UNSAFE_PASSWORD.to_owned(),
         ] {
             let body = HashMap::from([
                 ("current_password", TEST_PASSWORD),
