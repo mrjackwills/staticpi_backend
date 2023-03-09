@@ -55,11 +55,9 @@ impl ArgonHash {
     /// create a password hash, use blocking to run in own thread
     async fn hash_password(password: String) -> Result<String, ApiError> {
         tokio::task::spawn_blocking(move || -> Result<String, ApiError> {
-            // let start = std::time::Instant::now();
             let salt = SaltString::generate(rand::thread_rng());
             match PasswordHash::generate(get_hasher(), password, &salt) {
                 Ok(hash) => {
-                    // println!("{}ms", start.elapsed().as_millis());
                     Ok(hash.to_string())
                 }
                 Err(e) => {

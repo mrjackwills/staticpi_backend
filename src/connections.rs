@@ -563,7 +563,6 @@ impl Connections {
             .client
             .0
             .values()
-            .into_iter()
             .flat_map(|i| {
                 i.values()
                     .filter_map(|i| {

@@ -2358,7 +2358,6 @@ mod tests {
         );
 
         let message = (0..63)
-            .into_iter()
             .map(|_| "a".to_owned())
             .collect::<String>();
 
@@ -2392,7 +2391,6 @@ mod tests {
         );
 
         let message = (0..=1024)
-            .into_iter()
             .map(|_| "a".to_owned())
             .collect::<String>();
 

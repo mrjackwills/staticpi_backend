@@ -731,7 +731,7 @@ mod tests {
         assert_eq!(result, "device_name");
 
         // Name too long
-        let name = (0..=66).into_iter().map(|_| "a").collect::<String>();
+        let name = (0..=66).map(|_| "a").collect::<String>();
         let body = TestSetup::gen_device_post(1, None, None, false, Some(name.as_str()));
         let result = client
             .post(&url)
@@ -746,7 +746,7 @@ mod tests {
         assert_eq!(result, "device_name");
 
         // client password too_long
-        let password = (0..=65).into_iter().map(|_| "a").collect::<String>();
+        let password = (0..=65).map(|_| "a").collect::<String>();
 
         let body = TestSetup::gen_device_post(1, Some(password.as_str()), None, false, None);
         let result = client
@@ -866,7 +866,7 @@ mod tests {
         test_setup.delete_devices().await;
 
         // With client password
-        let password = (0..=16).into_iter().map(|_| "a").collect::<String>();
+        let password = (0..=16).map(|_| "a").collect::<String>();
         let body = TestSetup::gen_device_post(1, Some(password.as_str()), None, false, None);
         let result = client
             .post(&url)

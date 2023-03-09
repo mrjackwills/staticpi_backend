@@ -141,7 +141,6 @@ impl AppEnv {
     /// Load, and parse .env file, return `AppEnv`
     fn generate() -> Result<Self, EnvError> {
         let env_map = env::vars()
-            .into_iter()
             .map(|i| (i.0, i.1))
             .collect::<EnvHashMap>();
 
