@@ -387,13 +387,13 @@ impl WsRouter {
 
     // Send an api_version & uptime response, then close socket
     async fn online_message_handler(mut socket: WebSocket, state: ApplicationState) {
-        let response = serde_json::to_string(&oj::Online {
+        if let Ok(response) = serde_json::to_string(&oj::Online {
             uptime: calc_uptime(state.start_time),
             api_version: env!("CARGO_PKG_VERSION").into(),
-        })
-        .unwrap_or_default();
-        if let Err(e) = socket.send(Message::Text(response)).await {
-            debug!("online_ws::send::{:?}", e);
+        }) {
+            if let Err(e) = socket.send(Message::Text(response)).await {
+                debug!("online_ws::send::{:?}", e);
+            }
         }
 
         match tokio::time::timeout(std::time::Duration::from_secs(2), socket.close()).await {
@@ -2459,10 +2459,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=10_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=10_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2503,10 +2500,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=10_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=10_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2547,10 +2541,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=3_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=3_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2592,10 +2583,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=3_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=3_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2637,10 +2625,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=5_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2682,10 +2667,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=5_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2732,10 +2714,7 @@ mod tests {
         assert!(ws_pi.is_ok());
         let (mut ws_pi, _) = ws_pi.unwrap();
 
-        let long_msg = (0..=5_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let long_msg = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
 
         let msg_text = format!(r#"{{"data":{long_msg}}}"#);
 
@@ -2787,10 +2766,7 @@ mod tests {
         assert!(ws_client.is_ok());
         let (mut ws_client, _) = ws_client.unwrap();
 
-        let long_msg = (0..=5_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let long_msg = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
 
         let msg_text = format!(r#"{{"data":{long_msg}}}"#);
 
@@ -2843,10 +2819,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=8_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=8_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2888,10 +2861,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=8_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=8_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2933,10 +2903,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=10_000_000)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=10_000_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2978,10 +2945,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=10_000_001)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let msg_text = (0..=10_000_001).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 

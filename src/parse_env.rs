@@ -140,10 +140,7 @@ impl AppEnv {
 
     /// Load, and parse .env file, return `AppEnv`
     fn generate() -> Result<Self, EnvError> {
-        let env_map = env::vars()
-            .into_iter()
-            .map(|i| (i.0, i.1))
-            .collect::<EnvHashMap>();
+        let env_map = env::vars().map(|i| (i.0, i.1)).collect::<EnvHashMap>();
 
         Ok(Self {
             api_host: Self::parse_string("API_HOST", &env_map)?,

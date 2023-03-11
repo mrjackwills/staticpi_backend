@@ -536,8 +536,8 @@ pub mod test_setup {
 
         /// Delete emails that were written to disk
         pub fn delete_emails() {
-            std::fs::remove_file("/dev/shm/email_headers.txt").unwrap_or(());
-            std::fs::remove_file("/dev/shm/email_body.txt").unwrap_or(());
+            std::fs::remove_file("/dev/shm/email_headers.txt").ok();
+            std::fs::remove_file("/dev/shm/email_body.txt").ok();
         }
 
         // Insert bandwidth, same thread as caller, unlike the actual method

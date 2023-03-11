@@ -2357,10 +2357,7 @@ mod tests {
             IncognitoRoutes::Contact.addr()
         );
 
-        let message = (0..63)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let message = (0..63).map(|_| "a".to_owned()).collect::<String>();
 
         let body = HashMap::from([("email", TEST_EMAIL), ("message", &message)]);
 
@@ -2391,10 +2388,7 @@ mod tests {
             IncognitoRoutes::Contact.addr()
         );
 
-        let message = (0..=1024)
-            .into_iter()
-            .map(|_| "a".to_owned())
-            .collect::<String>();
+        let message = (0..=1024).map(|_| "a".to_owned()).collect::<String>();
 
         let body = HashMap::from([("email", TEST_EMAIL), ("message", &message)]);
 

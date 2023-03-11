@@ -138,8 +138,8 @@ impl Emailer {
 
                 if let Ok(message) = message_builder {
                     std::fs::write("/dev/shm/email_headers.txt", message.headers().to_string())
-                        .unwrap_or_default();
-                    std::fs::write("/dev/shm/email_body.txt", html_string).unwrap_or_default();
+                        .ok();
+                    std::fs::write("/dev/shm/email_body.txt", html_string).ok();
                     info!("Would be sending email if on production");
                 } else {
                     email_log.update_sent_false(&postgres).await;
@@ -206,8 +206,8 @@ impl Emailer {
                         }
                     } else {
                         std::fs::write("/dev/shm/email_headers.txt", message.headers().to_string())
-                            .unwrap_or_default();
-                        std::fs::write("/dev/shm/email_body.txt", html_string).unwrap_or_default();
+                            .ok();
+                        std::fs::write("/dev/shm/email_body.txt", html_string).ok();
                         info!("Would be sending email if on production");
                     }
                 } else {
