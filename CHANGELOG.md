@@ -5,7 +5,7 @@
 + devcontainer sparse protocol index, [8a974849d6b49dba4fd6c39544a74c9bb19b6b66]
 
 ### Features
-+ feat: SysInfo make async, [cb0eb394c205e894af31c1f7b23c1d0c431fca00], [823e362cd5df03a8c1f35da59b46c1367ee5ca0f]
++ SysInfo make async, [cb0eb394c205e894af31c1f7b23c1d0c431fca00], [823e362cd5df03a8c1f35da59b46c1367ee5ca0f]
 
 ### Refactors
 + `unwrap`, to `ok()` or `_default()`, [afb73acb1e4fd4e6087b4d2c4a9dbab5e34db27a]
