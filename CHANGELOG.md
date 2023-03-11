@@ -1,7 +1,6 @@
 ### Chores
 + dependencies updated, [fddecdcb47a703ae696a186cadc967d82740020c], [d6ad0eb6b22d7a577b429fd92fbc358370c210dc]
 + Rust 1.68.0 linting, [d3ab2ceff7f62b91f4fc3811d2c300c807bdde4c]
-+ dependencies updated,
 + devcontainer sparse protocol index, [8a974849d6b49dba4fd6c39544a74c9bb19b6b66]
 
 ### Features
