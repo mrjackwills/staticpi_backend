@@ -192,7 +192,7 @@ impl WsSender {
     /// Check if auto close valid, if not, close connection, else send a ping message
     async fn ping(&mut self, now: &Instant) -> Result<(), ()> {
         if self.auto_close_valid(now).is_ok() {
-            self.socket.send(Message::Ping(vec![])).await.unwrap_or(());
+            self.socket.send(Message::Ping(vec![])).await.ok();
             Ok(())
         } else {
             Err(())
@@ -202,8 +202,8 @@ impl WsSender {
     /// Close the connection
     async fn ws_close(&mut self) {
         // Is there any point in sending a close message?
-        self.socket.send(Message::Close(None)).await.unwrap_or(());
-        self.socket.close().await.unwrap_or(());
+        self.socket.send(Message::Close(None)).await.ok();
+        self.socket.close().await.ok();
     }
 }
 
@@ -451,7 +451,7 @@ impl Connections {
                         input.redis,
                     );
                     for ws_sender in &mut map.values_mut() {
-                        ws_sender.socket.send(message.clone()).await.unwrap_or(());
+                        ws_sender.socket.send(message.clone()).await.ok();
                     }
                 }
             }
@@ -466,7 +466,7 @@ impl Connections {
                         input.postgres,
                         input.redis,
                     );
-                    ws_sender.socket.send(message).await.unwrap_or(());
+                    ws_sender.socket.send(message).await.ok();
                 }
             }
         }
@@ -498,7 +498,7 @@ impl Connections {
                 input.postgres,
                 input.redis,
             );
-            ws_sender.socket.send(message).await.unwrap_or(());
+            ws_sender.socket.send(message).await.ok();
         }
     }
 
@@ -522,7 +522,7 @@ impl Connections {
                         input.postgres,
                         input.redis,
                     );
-                    ws_sender.socket.send(message).await.unwrap_or(());
+                    ws_sender.socket.send(message).await.ok();
                 }
             }
         }

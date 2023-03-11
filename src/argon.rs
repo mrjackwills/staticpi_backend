@@ -57,9 +57,7 @@ impl ArgonHash {
         tokio::task::spawn_blocking(move || -> Result<String, ApiError> {
             let salt = SaltString::generate(rand::thread_rng());
             match PasswordHash::generate(get_hasher(), password, &salt) {
-                Ok(hash) => {
-                    Ok(hash.to_string())
-                }
+                Ok(hash) => Ok(hash.to_string()),
                 Err(e) => {
                     error!("{e}");
                     Err(ApiError::Internal(String::from("password_hash generate")))

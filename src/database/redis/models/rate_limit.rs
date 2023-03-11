@@ -78,7 +78,7 @@ async fn get_admin_limit(rate_limit: RateLimit, redis: &AMRedis) -> Result<Admin
     let ttl = rate_limit.ttl(&mut redis).await?;
     Ok(AdminLimit {
         key: rate_limit.to_string(),
-        points: rate_limit.get_count(&mut redis).await?.unwrap_or(0),
+        points: rate_limit.get_count(&mut redis).await?.unwrap_or_default(),
         max: rate_limit.get_limit(),
         ttl,
         blocked: exceeded,
@@ -258,7 +258,7 @@ impl RateLimit {
 
     /// Get the ttl for a given limiter, converts from the redis isize to usize
     pub async fn ttl(&self, redis: &mut MutexGuard<'_, Connection>) -> Result<usize, ApiError> {
-        Ok(usize::try_from(redis.ttl::<String, isize>(self.key()).await?).unwrap_or(0))
+        Ok(usize::try_from(redis.ttl::<String, isize>(self.key()).await?).unwrap_or_default())
     }
 
     /// If currently rate limited, return ttl, else 0
