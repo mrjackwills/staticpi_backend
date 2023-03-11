@@ -53,7 +53,7 @@ impl SysInfo {
             .map(|i| i.parse::<usize>().unwrap_or_default() * 4096)
             .collect::<Vec<_>>();
 
-        let uptime = std::fs::read_to_string("/proc/uptime")
+        let uptime = tokio::fs::read_to_string("/proc/uptime").await
             .unwrap_or_default()
             .split('.')
             .take(1)
