@@ -166,7 +166,7 @@ production_rebuild () {
 	DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
 	DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
 	DOCKER_BUILDKIT=0 \
-	docker compose -f docker-compose.yml -d --build
+	docker compose -f docker-compose.yml up -d --build
 }
 
 
