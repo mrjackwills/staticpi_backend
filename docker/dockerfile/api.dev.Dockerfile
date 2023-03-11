@@ -61,5 +61,4 @@ COPY --from=BUILDER /usr/src/staticpi/target/release/staticpi /app/
 
 USER ${DOCKER_APP_USER}
 
-CMD [ "sleep", "600000"]
-# CMD ["/app/staticpi"]
+CMD ["/app/staticpi"]
