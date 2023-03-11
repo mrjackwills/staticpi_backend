@@ -28,7 +28,7 @@
 + devcontainer updated, [31acce16](https://github.com/mrjackwills/staticpi_backend/commit/31acce167d0efe49857f261302b5eb63da4a89e1),
 
 ### Refactors
-+ postgreSQL use `USING(x)` where appropiate, [1018a280](https://github.com/mrjackwills/staticpi_backend/commit/1018a280bca4af88ab31713cb8f99c8dedca463c),
++ postgreSQL use `USING(x)` where appropriate, [1018a280](https://github.com/mrjackwills/staticpi_backend/commit/1018a280bca4af88ab31713cb8f99c8dedca463c),
 
 ### Tests
 + use UNSAFE_PASSWORD const, [3a061a07](https://github.com/mrjackwills/staticpi_backend/commit/3a061a07a7ccdf980fa53c9296a519d78f407192),
