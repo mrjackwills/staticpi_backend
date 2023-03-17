@@ -18,9 +18,13 @@ impl FromRedisValue for RedisTwoFASetup {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct RedisTwoFASetup(pub String);
+pub struct RedisTwoFASetup(String);
 
 impl RedisTwoFASetup {
+    pub fn value(&self) -> &str {
+        self.0.as_str()
+    }
+
     pub fn new(secret: &str) -> Self {
         Self(secret.to_owned())
     }

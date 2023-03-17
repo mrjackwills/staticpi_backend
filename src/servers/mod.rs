@@ -316,7 +316,6 @@ async fn rate_limiting<B: Send + Sync>(
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod test_setup {
-    use google_authenticator::GoogleAuthenticator;
     use redis::{aio::Connection, AsyncCommands};
     use reqwest::Url;
 
@@ -349,6 +348,7 @@ pub mod test_setup {
     use crate::helpers::gen_random_hex;
     use crate::parse_env;
     use crate::parse_env::AppEnv;
+    use crate::servers::api::authentication::totp_from_secret;
     use crate::user_io::incoming_json::ij;
     use crate::user_io::incoming_json::ij::DevicePost;
     use crate::ServeData;
@@ -676,8 +676,7 @@ pub mod test_setup {
 
             let anon_user = self.get_anon_user().await;
 
-            let auth = GoogleAuthenticator::new();
-            let secret = auth.create_secret(32);
+            let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
             let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
@@ -706,8 +705,7 @@ pub mod test_setup {
 
         // Assumes a test user is already in database, then insert a twofa_secret into postgres
         pub async fn insert_two_fa(&mut self) {
-            let auth = GoogleAuthenticator::new();
-            let secret = auth.create_secret(32);
+			let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
             let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
@@ -818,19 +816,16 @@ pub mod test_setup {
         /// Sign in the anon user (Required anon_user to be inserted beforehand), and return cookie string
         pub async fn anon_user_cookie(&mut self) -> Option<String> {
             // Need to get token
-
-            let auth = GoogleAuthenticator::new();
-            let token = auth
-                .get_code(
+            let token = totp_from_secret(
                     self.anon_user
                         .as_ref()
                         .unwrap()
                         .two_fa_secret
                         .as_ref()
                         .unwrap(),
-                    0,
+                    
                 )
-                .unwrap();
+                .unwrap().generate_current().unwrap();
 
             let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
             let body = Self::gen_signin_body(
@@ -1017,31 +1012,27 @@ pub mod test_setup {
         }
 
         pub fn get_invalid_token(&self) -> String {
-            let auth = GoogleAuthenticator::new();
-            auth.get_code(
+			totp_from_secret(
                 self.model_user
                     .as_ref()
                     .unwrap()
                     .two_fa_secret
                     .as_ref()
                     .unwrap(),
-                123_456_789,
-            )
-            .unwrap()
+                
+            ).unwrap().generate(123_456_789)
         }
 
         pub fn get_valid_token(&self) -> String {
-            let auth = GoogleAuthenticator::new();
-            auth.get_code(
+            totp_from_secret(
                 self.model_user
                     .as_ref()
                     .unwrap()
                     .two_fa_secret
                     .as_ref()
                     .unwrap(),
-                0,
-            )
-            .unwrap()
+                
+            ).unwrap().generate_current().unwrap()
         }
 
         // Generate register body

@@ -32,7 +32,7 @@ impl ModelTwoFA {
             .bind(user.registered_user_id.get())
             .bind(useragent_ip.ip_id.get())
             .bind(useragent_ip.user_agent_id.get())
-            .bind(two_fa_setup.0)
+            .bind(two_fa_setup.value())
             .execute(postgres)
             .await?;
         Ok(())

@@ -1,4 +1,4 @@
-mod authentication;
+pub mod authentication;
 mod routers;
 
 use reqwest::Method;
