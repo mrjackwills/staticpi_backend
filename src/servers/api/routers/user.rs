@@ -1960,12 +1960,11 @@ mod tests {
             .await
             .unwrap();
 
-		// This will be invalid, as the value sent to the front end is rfc thing
         assert!(redis_secret.is_some());
 
-		let totp = totp_from_secret(redis_secret.unwrap().value());
-		assert!(totp.is_ok());
-		let redis_totp = totp.unwrap().get_secret_base32();
+        let totp = totp_from_secret(redis_secret.unwrap().value());
+        assert!(totp.is_ok());
+        let redis_totp = totp.unwrap().get_secret_base32();
 
         assert_eq!(redis_totp, response["secret"]);
 

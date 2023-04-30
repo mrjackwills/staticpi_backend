@@ -705,7 +705,7 @@ pub mod test_setup {
 
         // Assumes a test user is already in database, then insert a twofa_secret into postgres
         pub async fn insert_two_fa(&mut self) {
-			let secret = gen_random_hex(32);
+            let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
             let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
@@ -817,15 +817,16 @@ pub mod test_setup {
         pub async fn anon_user_cookie(&mut self) -> Option<String> {
             // Need to get token
             let token = totp_from_secret(
-                    self.anon_user
-                        .as_ref()
-                        .unwrap()
-                        .two_fa_secret
-                        .as_ref()
-                        .unwrap(),
-                    
-                )
-                .unwrap().generate_current().unwrap();
+                self.anon_user
+                    .as_ref()
+                    .unwrap()
+                    .two_fa_secret
+                    .as_ref()
+                    .unwrap(),
+            )
+            .unwrap()
+            .generate_current()
+            .unwrap();
 
             let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
             let body = Self::gen_signin_body(
@@ -1012,15 +1013,16 @@ pub mod test_setup {
         }
 
         pub fn get_invalid_token(&self) -> String {
-			totp_from_secret(
+            totp_from_secret(
                 self.model_user
                     .as_ref()
                     .unwrap()
                     .two_fa_secret
                     .as_ref()
                     .unwrap(),
-                
-            ).unwrap().generate(123_456_789)
+            )
+            .unwrap()
+            .generate(123_456_789)
         }
 
         pub fn get_valid_token(&self) -> String {
@@ -1031,8 +1033,10 @@ pub mod test_setup {
                     .two_fa_secret
                     .as_ref()
                     .unwrap(),
-                
-            ).unwrap().generate_current().unwrap()
+            )
+            .unwrap()
+            .generate_current()
+            .unwrap()
         }
 
         // Generate register body
