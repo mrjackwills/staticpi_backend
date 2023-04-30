@@ -2352,7 +2352,7 @@ mod tests {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
@@ -2383,7 +2383,7 @@ mod tests {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
@@ -2414,7 +2414,7 @@ mod tests {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
@@ -2453,7 +2453,7 @@ mod tests {
         let client = TestSetup::get_client();
         let authed_cookie = test_setup.authed_user_cookie().await;
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
@@ -2495,7 +2495,7 @@ mod tests {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
@@ -2561,7 +2561,7 @@ mod tests {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
@@ -2641,7 +2641,7 @@ mod tests {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
-            "{}/{}",
+            "{}{}",
             api_base_url(&test_setup.app_env),
             IncognitoRoutes::Contact.addr()
         );
