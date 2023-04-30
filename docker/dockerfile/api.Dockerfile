@@ -27,8 +27,6 @@ RUN touch /usr/src/staticpi/src/main.rs
 # This is the actual application build
 RUN cargo build --release
 
-RUN cp /usr/src/staticpi/target/release/staticpi /
-
 #############
 ## Runtime ##
 #############
