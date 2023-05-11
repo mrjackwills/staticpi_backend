@@ -38,8 +38,10 @@ impl RedisTwoFASetup {
     pub async fn insert(&self, redis: &AMRedis, user: &ModelUser) -> Result<&Self, ApiError> {
         let key = Self::key(user.registered_user_id);
         let session = serde_json::to_string(&self)?;
-        redis.lock().await.hset(&key, HASH_FIELD, session).await?;
-        redis.lock().await.expire(&key, 120).await?;
+        {
+			redis.lock().await.hset(&key, HASH_FIELD, session).await?;
+        	redis.lock().await.expire(&key, 120).await?;
+		}
         Ok(self)
     }
 
