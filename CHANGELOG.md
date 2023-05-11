@@ -1,3 +1,18 @@
+### Chores
++ Drop linting, [50bce1a441e0aa540ad56889ac66c993a0d25f90]
++ dependencies updated, [9dd7c2a1ad60637ef7e24d0ffc07c40f2b30cd09]
+
+### Features
++ use `totp-rs` for two factor authentication, [52cb876c83389de4d7c367f4e6ccea21597c54f8]
+
+### Fixes
++ api Dockerfile fix, [c78fbb6038b74c563491934677ff786f1ae8f474]
++ run.sh, [cf9fd0124e370982dba50dcf6108bfbd8bffe97c]
+
+### Tests
++ totp fix, [cda5e65e4cf23062da8123ec6f6c321d4661b6ee]
++ ratelimit fix, [dd049ee2700d945992ac5d5cb606f24b08319742]
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.2'>v0.0.2</a>
 ### 2023-03-10
 
