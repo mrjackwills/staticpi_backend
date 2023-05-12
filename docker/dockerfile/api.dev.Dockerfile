@@ -33,7 +33,8 @@ RUN cp /usr/src/staticpi/target/release/staticpi /
 ## Runtime ##
 #############
 
-FROM debian:bullseye-slim AS RUNTIME
+# FROM debian:bullseye-slim AS RUNTIME
+FROM ubuntu:22.04 AS RUNTIME
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \
