@@ -1,6 +1,7 @@
 ### Chores
 + Drop linting, [50bce1a441e0aa540ad56889ac66c993a0d25f90]
 + dependencies updated, [9dd7c2a1ad60637ef7e24d0ffc07c40f2b30cd09]
++ Dockerfile bumps, use Ubuntu, [8d5d7bb3a2fe81c99268df827c2ada4d16370a53]
 
 ### Features
 + use `totp-rs` for two factor authentication, [52cb876c83389de4d7c367f4e6ccea21597c54f8]
