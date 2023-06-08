@@ -231,6 +231,7 @@ mod tests {
     use crate::{
         parse_env,
         servers::test_setup::{setup, TestSetup, TEST_EMAIL},
+        sleep,
     };
 
     // Make sure emailer sends correctly, just save onto disk and check against that, rather than sending actual email!
@@ -258,7 +259,7 @@ mod tests {
         email.send(&test_setup.postgres, &req).await;
 
         // Need to sleep, as the email.send() function spawns onto it's own thread, 1ms should be enough to do everything it needs to
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+        sleep!(1);
 
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)

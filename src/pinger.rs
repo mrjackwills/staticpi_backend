@@ -6,6 +6,14 @@ use time::OffsetDateTime;
 
 pub struct Pinger;
 
+#[macro_export]
+/// Sleep for a given number of milliseconds, is an async call
+macro_rules! sleep {
+    ($ms:expr) => {
+        tokio::time::sleep(std::time::Duration::from_millis($ms)).await;
+    };
+}
+
 impl Pinger {
     /// Ping every connection every 30 seconds
     pub async fn init(connections: AMConnections, postgres: PgPool) {
@@ -15,7 +23,7 @@ impl Pinger {
         } else {
             30 - current_second
         };
-        tokio::time::sleep(std::time::Duration::from_secs(u64::from(wait_for))).await;
+        sleep!(u64::from(wait_for) * 1000);
         connections.lock().await.ping(&postgres).await;
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
         interval.tick().await;

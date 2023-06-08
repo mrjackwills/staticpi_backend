@@ -29,6 +29,7 @@ use crate::{
         new_types::{ConnectionId, DeviceId},
         rate_limit::RateLimit,
     },
+    define_routes,
     helpers::calc_uptime,
     servers::{check_monthly_bandwidth, AMRedis, ApiRouter, ApplicationState},
     user_io::{
@@ -38,21 +39,12 @@ use crate::{
     },
 };
 
-pub enum WsRoutes {
-    Online,
-    Pi,
-    Client,
-}
-
-impl WsRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::Online => "online",
-            Self::Client => "client/:access_token",
-            Self::Pi => "pi/:access_token",
-        };
-        format!("/{route_name}")
-    }
+define_routes! {
+    WsRoutes,
+    "/",
+    Online => "online",
+    Client => "client/:access_token",
+    Pi => "pi/:access_token"
 }
 
 // Measure message size in bytes
@@ -482,9 +474,8 @@ mod tests {
             user_level::UserLevel, RedisKey,
         },
         helpers::gen_random_hex,
-        servers::test_setup::{
-            sleep, start_servers, token_base_url, ws_base_url, Response, TestSetup,
-        },
+        servers::test_setup::{start_servers, token_base_url, ws_base_url, Response, TestSetup},
+        sleep,
         user_io::incoming_json::ij::DevicePost,
     };
     use futures::{SinkExt, StreamExt};
@@ -505,7 +496,7 @@ mod tests {
     /// base ws route returns basic server stats, and then connection is closed
     async fn ws_server_online() {
         let test_setup = start_servers().await;
-        sleep(1000).await;
+        sleep!(1000);
         let url = Url::parse(&format!("{}/online", ws_base_url(&test_setup.app_env))).unwrap();
         let (socket, _) = connect_async(url).await.unwrap();
         let (_, mut rx) = socket.split();
@@ -587,7 +578,7 @@ mod tests {
 
         assert_eq!(ttl, 300);
 
-        sleep(1000).await;
+        sleep!(1000);
         assert!(connect_async(&url).await.is_err());
         let ttl = test_setup
             .redis
@@ -725,7 +716,7 @@ mod tests {
         assert!(ws.close(None).await.is_ok());
 
         // Need to sleep here, as connection_offline is executed on it's own thread,
-        sleep(100).await;
+        sleep!(100);
 
         let connections = test_setup
             .get_connections(ConnectionType::Client, &device_name)
@@ -796,7 +787,7 @@ mod tests {
         assert!(ws.close(None).await.is_ok());
 
         // Need to sleep here, as connection_offline is executed in it's own thread,
-        sleep(100).await;
+        sleep!(100);
 
         let connections = test_setup
             .get_connections(ConnectionType::Pi, &device_name)
@@ -985,7 +976,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // have to sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1029,7 +1020,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // Need to wait as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1075,7 +1066,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // have to sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1121,7 +1112,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // Need to wait as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1579,7 +1570,7 @@ mod tests {
         ws_pi.send(msg).await.unwrap();
 
         // Sleep as inserted on own thread
-        sleep(250).await;
+        sleep!(250);
         let message_cache: Vec<String> = test_setup
             .redis
             .lock()
@@ -2092,7 +2083,7 @@ mod tests {
         }
 
         // have to sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
 
         // flush cache!
         let key = format!(
@@ -2158,7 +2149,7 @@ mod tests {
         }
 
         // have to sleep as bandwidth inserted on own thread
-        sleep(500).await;
+        sleep!(500);
 
         // flush cache!
         let key = format!(
@@ -2549,7 +2540,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
@@ -2591,7 +2582,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
@@ -2728,7 +2719,7 @@ mod tests {
         );
 
         // Sleep due to bandwidth insertion on own thread
-        sleep(250).await;
+        sleep!(250);
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -2786,7 +2777,7 @@ mod tests {
         );
 
         // Sleep due to bandwidth insertion on own thread
-        sleep(250).await;
+        sleep!(250);
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -2827,7 +2818,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
@@ -2869,7 +2860,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep(250).await;
+        sleep!(250);
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,

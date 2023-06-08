@@ -24,39 +24,25 @@ use crate::{
         user::ModelUser,
         user_level::UserLevel,
     },
+    define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, gen_random_hex},
     servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
 
-enum UserRoutes {
-    Base,
-    Data,
-    Name,
-    Password,
-    SetupTwoFA,
-    Signout,
-    TwoFA,
-    TwoFABackup,
+define_routes! {
+    UserRoutes,
+    "/user",
+    Base => "",
+    Data => "/data",
+    Name => "/name",
+    Password => "/password",
+    SetupTwoFA => "/setup/twofa",
+    Signout => "/signout",
+    TwoFA => "/twofa",
+    TwoFABackup => "/twofa/backup"
 }
-
-impl UserRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::Base => "",
-            Self::Data => "/data",
-            Self::Name => "/name",
-            Self::Password => "/password",
-            Self::SetupTwoFA => "/setup/twofa",
-            Self::Signout => "/signout",
-            Self::TwoFA => "/twofa",
-            Self::TwoFABackup => "/twofa/backup",
-        };
-        format!("/user{route_name}")
-    }
-}
-
 // This is shared, should put elsewhere
 enum UserResponse {
     UnsafePassword,
@@ -570,9 +556,10 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::api::authentication::totp_from_secret;
     use crate::servers::test_setup::{
-        api_base_url, sleep, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
+        api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
+    use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
 
     use futures::{SinkExt, StreamExt};
@@ -3255,16 +3242,16 @@ mod tests {
         ws_client.send(msg).await.unwrap();
 
         // stagger these, so that the bandwidth array is of fixed order, lazy I know
-        sleep(500).await;
+        sleep!(500);
 
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
 
         // allow bandwidths to be inserted
-        sleep(500).await;
+        sleep!(500);
         ws_client.close(None).await.unwrap();
-        sleep(500).await;
+        sleep!(500);
 
         let body = HashMap::from([("password", TEST_PASSWORD)]);
         let resp = client
