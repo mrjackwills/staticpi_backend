@@ -19,26 +19,18 @@ use crate::{
         new_types::{ApiKey, DeviceId},
         rate_limit::RateLimit,
     },
+    define_routes,
     helpers::calc_uptime,
     servers::{check_monthly_bandwidth, AMRedis, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
 
-pub enum TokenRoutes {
-    Online,
-    Client,
-    Pi,
-}
-
-impl TokenRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::Online => "online",
-            Self::Client => "client",
-            Self::Pi => "pi",
-        };
-        format!("/{route_name}")
-    }
+define_routes! {
+    TokenRoutes,
+    "/",
+    Online => "online",
+    Client => "client",
+    Pi => "pi"
 }
 
 pub struct TokenRouter;
@@ -197,7 +189,8 @@ mod tests {
         connections::ConnectionType,
         database::{access_token::AccessToken, user_level::UserLevel, RedisKey},
         helpers::gen_random_hex,
-        servers::test_setup::{sleep, start_servers, token_base_url, Response, TestSetup},
+        servers::test_setup::{start_servers, token_base_url, Response, TestSetup},
+        sleep,
         user_io::incoming_json::ij::DevicePost,
     };
     use redis::AsyncCommands;
@@ -210,7 +203,7 @@ mod tests {
     async fn token_server_online() {
         let test_setup = start_servers().await;
         let client = TestSetup::get_client();
-        sleep(1000).await;
+        sleep!(1000);
         let result = client
             .get(&format!("{}/online", token_base_url(&test_setup.app_env)))
             .send()
@@ -304,7 +297,7 @@ mod tests {
         assert_eq!(result, "rate limited for 300 seconds");
 
         // any further requests resets the ban to 300 again
-        sleep(1000).await;
+        sleep!(1000);
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;

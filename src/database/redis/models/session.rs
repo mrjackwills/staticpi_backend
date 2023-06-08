@@ -62,7 +62,7 @@ impl RedisSession {
                 .await?;
 
             if let Some(session) = op_session {
-                let ttl: u64 = redis.lock().await.ttl(&key).await?;
+                let ttl = redis.lock().await.ttl(&key).await?;
                 output.push(AdminSession {
                     key,
                     ttl,
@@ -86,8 +86,7 @@ impl RedisSession {
         redis.hset(&key_session, HASH_FIELD, session).await?;
         redis.sadd(&key_session_set, &key_session).await?;
         redis.expire(&key_session_set, ttl).await?;
-        redis.expire(&key_session, ttl).await?;
-        Ok(())
+        Ok(redis.expire(&key_session, ttl).await?)
     }
 
     // On any setting change, need to make sure to update session
@@ -119,8 +118,7 @@ impl RedisSession {
                 redis.del(&key_session_set).await?;
             }
         }
-        redis.del(&key_session).await?;
-        Ok(())
+        Ok(redis.del(&key_session).await?)
     }
 
     /// Delete all sessions for a single user - used when setting a user active status to false, or password reset!
@@ -133,8 +131,7 @@ impl RedisSession {
         for key in session_set {
             redis.del(key).await?;
         }
-        redis.del(&key_session_set).await?;
-        Ok(())
+        Ok(redis.del(&key_session_set).await?)
     }
 
     /// Convert a session into a `ModelUser` object
@@ -147,8 +144,8 @@ impl RedisSession {
 
         let op_session: Option<Self> = redis.lock().await.hget(&key_session, HASH_FIELD).await?;
         if let Some(session) = op_session {
-            // If, for some reason, user isn't in postgres, delete session before returning None
             let user = ModelUser::get(postgres, &session.email).await?;
+            // If, for some reason, user isn't in postgres, delete session
             if user.is_none() {
                 Self::delete(redis, ulid).await?;
             }

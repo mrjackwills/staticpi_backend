@@ -260,34 +260,6 @@ pub async fn fallback(
     )
 }
 
-// /// Limit the users request based on ip address, using redis as mem store
-// // Might need to re-do this for ws/auth, as need to try on api_key as well!
-// async fn rate_limiting<B: std::marker::Send>(
-//     req: Request<B>,
-//     next: Next<B>,
-// ) -> Result<Response, ApiError> {
-//     let state = get_state(req.extensions())?;
-//     let addr: Option<&ConnectInfo<SocketAddr>> = req.extensions().get();
-//     let ip = get_ip(req.headers(), addr);
-//     let mut parts = RequestParts::new(req);
-
-//     let mut key = RateLimit::Ip(ip);
-
-//     if let Ok(jar) = parts.extract::<PrivateCookieJar<Key>>().await {
-//         if let Some(data) = jar.get(&state.cookie_name) {
-//             if let Some(user) =
-//                 RedisSession::exists(&state.redis, &Ulid::from_string(data.value())?).await?
-//             {
-//                 key = RateLimit::Email(user.email);
-//             }
-//         }
-//     }
-//     key.check(&state.redis).await?;
-
-//     let req = parts.try_into_request()?;
-//     Ok(next.run(req).await)
-// }
-
 // Limit the users request based on ip address, using redis as mem store
 async fn rate_limiting<B: Send + Sync>(
     State(state): State<ApplicationState>,
@@ -316,7 +288,6 @@ async fn rate_limiting<B: Send + Sync>(
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod test_setup {
-    use google_authenticator::GoogleAuthenticator;
     use redis::{aio::Connection, AsyncCommands};
     use reqwest::Url;
 
@@ -349,6 +320,8 @@ pub mod test_setup {
     use crate::helpers::gen_random_hex;
     use crate::parse_env;
     use crate::parse_env::AppEnv;
+    use crate::servers::api::authentication::totp_from_secret;
+    use crate::sleep;
     use crate::user_io::incoming_json::ij;
     use crate::user_io::incoming_json::ij::DevicePost;
     use crate::ServeData;
@@ -676,8 +649,7 @@ pub mod test_setup {
 
             let anon_user = self.get_anon_user().await;
 
-            let auth = GoogleAuthenticator::new();
-            let secret = auth.create_secret(32);
+            let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
             let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
@@ -706,8 +678,7 @@ pub mod test_setup {
 
         // Assumes a test user is already in database, then insert a twofa_secret into postgres
         pub async fn insert_two_fa(&mut self) {
-            let auth = GoogleAuthenticator::new();
-            let secret = auth.create_secret(32);
+            let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
             let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
@@ -818,19 +789,17 @@ pub mod test_setup {
         /// Sign in the anon user (Required anon_user to be inserted beforehand), and return cookie string
         pub async fn anon_user_cookie(&mut self) -> Option<String> {
             // Need to get token
-
-            let auth = GoogleAuthenticator::new();
-            let token = auth
-                .get_code(
-                    self.anon_user
-                        .as_ref()
-                        .unwrap()
-                        .two_fa_secret
-                        .as_ref()
-                        .unwrap(),
-                    0,
-                )
-                .unwrap();
+            let token = totp_from_secret(
+                self.anon_user
+                    .as_ref()
+                    .unwrap()
+                    .two_fa_secret
+                    .as_ref()
+                    .unwrap(),
+            )
+            .unwrap()
+            .generate_current()
+            .unwrap();
 
             let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
             let body = Self::gen_signin_body(
@@ -957,13 +926,6 @@ pub mod test_setup {
             .unwrap()
         }
 
-        // device de
-        // ON
-        // co.device_id = de.device_id
-        // LEFT JOIN
-        // ip_address ipa
-        // ON
-        // co.ip_id = ipa.ip_id
         /// will sleep before query!
         pub async fn get_connections(
             &self,
@@ -1017,30 +979,29 @@ pub mod test_setup {
         }
 
         pub fn get_invalid_token(&self) -> String {
-            let auth = GoogleAuthenticator::new();
-            auth.get_code(
+            totp_from_secret(
                 self.model_user
                     .as_ref()
                     .unwrap()
                     .two_fa_secret
                     .as_ref()
                     .unwrap(),
-                123_456_789,
             )
             .unwrap()
+            .generate(123_456_789)
         }
 
         pub fn get_valid_token(&self) -> String {
-            let auth = GoogleAuthenticator::new();
-            auth.get_code(
+            totp_from_secret(
                 self.model_user
                     .as_ref()
                     .unwrap()
                     .two_fa_secret
                     .as_ref()
                     .unwrap(),
-                0,
             )
+            .unwrap()
+            .generate_current()
             .unwrap()
         }
 
@@ -1081,10 +1042,6 @@ pub mod test_setup {
         };
         test_setup.clean_up().await;
         test_setup
-    }
-
-    pub async fn sleep(ms: u64) {
-        tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
     }
 
     /// start the api server on it's own thread
@@ -1132,7 +1089,7 @@ pub mod test_setup {
         });
 
         // just sleep to make sure the server is running - 1ms is enough
-        sleep(1).await;
+        sleep!(1);
 
         TestSetup {
             api_handle: Some(api_handle),

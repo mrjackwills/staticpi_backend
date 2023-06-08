@@ -6,7 +6,6 @@ use axum::{
 };
 use axum_extra::extract::{cookie::Cookie, PrivateCookieJar};
 use futures::{stream::FuturesUnordered, StreamExt};
-use google_authenticator::GoogleAuthenticator;
 use reqwest::StatusCode;
 use std::fmt;
 use ulid::Ulid;
@@ -25,39 +24,25 @@ use crate::{
         user::ModelUser,
         user_level::UserLevel,
     },
+    define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, gen_random_hex},
     servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
 
-enum UserRoutes {
-    Base,
-    Data,
-    Name,
-    Password,
-    SetupTwoFA,
-    Signout,
-    TwoFA,
-    TwoFABackup,
+define_routes! {
+    UserRoutes,
+    "/user",
+    Base => "",
+    Data => "/data",
+    Name => "/name",
+    Password => "/password",
+    SetupTwoFA => "/setup/twofa",
+    Signout => "/signout",
+    TwoFA => "/twofa",
+    TwoFABackup => "/twofa/backup"
 }
-
-impl UserRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::Base => "",
-            Self::Data => "/data",
-            Self::Name => "/name",
-            Self::Password => "/password",
-            Self::SetupTwoFA => "/setup/twofa",
-            Self::Signout => "/signout",
-            Self::TwoFA => "/twofa",
-            Self::TwoFABackup => "/twofa/backup",
-        };
-        format!("/user{route_name}")
-    }
-}
-
 // This is shared, should put elsewhere
 enum UserResponse {
     UnsafePassword,
@@ -305,17 +290,17 @@ impl UserRouter {
         if RedisTwoFASetup::exists(&state.redis, &user).await? || user.two_fa_secret.is_some() {
             return Err(ApiError::Conflict(UserResponse::SetupTwoFA.to_string()));
         }
-
-        // Change this to another authenticator?
-        let secret = GoogleAuthenticator::new().create_secret(32);
-
+        let secret = gen_random_hex(32);
+        let totp = authentication::totp_from_secret(&secret)?;
         RedisTwoFASetup::new(&secret)
             .insert(&state.redis, &user)
             .await?;
-
         Ok((
             axum::http::StatusCode::OK,
-            oj::OutgoingJson::new(oj::TwoFASetup { secret }),
+            oj::OutgoingJson::new(oj::TwoFASetup {
+                // Convert to base32, to generate a QR code on the front end that will work with Google Authenticator etc
+                secret: totp.get_secret_base32(),
+            }),
         ))
     }
 
@@ -326,32 +311,34 @@ impl UserRouter {
         useragent_ip: ModelUserAgentIp,
         ij::IncomingJson(body): ij::IncomingJson<ij::TwoFA>,
     ) -> Result<StatusCode, ApiError> {
+        let err = || Err(ApiError::InvalidValue("invalid token".to_owned()));
         if let Some(two_fa_setup) = RedisTwoFASetup::get(&state.redis, &user).await? {
             match body.token {
                 ij::Token::Totp(token) => {
-                    let auth = GoogleAuthenticator::new();
-                    if auth.verify_code(&two_fa_setup.0, &token, 0, 0) {
-                        RedisTwoFASetup::delete(&state.redis, &user).await?;
-                        ModelTwoFA::insert(&state.postgres, two_fa_setup, &useragent_ip, &user)
-                            .await?;
+                    let known_totp = authentication::totp_from_secret(two_fa_setup.value())?;
 
-                        Emailer::new(
-                            &user.full_name,
-                            &user.email,
-                            EmailTemplate::TwoFAEnabled,
-                            &state.email_env,
-                        )
-                        .send(&state.postgres, &useragent_ip)
-                        .await?;
-                        return Ok(axum::http::StatusCode::OK);
+                    if let Ok(valid_token) = known_totp.check_current(&token) {
+                        if valid_token {
+                            RedisTwoFASetup::delete(&state.redis, &user).await?;
+                            ModelTwoFA::insert(&state.postgres, two_fa_setup, &useragent_ip, &user)
+                                .await?;
+
+                            Emailer::new(
+                                &user.full_name,
+                                &user.email,
+                                EmailTemplate::TwoFAEnabled,
+                                &state.email_env,
+                            )
+                            .send(&state.postgres, &useragent_ip)
+                            .await?;
+                            return Ok(axum::http::StatusCode::OK);
+                        }
                     }
                 }
-                ij::Token::Backup(_) => {
-                    return Err(ApiError::InvalidValue("invalid token".to_owned()))
-                }
+                ij::Token::Backup(_) => return err(),
             };
         }
-        Err(ApiError::InvalidValue("invalid token".to_owned()))
+        err()
     }
 
     /// Enable, or disable, `two_fa_always_required`
@@ -567,14 +554,15 @@ mod tests {
     use crate::database::user::ModelUser;
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
+    use crate::servers::api::authentication::totp_from_secret;
     use crate::servers::test_setup::{
-        api_base_url, sleep, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
+        api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
+    use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
 
     use futures::{SinkExt, StreamExt};
-    use google_authenticator::GoogleAuthenticator;
     use redis::AsyncCommands;
     use reqwest::StatusCode;
     use serde::Serialize;
@@ -588,7 +576,7 @@ mod tests {
     // ********************
 
     #[tokio::test]
-    // Unauthenticated user unable to [ DELETE, GET ] /user route
+    /// Unauthenticated user unable to [ DELETE, GET ] /user route
     async fn api_router_user_get_user_unauthenticated() {
         let test_setup = start_servers().await;
         let url = format!(
@@ -1401,7 +1389,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
-        // println!("{:#?}", result.text().await.unwrap())
         let result = result.json::<Response>().await.unwrap().response;
         assert_eq!(result, "missing full_name");
 
@@ -1961,7 +1948,12 @@ mod tests {
             .unwrap();
 
         assert!(redis_secret.is_some());
-        assert_eq!(redis_secret.unwrap().0, response["secret"]);
+
+        let totp = totp_from_secret(redis_secret.unwrap().value());
+        assert!(totp.is_ok());
+        let redis_totp = totp.unwrap().get_secret_base32();
+
+        assert_eq!(redis_totp, response["secret"]);
 
         let secret_ttl: usize = test_setup.redis.lock().await.ttl(&key).await.unwrap();
 
@@ -2097,9 +2089,10 @@ mod tests {
             .hget(key, "data")
             .await
             .unwrap();
-        let invalid_token = GoogleAuthenticator::new()
-            .get_code(&twofa_setup.0, 123_456_789)
-            .unwrap();
+
+        let invalid_token = totp_from_secret(twofa_setup.value())
+            .unwrap()
+            .generate(123_456_789);
 
         let body = HashMap::from([("token", &invalid_token)]);
 
@@ -2146,8 +2139,9 @@ mod tests {
             .hget(key, "data")
             .await
             .unwrap();
-        let valid_token = GoogleAuthenticator::new()
-            .get_code(&twofa_setup.0, 0)
+        let valid_token = totp_from_secret(twofa_setup.value())
+            .unwrap()
+            .generate_current()
             .unwrap();
 
         let body = HashMap::from([("token", &valid_token)]);
@@ -2164,7 +2158,7 @@ mod tests {
 
         let user = test_setup.get_model_user().await.unwrap();
 
-        assert_eq!(user.two_fa_secret, Some(twofa_setup.0));
+        assert_eq!(user.two_fa_secret, Some(twofa_setup.value().to_owned()));
 
         // check email sent - well written to disk & inserted into db
         assert_eq!(
@@ -3248,16 +3242,16 @@ mod tests {
         ws_client.send(msg).await.unwrap();
 
         // stagger these, so that the bandwidth array is of fixed order, lazy I know
-        sleep(500).await;
+        sleep!(500);
 
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
 
         // allow bandwidths to be inserted
-        sleep(500).await;
+        sleep!(500);
         ws_client.close(None).await.unwrap();
-        sleep(500).await;
+        sleep!(500);
 
         let body = HashMap::from([("password", TEST_PASSWORD)]);
         let resp = client

@@ -97,6 +97,5 @@ async fn main() -> Result<(), ApiError> {
     });
 
     let api_data = ServeData::new(&app_env, &connections, ServerName::Api).await?;
-    ApiServer::serve(api_data).await?;
-    Ok(())
+    ApiServer::serve(api_data).await
 }

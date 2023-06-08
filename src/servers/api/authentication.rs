@@ -1,8 +1,11 @@
 use axum::{extract::State, http::Request, middleware::Next, response::Response};
 use axum_extra::extract::PrivateCookieJar;
-use google_authenticator::GoogleAuthenticator;
 use sqlx::PgPool;
+use totp_rs::{Algorithm, Secret, TOTP};
 use ulid::Ulid;
+
+// use std::time::SystemTime;
+// use totp_rs::{Algorithm, TOTP, Secret};
 
 use crate::{
     api_error::ApiError,
@@ -15,6 +18,16 @@ use crate::{
     user_io::incoming_json::ij::Token,
 };
 
+/// Generate a secret to TOTP from a given secret
+pub fn totp_from_secret(secret: &str) -> Result<TOTP, ApiError> {
+    if let Ok(secret_as_bytes) = Secret::Raw(secret.as_bytes().to_vec()).to_bytes() {
+        if let Ok(totp) = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret_as_bytes) {
+            return Ok(totp);
+        }
+    }
+    Err(ApiError::Internal("TOTP ERROR".to_owned()))
+}
+
 /// Validate an 2fa token
 pub async fn check_token(
     token: Option<Token>,
@@ -24,10 +37,11 @@ pub async fn check_token(
     two_fa_backup_count: i64,
 ) -> Result<bool, ApiError> {
     if let Some(token) = token {
-        let auth = GoogleAuthenticator::new();
+        // let auth = GoogleAuthenticator::new();
         match token {
             Token::Totp(token_text) => {
-                return Ok(auth.verify_code(two_fa_secret, &token_text, 0, 0))
+                let totp = totp_from_secret(two_fa_secret)?;
+                return Ok(totp.check_current(&token_text)?);
             }
             Token::Backup(token_text) => {
                 // SHOULD USE A TRANSACTION!?

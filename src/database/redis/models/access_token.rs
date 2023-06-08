@@ -53,8 +53,7 @@ impl AccessToken {
         let data = serde_json::to_string(&self)?;
         let mut redis = redis.lock().await;
         redis.hset(&key, HASH_FIELD, &data).await?;
-        redis.expire(key, Self::TTL_AS_SEC.into()).await?;
-        Ok(())
+        Ok(redis.expire(key, Self::TTL_AS_SEC.into()).await?)
     }
 
     /// Remove access token

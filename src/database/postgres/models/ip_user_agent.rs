@@ -144,12 +144,11 @@ RETURNING user_agent.user_agent_string AS user_agent";
             .await
             .hset(ip_key, HASH_FIELD, self.ip_id.get())
             .await?;
-        redis
+        Ok(redis
             .lock()
             .await
             .hset(user_agent_key, HASH_FIELD, self.user_agent_id.get())
-            .await?;
-        Ok(())
+            .await?)
     }
 
     async fn get_cache(
