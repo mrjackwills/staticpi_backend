@@ -62,7 +62,7 @@ impl RedisSession {
                 .await?;
 
             if let Some(session) = op_session {
-                let ttl: u64 = redis.lock().await.ttl(&key).await?;
+                let ttl= redis.lock().await.ttl(&key).await?;
                 output.push(AdminSession {
                     key,
                     ttl,
@@ -144,8 +144,8 @@ impl RedisSession {
 
         let op_session: Option<Self> = redis.lock().await.hget(&key_session, HASH_FIELD).await?;
         if let Some(session) = op_session {
-            // If, for some reason, user isn't in postgres, delete session before returning None
-            let user = ModelUser::get(postgres, &session.email).await?;
+			let user = ModelUser::get(postgres, &session.email).await?;
+            // If, for some reason, user isn't in postgres, delete session
             if user.is_none() {
                 Self::delete(redis, ulid).await?;
             }

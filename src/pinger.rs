@@ -10,9 +10,9 @@ pub struct Pinger;
 /// Sleep for a given number of milliseconds, is an async fn.
 /// If no parameter supplied, defaults to 250ms
 macro_rules! sleep {
-	() => {
-		tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-	};
+    () => {
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    };
     ($ms:expr) => {
         tokio::time::sleep(std::time::Duration::from_millis($ms)).await;
     };

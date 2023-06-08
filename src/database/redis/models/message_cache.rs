@@ -54,8 +54,7 @@ impl MessageCache {
 
     /// Remove single device message cache
     pub async fn delete(redis: &AMRedis, device_id: DeviceId) -> Result<(), ApiError> {
-        redis.lock().await.del(Self::key(device_id)).await?;
-        Ok(())
+        Ok(redis.lock().await.del(Self::key(device_id)).await?)
     }
 
     /// Remove multiple device's message cache
