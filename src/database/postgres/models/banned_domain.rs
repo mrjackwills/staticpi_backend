@@ -17,7 +17,9 @@ impl ModelBannedEmail {
 		FROM
 			banned_email_domain
 		WHERE
-			domain = $1"#).bind(domain.to_lowercase())
+			domain = $1"#,
+        )
+        .bind(domain.to_lowercase())
         .fetch_optional(postgres)
         .await
     }

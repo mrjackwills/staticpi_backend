@@ -1,5 +1,8 @@
+# <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.4'>v0.0.4</a>
+### 2023-06-07
+
 ### Reverts
-+ banned_domain macro removed, [5f23523167526de26db09e53b108aff6b0ad15e7]
++ banned_domain macro removed, [5f235231](https://github.com/mrjackwills/staticpi_backend/commit/5f23523167526de26db09e53b108aff6b0ad15e7),
 
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.3'>v0.0.3</a>
 ### 2023-06-07
