@@ -22,7 +22,7 @@ use super::{
 };
 
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone, PartialEq, Eq,)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelUser {
     // skip serializng?
     pub registered_user_id: UserId,
