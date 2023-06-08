@@ -17,6 +17,7 @@ use crate::{
         rate_limit::RateLimit,
         user::ModelUser,
     },
+    define_routes,
     servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
     user_io::{
         incoming_json::ij,
@@ -24,31 +25,17 @@ use crate::{
     },
 };
 
-enum DeviceRoutes {
-    Base,
-    Named,
-    NamedApiKey,
-    NamedMaxClients,
-    NamedPassword,
-    NamedPause,
-    NamedRename,
-    NamedStructured,
-}
-
-impl DeviceRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::Base => "",
-            Self::Named => "/:name",
-            Self::NamedApiKey => "/:name/api_key",
-            Self::NamedMaxClients => "/:name/max_clients",
-            Self::NamedPassword => "/:name/password",
-            Self::NamedPause => "/:name/pause",
-            Self::NamedRename => "/:name/rename",
-            Self::NamedStructured => "/:name/structured_data",
-        };
-        format!("/device{route_name}")
-    }
+define_routes! {
+    DeviceRoutes,
+    "/device",
+    Base => "",
+    Named => "/:name",
+    NamedApiKey => "/:name/api_key",
+    NamedMaxClients => "/:name/max_clients",
+    NamedPassword => "/:name/password",
+    NamedPause => "/:name/pause",
+    NamedRename => "/:name/rename",
+    NamedStructured => "/:name/structured_data"
 }
 
 // This is shared, should put elsewhere
@@ -519,8 +506,9 @@ mod tests {
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::{
-        api_base_url, sleep, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
+        api_base_url, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
     };
+    use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
 
     use futures::{SinkExt, StreamExt};
@@ -1013,7 +1001,7 @@ mod tests {
         }
 
         // Not sure why this sleep is needed
-        sleep(2500).await;
+        sleep!(2500);
         let result = client
             .post(&url)
             .header("cookie", &authed_cookie)
@@ -1617,7 +1605,7 @@ mod tests {
         }
 
         // need to work out why this is needed?
-        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        sleep!();
         let list_devices = test_setup.query_user_active_devices().await;
         assert!(list_devices.len() == 10);
 
@@ -1640,8 +1628,7 @@ mod tests {
 
         for _ in 0..10 {
             test_setup.insert_device(&authed_cookie, None).await;
-            // need to work out why this is needed?
-            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            sleep!(10);
         }
         let list_devices = test_setup.query_user_active_devices().await;
         assert!(list_devices.len() == 10);
@@ -1713,7 +1700,7 @@ mod tests {
         ws_pi_02.send(msg).await.unwrap();
 
         // Sleep as inserted on own thread
-        sleep(100).await;
+        sleep!(100);
         let message_caches: Vec<String> = test_setup
             .redis
             .lock()
@@ -2079,7 +2066,7 @@ mod tests {
         ws_pi_02.send(msg).await.unwrap();
 
         // Sleep as inserted on own thread
-        sleep(100).await;
+        sleep!(100);
         let message_caches: Vec<String> = test_setup
             .redis
             .lock()
@@ -3034,7 +3021,7 @@ mod tests {
         let (mut ws_client_02, _) = ws_client_02.unwrap();
 
         // Sleep as inserted on own thread
-        sleep(100).await;
+        sleep!(100);
         let message_caches: Vec<String> = test_setup
             .redis
             .lock()

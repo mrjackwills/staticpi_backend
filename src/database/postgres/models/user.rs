@@ -22,7 +22,7 @@ use super::{
 };
 
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq,)]
 pub struct ModelUser {
     // skip serializng?
     pub registered_user_id: UserId,
@@ -45,7 +45,7 @@ pub struct ModelUser {
     pub max_monthly_bandwidth_in_bytes: i64,
     pub max_number_of_devices: i16,
 
-    // Joing user level job, structured data etc?
+    // Join user level job, structured data etc?
     pub timestamp: OffsetDateTime,
     password_hash: ArgonHash,
 }

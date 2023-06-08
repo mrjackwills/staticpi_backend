@@ -260,34 +260,6 @@ pub async fn fallback(
     )
 }
 
-// /// Limit the users request based on ip address, using redis as mem store
-// // Might need to re-do this for ws/auth, as need to try on api_key as well!
-// async fn rate_limiting<B: std::marker::Send>(
-//     req: Request<B>,
-//     next: Next<B>,
-// ) -> Result<Response, ApiError> {
-//     let state = get_state(req.extensions())?;
-//     let addr: Option<&ConnectInfo<SocketAddr>> = req.extensions().get();
-//     let ip = get_ip(req.headers(), addr);
-//     let mut parts = RequestParts::new(req);
-
-//     let mut key = RateLimit::Ip(ip);
-
-//     if let Ok(jar) = parts.extract::<PrivateCookieJar<Key>>().await {
-//         if let Some(data) = jar.get(&state.cookie_name) {
-//             if let Some(user) =
-//                 RedisSession::exists(&state.redis, &Ulid::from_string(data.value())?).await?
-//             {
-//                 key = RateLimit::Email(user.email);
-//             }
-//         }
-//     }
-//     key.check(&state.redis).await?;
-
-//     let req = parts.try_into_request()?;
-//     Ok(next.run(req).await)
-// }
-
 // Limit the users request based on ip address, using redis as mem store
 async fn rate_limiting<B: Send + Sync>(
     State(state): State<ApplicationState>,
@@ -349,6 +321,7 @@ pub mod test_setup {
     use crate::parse_env;
     use crate::parse_env::AppEnv;
     use crate::servers::api::authentication::totp_from_secret;
+    use crate::sleep;
     use crate::user_io::incoming_json::ij;
     use crate::user_io::incoming_json::ij::DevicePost;
     use crate::ServeData;
@@ -953,13 +926,6 @@ pub mod test_setup {
             .unwrap()
         }
 
-        // device de
-        // ON
-        // co.device_id = de.device_id
-        // LEFT JOIN
-        // ip_address ipa
-        // ON
-        // co.ip_id = ipa.ip_id
         /// will sleep before query!
         pub async fn get_connections(
             &self,
@@ -1078,10 +1044,6 @@ pub mod test_setup {
         test_setup
     }
 
-    pub async fn sleep(ms: u64) {
-        tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-    }
-
     /// start the api server on it's own thread
     pub async fn start_servers() -> TestSetup {
         let setup = setup().await;
@@ -1127,7 +1089,7 @@ pub mod test_setup {
         });
 
         // just sleep to make sure the server is running - 1ms is enough
-        sleep(1).await;
+        sleep!(1);
 
         TestSetup {
             api_handle: Some(api_handle),

@@ -56,9 +56,8 @@ impl Serve for WsServer {
             .await
         {
             error!("{e:?}");
-            Err(ApiError::Internal(format!("bind server::{server_name}")))
-        } else {
-            Ok(())
+            return Err(ApiError::Internal(format!("bind server::{server_name}")));
         }
+        Ok(())
     }
 }

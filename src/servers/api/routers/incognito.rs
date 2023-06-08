@@ -35,37 +35,25 @@ use crate::{
         session::RedisSession,
         user::ModelUser,
     },
+    define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, calc_uptime},
     servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    sleep,
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
 
-enum IncognitoRoutes {
-    Bandwidth,
-    Contact,
-    Online,
-    Register,
-    Reset,
-    ResetParam,
-    Signin,
-    VerifyParam,
-}
-
-impl IncognitoRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::Bandwidth => "bandwidth",
-            Self::Contact => "contact",
-            Self::Online => "online",
-            Self::Register => "register",
-            Self::Reset => "reset",
-            Self::ResetParam => "reset/:ulid",
-            Self::Signin => "signin",
-            Self::VerifyParam => "verify/:ulid",
-        };
-        format!("/incognito/{route_name}")
-    }
+define_routes! {
+    IncognitoRoutes,
+    "/incognito",
+    Bandwidth => "/bandwidth",
+    Contact => "/contact",
+    Online => "/online",
+    Register => "/register",
+    Reset => "/reset",
+    ResetParam => "/reset/:ulid",
+    Signin => "/signin",
+    VerifyParam => "/verify/:ulid"
 }
 
 enum IncognitoResponse {
@@ -502,13 +490,7 @@ impl IncognitoRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::Signin>,
     ) -> Result<impl IntoResponse, ApiError> {
         // If front end and back end out of sync, and front end user has an api cookie, but not front-end authed, delete server cookie api session
-
-        // Add an artificial delay? Of between 100ms and 500ms?
-        // Need to match this on the sevver to see how long a normal request would take
-        let random_sleep = || async {
-            let random_duration = rand::thread_rng().gen_range(100..500);
-            tokio::time::sleep(std::time::Duration::from_millis(random_duration)).await;
-        };
+        let ms = || rand::thread_rng().gen_range(100..500);
 
         // remove previous current session
         if let Some(data) = jar.get(&state.cookie_name) {
@@ -532,7 +514,7 @@ impl IncognitoRouter {
 
             // Don't allow blocked accounts to even try to authenticate
             if user.login_attempt_number >= 19 {
-                random_sleep().await;
+                sleep!(ms());
                 return Err(Self::invalid_signin(
                     &state.postgres,
                     user.registered_user_id,
@@ -620,7 +602,7 @@ impl IncognitoRouter {
 
             Ok(jar.add(cookie).into_response())
         } else {
-            random_sleep().await;
+            sleep!(ms());
             Err(ApiError::Authorization)
         }
     }
@@ -643,6 +625,7 @@ mod tests {
     use crate::database::session::RedisSession;
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::*;
+    use crate::sleep;
 
     use redis::AsyncCommands;
     use reqwest::StatusCode;
@@ -1042,7 +1025,7 @@ mod tests {
     async fn api_router_incognito_get_online() {
         let test_setup = start_servers().await;
         let url = format!("{}/incognito/online", api_base_url(&test_setup.app_env));
-        sleep(1000).await;
+        sleep!(1000);
         let resp = reqwest::get(url).await.unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
@@ -1056,7 +1039,7 @@ mod tests {
         let mut test_setup = start_servers().await;
         let url = format!("{}/incognito/online", api_base_url(&test_setup.app_env));
         let client = TestSetup::get_client();
-        sleep(1000).await;
+        sleep!(1000);
 
         let authed_cookie = test_setup.authed_user_cookie().await;
 

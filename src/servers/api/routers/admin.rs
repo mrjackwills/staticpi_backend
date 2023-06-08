@@ -26,6 +26,7 @@ use crate::{
         session::RedisSession,
         user::ModelUser,
     },
+    define_routes,
     helpers::calc_uptime,
     servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
     user_io::{
@@ -71,43 +72,23 @@ impl SysInfo {
     }
 }
 
-enum AdminRoutes {
-    AllUsers,
-    Base,
-    Connection,
-    Contact,
-    Emails,
-    Limit,
-    Invite,
-    Memory,
-    UserEmailActive,
-    UserEmailAttempt,
-    UserEmailDevices,
-    UserEmailDevice,
-    UserEmail,
-    Session,
-}
-
-impl AdminRoutes {
-    fn addr(&self) -> String {
-        let route_name = match self {
-            Self::AllUsers => "/users",
-            Self::Base => "",
-            Self::Connection => "/connection",
-            Self::Contact => "/contact",
-            Self::Emails => "/emails",
-            Self::Invite => "/invite",
-            Self::Limit => "/limit",
-            Self::Memory => "/memory",
-            Self::Session => "/session/:session",
-            Self::UserEmail => "/user/:email",
-            Self::UserEmailActive => "/user/:email/active",
-            Self::UserEmailAttempt => "/user/:email/attempt",
-            Self::UserEmailDevice => "/user/:email/device/:device_name",
-            Self::UserEmailDevices => "/user/:email/devices",
-        };
-        format!("/admin{route_name}")
-    }
+define_routes! {
+    AdminRoutes,
+    "/admin",
+    AllUsers => "/users",
+    Base => "",
+    Connection => "/connection",
+    Contact => "/contact",
+    Emails => "/emails",
+    Invite => "/invite",
+    Limit => "/limit",
+    Memory => "/memory",
+    Session => "/session/:session",
+    UserEmail => "/user/:email",
+    UserEmailActive => "/user/:email/active",
+    UserEmailAttempt => "/user/:email/attempt",
+    UserEmailDevice => "/user/:email/device/:device_name",
+    UserEmailDevices => "/user/:email/devices"
 }
 
 pub struct AdminRouter;
@@ -511,9 +492,10 @@ mod tests {
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::{
-        api_base_url, sleep, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
-        TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, TEST_USER_AGENT,
+        api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME, TEST_EMAIL,
+        TEST_FULL_NAME, TEST_PASSWORD, TEST_USER_AGENT,
     };
+    use crate::sleep;
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
 
     use futures::{SinkExt, StreamExt};
@@ -703,7 +685,7 @@ mod tests {
         );
 
         let client = TestSetup::get_client();
-        sleep(1000).await;
+        sleep!(1000);
 
         let result = client
             .get(&url)
@@ -856,7 +838,7 @@ mod tests {
         }
 
         let client = TestSetup::get_client();
-        sleep(1000).await;
+        sleep!(1000);
 
         let result = client
             .get(&url)
@@ -1123,7 +1105,7 @@ mod tests {
             AdminRoutes::Limit.addr()
         );
 
-        sleep(1000).await;
+        sleep!(1000);
 
         let result = client
             .get(&url)
