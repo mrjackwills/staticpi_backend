@@ -1605,7 +1605,7 @@ mod tests {
         }
 
         // need to work out why this is needed?
-        sleep!(250);
+        sleep!();
         let list_devices = test_setup.query_user_active_devices().await;
         assert!(list_devices.len() == 10);
 

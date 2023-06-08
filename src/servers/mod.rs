@@ -926,13 +926,6 @@ pub mod test_setup {
             .unwrap()
         }
 
-        // device de
-        // ON
-        // co.device_id = de.device_id
-        // LEFT JOIN
-        // ip_address ipa
-        // ON
-        // co.ip_id = ipa.ip_id
         /// will sleep before query!
         pub async fn get_connections(
             &self,

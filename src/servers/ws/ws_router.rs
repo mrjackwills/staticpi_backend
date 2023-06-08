@@ -976,7 +976,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // have to sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1020,7 +1020,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // Need to wait as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1066,7 +1066,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // have to sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1112,7 +1112,7 @@ mod tests {
         assert_eq!(rate_limit, 1);
 
         // Need to wait as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -1570,7 +1570,7 @@ mod tests {
         ws_pi.send(msg).await.unwrap();
 
         // Sleep as inserted on own thread
-        sleep!(250);
+        sleep!();
         let message_cache: Vec<String> = test_setup
             .redis
             .lock()
@@ -2083,7 +2083,7 @@ mod tests {
         }
 
         // have to sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
 
         // flush cache!
         let key = format!(
@@ -2540,7 +2540,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
@@ -2582,7 +2582,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
@@ -2719,7 +2719,7 @@ mod tests {
         );
 
         // Sleep due to bandwidth insertion on own thread
-        sleep!(250);
+        sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -2777,7 +2777,7 @@ mod tests {
         );
 
         // Sleep due to bandwidth insertion on own thread
-        sleep!(250);
+        sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
             &test_setup.redis,
@@ -2818,7 +2818,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
@@ -2860,7 +2860,7 @@ mod tests {
         assert_eq!(msg_text, response);
 
         // sleep as bandwidth inserted on own thread
-        sleep!(250);
+        sleep!();
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
