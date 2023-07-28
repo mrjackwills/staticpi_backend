@@ -7,7 +7,7 @@ use axum::{
     http::request::Parts,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, PgConnection};
+use sqlx::{PgConnection, PgPool};
 
 use crate::{
     api_error::ApiError,

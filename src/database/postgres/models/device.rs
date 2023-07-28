@@ -1,6 +1,6 @@
 use futures::Future;
 use serde::Serialize;
-use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction, PgConnection};
+use sqlx::{postgres::PgRow, Error, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
 use std::{net::IpAddr, pin::Pin};
 
 use crate::{
@@ -39,7 +39,7 @@ impl ModelApiKey {
     /// Check if a given api key is already in postgres, so that each is unique
     fn create_api_key<'a>(
         transaction: &'a mut PgConnection,
-    ) -> Pin<Box<dyn Future<Output = Result<ApiKey, ApiError>> + 'a +  Send>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ApiKey, ApiError>> + 'a + Send>> {
         Box::pin(async move {
             let api_key = ApiKey::default();
             if Self::get(transaction, &api_key).await?.is_some() {
@@ -57,7 +57,7 @@ impl ModelApiKey {
         let query = "SELECT * FROM api_key WHERE api_key_string = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
-            .fetch_optional( &mut *transaction)
+            .fetch_optional(&mut *transaction)
             .await?)
     }
 
@@ -113,10 +113,7 @@ impl<'r> FromRow<'r, PgRow> for ModelDevicePasswordHash {
 
 impl ModelDevicePasswordHash {
     /// Insert a device password into db
-    async fn insert(
-        transaction: &mut PgConnection,
-        hash: ArgonHash,
-    ) -> Result<Self, ApiError> {
+    async fn insert(transaction: &mut PgConnection, hash: ArgonHash) -> Result<Self, ApiError> {
         let query =
             "INSERT INTO device_password(password_hash) VALUES($1) RETURNING device_password_id, password_hash";
         Ok(sqlx::query_as::<_, Self>(query)
@@ -187,10 +184,7 @@ AND
     }
 
     /// Insert a device_name, will check if the user already has an active device with the given name
-    async fn insert(
-        transaction: &mut PgConnection,
-        device_name: &str,
-    ) -> Result<Self, ApiError> {
+    async fn insert(transaction: &mut PgConnection, device_name: &str) -> Result<Self, ApiError> {
         let query =
             "SELECT device_name_id, name_of_device FROM device_name WHERE name_of_device = $1";
         if let Some(exists) = sqlx::query_as::<_, Self>(query)

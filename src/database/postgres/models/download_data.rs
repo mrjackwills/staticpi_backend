@@ -260,8 +260,7 @@ ORDER BY cm.timestamp ASC";
             .fetch_all(&mut *transaction)
             .await?;
 
-
-		// Why rollback here?
+        // Why rollback here?
         transaction.rollback().await?;
 
         Ok(serde_json::to_string(&Self {
