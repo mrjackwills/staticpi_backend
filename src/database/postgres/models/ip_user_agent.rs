@@ -7,7 +7,7 @@ use axum::{
     http::request::Parts,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{PgPool, PgConnection};
 
 use crate::{
     api_error::ApiError,
@@ -53,7 +53,7 @@ struct DeleteUserAgent {
 impl ModelUserAgentIp {
     /// Search for ip_addresses that are not longer referenced anywhere, delete, and also remove from redis cache
     pub async fn delete_ip(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         redis: &AMRedis,
     ) -> Result<(), ApiError> {
         let query = r"
@@ -82,7 +82,7 @@ IN (
 )
 RETURNING ip_address.ip;";
         let ips = sqlx::query_as::<_, DeleteIp>(query)
-            .fetch_all(transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         for i in ips {
@@ -97,7 +97,7 @@ RETURNING ip_address.ip;";
 
     /// Search for user_agent's that are not longer referenced anywhere, delete, and also remove from redis cache
     pub async fn delete_useragent(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         redis: &AMRedis,
     ) -> Result<(), ApiError> {
         let query = "
@@ -123,7 +123,7 @@ IN (
 )
 RETURNING user_agent.user_agent_string AS user_agent";
         let user_agents = sqlx::query_as::<_, DeleteUserAgent>(query)
-            .fetch_all(transaction)
+            .fetch_all(&mut *transaction)
             .await?;
         for i in user_agents {
             redis
@@ -178,7 +178,7 @@ RETURNING user_agent.user_agent_string AS user_agent";
     /// Have to cast as inet in the query, until sqlx gets updated
     /// get `ip_id`
     async fn get_ip_id(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         req: &ReqUserAgentIp,
     ) -> Result<Option<Ip>, sqlx::Error> {
         let query = "SELECT ip_id from ip_address WHERE ip = $1::inet";
@@ -191,7 +191,7 @@ RETURNING user_agent.user_agent_string AS user_agent";
     /// Have to cast as inet in the query, until sqlx gets updated
     /// Insert ip into postgres
     async fn insert_ip(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         req: &ReqUserAgentIp,
     ) -> Result<Ip, sqlx::Error> {
         let query = "INSERT INTO ip_address(ip) VALUES ($1::inet) RETURNING ip_id";
@@ -203,7 +203,7 @@ RETURNING user_agent.user_agent_string AS user_agent";
 
     /// get `user_agent_id`
     async fn get_user_agent(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         req: &ReqUserAgentIp,
     ) -> Result<Option<Useragent>, sqlx::Error> {
         let query = "SELECT user_agent_id from user_agent WHERE user_agent_string = $1";
@@ -215,7 +215,7 @@ RETURNING user_agent.user_agent_string AS user_agent";
 
     /// Insert useragent into postgres
     async fn insert_user_agent(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         req: &ReqUserAgentIp,
     ) -> Result<Useragent, sqlx::Error> {
         let query = "INSERT INTO user_agent(user_agent_string) VALUES ($1) RETURNING user_agent_id";

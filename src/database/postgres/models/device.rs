@@ -1,6 +1,6 @@
 use futures::Future;
 use serde::Serialize;
-use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction};
+use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction, PgConnection};
 use std::{net::IpAddr, pin::Pin};
 
 use crate::{
@@ -38,8 +38,8 @@ pub struct ModelApiKey {
 impl ModelApiKey {
     /// Check if a given api key is already in postgres, so that each is unique
     fn create_api_key<'a>(
-        transaction: &'a mut Transaction<'_, Postgres>,
-    ) -> Pin<Box<dyn Future<Output = Result<ApiKey, ApiError>> + 'a + Send>> {
+        transaction: &'a mut PgConnection,
+    ) -> Pin<Box<dyn Future<Output = Result<ApiKey, ApiError>> + 'a +  Send>> {
         Box::pin(async move {
             let api_key = ApiKey::default();
             if Self::get(transaction, &api_key).await?.is_some() {
@@ -51,13 +51,13 @@ impl ModelApiKey {
     }
 
     async fn get(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         api_key: &ApiKey,
     ) -> Result<Option<Self>, ApiError> {
         let query = "SELECT * FROM api_key WHERE api_key_string = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
-            .fetch_optional(&mut *transaction)
+            .fetch_optional( &mut *transaction)
             .await?)
     }
 
@@ -81,7 +81,7 @@ impl ModelApiKey {
 
     /// Recursively create a unique api_key, and insert into database
     async fn insert(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         user: &ModelUser,
         useragent_ip: &ModelUserAgentIp,
     ) -> Result<Self, ApiError> {
@@ -114,7 +114,7 @@ impl<'r> FromRow<'r, PgRow> for ModelDevicePasswordHash {
 impl ModelDevicePasswordHash {
     /// Insert a device password into db
     async fn insert(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         hash: ArgonHash,
     ) -> Result<Self, ApiError> {
         let query =
@@ -140,13 +140,13 @@ impl ModelDevicePasswordHash {
 
     /// Delete device password from db
     async fn delete(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         device_password_id: DevicePasswordId,
     ) -> Result<(), ApiError> {
         let query = "DELETE FROM device_password WHERE device_password_id = $1;";
         sqlx::query(query)
             .bind(device_password_id.get())
-            .execute(&mut *transaction)
+            .execute(transaction)
             .await?;
         Ok(())
     }
@@ -161,7 +161,7 @@ struct DeviceName {
 impl DeviceName {
     /// Check if a given user has an active device with a given name
     async fn exists_for_user(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         device_name: &str,
         user: &ModelUser,
     ) -> Result<bool, ApiError> {
@@ -188,7 +188,7 @@ AND
 
     /// Insert a device_name, will check if the user already has an active device with the given name
     async fn insert(
-        transaction: &mut Transaction<'_, Postgres>,
+        transaction: &mut PgConnection,
         device_name: &str,
     ) -> Result<Self, ApiError> {
         let query =
@@ -429,7 +429,7 @@ impl ModelDevice {
             .bind(client_hash_id.get())
             .bind(device_hash_id.get())
             .bind(self.device_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
         Ok(transaction.commit().await?)
     }
@@ -441,7 +441,7 @@ impl ModelDevice {
         let query = "UPDATE device SET client_password_id = NULL, device_password_id = NULL WHERE device_id = $1";
         sqlx::query(query)
             .bind(self.device_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         if let Some(id) = self.client_password_id {
@@ -493,7 +493,7 @@ impl ModelDevice {
         sqlx::query(query)
             .bind(device_name.device_name_id.get())
             .bind(self.device_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
         Ok(transaction.commit().await?)
     }

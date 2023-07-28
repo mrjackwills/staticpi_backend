@@ -59,13 +59,13 @@ VALUES
 
         if let Some(invite) = sqlx::query_as::<_, Self>(query)
             .bind(invite)
-            .fetch_optional(&mut transaction)
+            .fetch_optional(&mut *transaction)
             .await?
         {
             let query = "UPDATE invite_code SET count = count - 1 WHERE invite_code_id = $1";
             sqlx::query(query)
                 .bind(invite.invite_code_id.get())
-                .execute(&mut transaction)
+                .execute(&mut *transaction)
                 .await?;
             transaction.commit().await?;
             Ok(true)
