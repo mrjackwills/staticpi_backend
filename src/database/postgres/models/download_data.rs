@@ -125,7 +125,7 @@ WHERE ru.registered_user_id = $1";
 
         let user = sqlx::query_as::<_, User>(user)
             .bind(id)
-            .fetch_one(&mut transaction)
+            .fetch_one(&mut *transaction)
             .await?;
 
         let password_reset = "
@@ -136,7 +136,7 @@ WHERE pr.registered_user_id = $1
 ORDER BY pr.timestamp ASC";
         let password_reset = sqlx::query_as::<_, TimeStampIpUserAgent>(password_reset)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let login_history = "
@@ -147,7 +147,7 @@ WHERE lh.registered_user_id = $1
 ORDER BY lh.timestamp ASC";
         let login_history = sqlx::query_as::<_, LoginHistory>(login_history)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let two_fa_secret = "
@@ -158,7 +158,7 @@ WHERE tfs.registered_user_id = $1
 ORDER BY tfs.timestamp ASC";
         let two_fa_secret = sqlx::query_as::<_, TimeStampIpUserAgent>(two_fa_secret)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let two_fa_backup = "
@@ -169,7 +169,7 @@ WHERE tfb.registered_user_id = $1
 ORDER BY tfb.timestamp ASC";
         let two_fa_backup = sqlx::query_as::<_, TimeStampIpUserAgent>(two_fa_backup)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let device = "
@@ -181,7 +181,7 @@ WHERE de.registered_user_id = $1
 ORDER BY de.timestamp ASC";
         let device = sqlx::query_as::<_, Device>(device)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let api = "
@@ -193,7 +193,7 @@ ORDER BY ap.timestamp ASC";
 
         let api = sqlx::query_as::<_, Api>(api)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let connection = "
@@ -211,7 +211,7 @@ ORDER BY co.timestamp_online ASC, co.is_pi ASC
 
         let connection = sqlx::query_as::<_, Connection>(connection)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let bandwidth = "
@@ -226,7 +226,7 @@ ORDER BY hb.timestamp ASC";
 
         let bandwidth = sqlx::query_as::<_, Bandwidth>(bandwidth)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let emails = "
@@ -242,7 +242,7 @@ ORDER BY el.timestamp ASC";
 
         let emails = sqlx::query_as::<_, Emails>(emails)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
         let contact = "
@@ -257,9 +257,11 @@ ORDER BY cm.timestamp ASC";
 
         let contact = sqlx::query_as::<_, ContactMessages>(contact)
             .bind(id)
-            .fetch_all(&mut transaction)
+            .fetch_all(&mut *transaction)
             .await?;
 
+
+		// Why rollback here?
         transaction.rollback().await?;
 
         Ok(serde_json::to_string(&Self {

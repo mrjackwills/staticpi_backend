@@ -460,15 +460,15 @@ impl IncognitoRouter {
         };
         let mut transaction = state.postgres.begin().await?;
         let email_address_id =
-            if let Some(email) = ModelEmailAddress::get(&mut transaction, &body.email).await? {
+            if let Some(email) = ModelEmailAddress::get(&mut *transaction, &body.email).await? {
                 email.email_address_id
             } else {
-                ModelEmailAddress::insert(&mut transaction, &body.email)
+                ModelEmailAddress::insert(&mut *transaction, &body.email)
                     .await?
                     .email_address_id
             };
         ModelContactMessage::insert(
-            &mut transaction,
+            &mut *transaction,
             useragent_ip,
             registered_user_id,
             body.message,

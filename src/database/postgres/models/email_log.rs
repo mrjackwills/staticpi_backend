@@ -57,10 +57,10 @@ impl ModelEmailLog {
     ) -> Result<Self, ApiError> {
         let mut transaction = postgres.begin().await?;
         let email_address_id =
-            if let Some(model) = ModelEmailAddress::get(&mut transaction, email_address).await? {
+            if let Some(model) = ModelEmailAddress::get(&mut *transaction, email_address).await? {
                 model
             } else {
-                ModelEmailAddress::insert(&mut transaction, email_address).await?
+                ModelEmailAddress::insert(&mut *transaction, email_address).await?
             };
 
         let subject = email_template.get_subject();
@@ -69,7 +69,7 @@ impl ModelEmailLog {
             "SELECT email_subject_id FROM email_subject WHERE subject = $1",
         )
         .bind(&subject)
-        .fetch_optional(&mut transaction)
+        .fetch_optional(&mut *transaction)
         .await?
         {
             email_subject
@@ -77,7 +77,7 @@ impl ModelEmailLog {
             let query = "INSERT INTO email_subject(subject) VALUES ($1) RETURNING email_subject_id";
             sqlx::query_as::<_, EmailSubject>(query)
                 .bind(&subject)
-                .fetch_one(&mut transaction)
+                .fetch_one(&mut *transaction)
                 .await?
         };
 
@@ -87,7 +87,7 @@ impl ModelEmailLog {
             .bind(useragent_ip.user_agent_id.get())
             .bind(email_address_id.email_address_id.get())
             .bind(email_subject_id.email_subject_id.get())
-            .fetch_one(&mut transaction)
+            .fetch_one(&mut *transaction)
             .await?;
 
         transaction.commit().await?;
