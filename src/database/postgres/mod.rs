@@ -15,15 +15,20 @@ pub struct Count {
 pub mod db_postgres {
 
     use crate::{api_error::ApiError, parse_env::AppEnv};
-    use sqlx::{postgres::PgPoolOptions, PgPool};
+    use sqlx::{postgres::PgPoolOptions, ConnectOptions, PgPool};
 
     pub async fn db_pool(app_env: &AppEnv) -> Result<PgPool, ApiError> {
-        let options = sqlx::postgres::PgConnectOptions::new()
+        let mut options = sqlx::postgres::PgConnectOptions::new()
             .host(&app_env.pg_host)
             .port(app_env.pg_port)
             .database(&app_env.pg_database)
             .username(&app_env.pg_user)
             .password(&app_env.pg_password);
+
+        match app_env.log_level {
+            tracing::Level::TRACE | tracing::Level::DEBUG => (),
+            _ => options = options.disable_statement_logging(),
+        }
 
         let acquire_timeout = std::time::Duration::from_secs(5);
         let idle_timeout = std::time::Duration::from_secs(10);

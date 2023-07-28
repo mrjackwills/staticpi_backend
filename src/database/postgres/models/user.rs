@@ -200,25 +200,25 @@ VALUES
         let registered_user_query = "DELETE FROM registered_user WHERE registered_user_id = $1";
         sqlx::query(registered_user_query)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         let email_log = "DELETE FROM email_log el WHERE el.email_address_id = (SELECT ru.email_address_id FROM registered_user ru WHERE ru.registered_user_id = $1)";
         sqlx::query(email_log)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         let contact_messages = "DELETE FROM contact_message cm WHERE cm.email_address_id = (SELECT ru.email_address_id FROM registered_user ru WHERE ru.registered_user_id = $1) OR cm.registered_user_id  =$1";
         sqlx::query(contact_messages)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         let email_address_query = "DELETE FROM email_address WHERE email_address_id = $1";
         sqlx::query(email_address_query)
             .bind(self.email_address_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         ModelUserAgentIp::delete_ip(&mut transaction, redis).await?;
@@ -234,33 +234,33 @@ IN (
 	WHERE device.device_name_id IS NULL
 );";
         sqlx::query(device_name_query)
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         let user_audit_query = "DELETE FROM registered_user_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(user_audit_query)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
         let device_audit = "DELETE FROM device_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(device_audit)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
         let api_key_audit = "DELETE FROM api_key_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(api_key_audit)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
         let two_fa_secret_audit = "DELETE FROM two_fa_secret_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(two_fa_secret_audit)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
         let two_fa_backup_audit = "DELETE FROM two_fa_backup_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(two_fa_backup_audit)
             .bind(self.registered_user_id.get())
-            .execute(&mut transaction)
+            .execute(&mut *transaction)
             .await?;
 
         transaction.commit().await?;
