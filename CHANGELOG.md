@@ -1,3 +1,6 @@
+### Reverts
++ Transactions double de-reference, [a2dab6a50aad15367eeae8d6b951f921183e270d]
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.5'>v0.0.5</a>
 ### 2023-07-28
 
