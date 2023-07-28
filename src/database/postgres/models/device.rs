@@ -1,6 +1,6 @@
 use futures::Future;
 use serde::Serialize;
-use sqlx::{postgres::PgRow, Error, FromRow, PgConnection, PgPool, Postgres, Row, Transaction};
+use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction};
 use std::{net::IpAddr, pin::Pin};
 
 use crate::{
@@ -38,7 +38,7 @@ pub struct ModelApiKey {
 impl ModelApiKey {
     /// Check if a given api key is already in postgres, so that each is unique
     fn create_api_key<'a>(
-        transaction: &'a mut PgConnection,
+        transaction: &'a mut Transaction<'_, Postgres>,
     ) -> Pin<Box<dyn Future<Output = Result<ApiKey, ApiError>> + 'a + Send>> {
         Box::pin(async move {
             let api_key = ApiKey::default();
@@ -51,13 +51,13 @@ impl ModelApiKey {
     }
 
     async fn get(
-        transaction: &mut PgConnection,
+        transaction: &mut Transaction<'_, Postgres>,
         api_key: &ApiKey,
     ) -> Result<Option<Self>, ApiError> {
         let query = "SELECT * FROM api_key WHERE api_key_string = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
-            .fetch_optional(&mut *transaction)
+            .fetch_optional(&mut **transaction)
             .await?)
     }
 
@@ -81,7 +81,7 @@ impl ModelApiKey {
 
     /// Recursively create a unique api_key, and insert into database
     async fn insert(
-        transaction: &mut PgConnection,
+        transaction: &mut Transaction<'_, Postgres>,
         user: &ModelUser,
         useragent_ip: &ModelUserAgentIp,
     ) -> Result<Self, ApiError> {
@@ -92,7 +92,7 @@ impl ModelApiKey {
             .bind(user.registered_user_id.get())
             .bind(useragent_ip.ip_id.get())
             .bind(useragent_ip.user_agent_id.get())
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         Ok(api_key)
     }
@@ -113,12 +113,12 @@ impl<'r> FromRow<'r, PgRow> for ModelDevicePasswordHash {
 
 impl ModelDevicePasswordHash {
     /// Insert a device password into db
-    async fn insert(transaction: &mut PgConnection, hash: ArgonHash) -> Result<Self, ApiError> {
+    async fn insert(transaction: &mut Transaction<'_, Postgres>, hash: ArgonHash) -> Result<Self, ApiError> {
         let query =
             "INSERT INTO device_password(password_hash) VALUES($1) RETURNING device_password_id, password_hash";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(hash.to_string())
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?)
     }
 
@@ -137,13 +137,13 @@ impl ModelDevicePasswordHash {
 
     /// Delete device password from db
     async fn delete(
-        transaction: &mut PgConnection,
+        transaction: &mut Transaction<'_, Postgres>,
         device_password_id: DevicePasswordId,
     ) -> Result<(), ApiError> {
         let query = "DELETE FROM device_password WHERE device_password_id = $1;";
         sqlx::query(query)
             .bind(device_password_id.get())
-            .execute(transaction)
+            .execute(&mut **transaction)
             .await?;
         Ok(())
     }
@@ -158,7 +158,7 @@ struct DeviceName {
 impl DeviceName {
     /// Check if a given user has an active device with a given name
     async fn exists_for_user(
-        transaction: &mut PgConnection,
+        transaction: &mut Transaction<'_, Postgres>,
         device_name: &str,
         user: &ModelUser,
     ) -> Result<bool, ApiError> {
@@ -178,18 +178,18 @@ AND
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(device_name)
             .bind(user.registered_user_id.get())
-            .fetch_optional(&mut *transaction)
+            .fetch_optional(&mut **transaction)
             .await?
             .is_some())
     }
 
     /// Insert a device_name, will check if the user already has an active device with the given name
-    async fn insert(transaction: &mut PgConnection, device_name: &str) -> Result<Self, ApiError> {
+    async fn insert(transaction: &mut Transaction<'_, Postgres>, device_name: &str) -> Result<Self, ApiError> {
         let query =
             "SELECT device_name_id, name_of_device FROM device_name WHERE name_of_device = $1";
         if let Some(exists) = sqlx::query_as::<_, Self>(query)
             .bind(device_name)
-            .fetch_optional(&mut *transaction)
+            .fetch_optional(&mut **transaction)
             .await?
         {
             Ok(exists)
@@ -198,7 +198,7 @@ AND
                 "INSERT INTO device_name(name_of_device) VALUES($1) RETURNING device_name_id, name_of_device";
             Ok(sqlx::query_as::<_, Self>(query)
                 .bind(device_name)
-                .fetch_one(&mut *transaction)
+                .fetch_one(&mut **transaction)
                 .await?)
         }
     }
