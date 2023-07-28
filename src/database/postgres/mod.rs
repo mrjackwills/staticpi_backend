@@ -29,7 +29,7 @@ pub mod db_postgres {
             tracing::Level::TRACE | tracing::Level::DEBUG => (),
             _ => options = options.disable_statement_logging(),
         }
-      
+
         let acquire_timeout = std::time::Duration::from_secs(5);
         let idle_timeout = std::time::Duration::from_secs(10);
 
