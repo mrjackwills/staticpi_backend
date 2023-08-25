@@ -45,10 +45,10 @@ ulid = { version = "1.0",features = ["serde"] }
 
 [dev-dependencies]
 tokio-tungstenite = { version = "0.20.0" }
-base32 = "0.4.0"
+# base32 = "0.4.0"
 
 [profile.release]
-lto = true
+lto = 'thin'
 codegen-units = 1
 panic = 'abort'
 strip = true
