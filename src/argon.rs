@@ -101,7 +101,7 @@ mod tests {
     use super::*;
     use once_cell::sync::Lazy;
     static ARGON_REGEX: Lazy<Regex> = Lazy::new(|| {
-        Regex::new(r#"^\$argon2id\$v=19\$m=4096,t=1,p=1\$[a-zA-Z0-9+/=]{22}\$[a-zA-Z0-9+/=]{43}"#)
+        Regex::new(r"^\$argon2id\$v=19\$m=4096,t=1,p=1\$[a-zA-Z0-9+/=]{22}\$[a-zA-Z0-9+/=]{43}")
             .unwrap()
     });
 

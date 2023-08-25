@@ -24,10 +24,6 @@
 	"postCreateCommand": "cargo install cargo-watch typos-cli",
 	"postStartCommand": "sudo mkdir -p /dev/shm/staticpi/backups /dev/shm/staticpi/pg_data /dev/shm/staticpi/redis_data /dev/shm/staticpi/logs /dev/shm/staticpi/target && sudo chown -R vscode:vscode /dev/shm/staticpi",
 
-	"containerEnv": {
-		"CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "sparse"
-	},
-
 	"customizations": {
 		"vscode": {
 				// Add the IDs of extensions you want installed when the container is created.

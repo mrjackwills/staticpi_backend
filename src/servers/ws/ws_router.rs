@@ -39,6 +39,8 @@ use crate::{
     },
 };
 
+const DEFAULT_BUFFER: usize = 1024 * 1024;
+
 define_routes! {
     WsRoutes,
     "/",
@@ -166,7 +168,7 @@ impl WsRouter {
                 let ttl = input.limiter.ttl(&mut redis).await.unwrap_or(60);
                 Self::send_self(input, wm::Error::RateLimit(ttl)).await;
             }
-
+            drop(redis);
             return Err(());
         }
         Ok(())
@@ -372,8 +374,8 @@ impl WsRouter {
         State(state): State<ApplicationState>,
         ws: WebSocketUpgrade,
     ) -> impl IntoResponse {
-        ws.max_message_size(8)
-            .max_send_queue(1)
+        ws.max_message_size(1)
+            .max_write_buffer_size(1000 * 256)
             .on_upgrade(move |socket| Self::online_message_handler(socket, state))
     }
 
@@ -442,10 +444,16 @@ impl WsRouter {
                         device_type,
                     )
                     .await?;
+
+                    let max_buffer_size =
+                        usize::try_from(device.max_message_size_in_bytes.saturating_mul(16))
+                            .unwrap_or(DEFAULT_BUFFER);
                     return Ok(ws
-                        // 11mb max size
-                        .max_message_size(1000 * 1000 * 11)
-                        .max_send_queue(8)
+                        .max_message_size(
+                            usize::try_from(device.max_message_size_in_bytes * 2)
+                                .unwrap_or(1000 * 11),
+                        )
+                        .max_write_buffer_size(max_buffer_size)
                         .on_upgrade(move |socket| {
                             Self::message_looper(
                                 connection_id,
