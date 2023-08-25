@@ -39,7 +39,7 @@ use crate::{
     },
 };
 
-const DEFAULT_BUFFER: usize = 1024*1024;
+const DEFAULT_BUFFER: usize = 1024 * 1024;
 
 define_routes! {
     WsRoutes,
@@ -168,7 +168,7 @@ impl WsRouter {
                 let ttl = input.limiter.ttl(&mut redis).await.unwrap_or(60);
                 Self::send_self(input, wm::Error::RateLimit(ttl)).await;
             }
-
+            drop(redis);
             return Err(());
         }
         Ok(())
@@ -445,10 +445,14 @@ impl WsRouter {
                     )
                     .await?;
 
-
-				let max_buffer_size = usize::try_from(device.max_message_size_in_bytes.saturating_mul(16)).unwrap_or(DEFAULT_BUFFER);
+                    let max_buffer_size =
+                        usize::try_from(device.max_message_size_in_bytes.saturating_mul(16))
+                            .unwrap_or(DEFAULT_BUFFER);
                     return Ok(ws
-                        .max_message_size(usize::try_from(device.max_message_size_in_bytes * 2).unwrap_or(1000 * 11))
+                        .max_message_size(
+                            usize::try_from(device.max_message_size_in_bytes * 2)
+                                .unwrap_or(1000 * 11),
+                        )
                         .max_write_buffer_size(max_buffer_size)
                         .on_upgrade(move |socket| {
                             Self::message_looper(

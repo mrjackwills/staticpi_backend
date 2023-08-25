@@ -7,7 +7,7 @@ use axum::{
     http::request::Parts,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Transaction, Postgres};
+use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::{
     api_error::ApiError,
@@ -164,6 +164,7 @@ RETURNING user_agent.user_agent_string AS user_agent";
             redis.hget(ip_key, HASH_FIELD).await?,
             redis.hget(user_agent_key, HASH_FIELD).await?,
         ) {
+            drop(redis);
             Ok(Some(Self {
                 ip,
                 user_agent: user_agent.to_owned(),

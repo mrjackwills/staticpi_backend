@@ -74,14 +74,16 @@ impl fmt::Display for RateLimit {
 /// Return AdminLimit object for a given rate_limit
 async fn get_admin_limit(rate_limit: RateLimit, redis: &AMRedis) -> Result<AdminLimit, ApiError> {
     let mut redis = redis.lock().await;
-    let exceeded = rate_limit.exceeded(&mut redis).await?;
+    let blocked = rate_limit.exceeded(&mut redis).await?;
     let ttl = rate_limit.ttl(&mut redis).await?;
+    let points = rate_limit.get_count(&mut redis).await?.unwrap_or_default();
+    drop(redis);
     Ok(AdminLimit {
         key: rate_limit.to_string(),
-        points: rate_limit.get_count(&mut redis).await?.unwrap_or_default(),
+        points,
         max: rate_limit.get_limit(),
         ttl,
-        blocked: exceeded,
+        blocked,
     })
 }
 
@@ -294,6 +296,7 @@ impl RateLimit {
         let limit = self.get_limit();
         let blocks = BlockTimes::new(self);
         let mut redis = redis.lock().await;
+
         if let Some(count) = self.get_count(&mut redis).await? {
             redis.incr(&key, 1).await?;
             if count >= limit * 2 {
@@ -310,6 +313,7 @@ impl RateLimit {
             redis.incr(&key, 1).await?;
             redis.expire(&key, blocks.small).await?;
         }
+        drop(redis);
         Ok(())
     }
 }

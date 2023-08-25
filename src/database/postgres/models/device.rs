@@ -113,7 +113,10 @@ impl<'r> FromRow<'r, PgRow> for ModelDevicePasswordHash {
 
 impl ModelDevicePasswordHash {
     /// Insert a device password into db
-    async fn insert(transaction: &mut Transaction<'_, Postgres>, hash: ArgonHash) -> Result<Self, ApiError> {
+    async fn insert(
+        transaction: &mut Transaction<'_, Postgres>,
+        hash: ArgonHash,
+    ) -> Result<Self, ApiError> {
         let query =
             "INSERT INTO device_password(password_hash) VALUES($1) RETURNING device_password_id, password_hash";
         Ok(sqlx::query_as::<_, Self>(query)
@@ -184,7 +187,10 @@ AND
     }
 
     /// Insert a device_name, will check if the user already has an active device with the given name
-    async fn insert(transaction: &mut Transaction<'_, Postgres>, device_name: &str) -> Result<Self, ApiError> {
+    async fn insert(
+        transaction: &mut Transaction<'_, Postgres>,
+        device_name: &str,
+    ) -> Result<Self, ApiError> {
         let query =
             "SELECT device_name_id, name_of_device FROM device_name WHERE name_of_device = $1";
         if let Some(exists) = sqlx::query_as::<_, Self>(query)
