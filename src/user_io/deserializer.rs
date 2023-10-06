@@ -210,7 +210,7 @@ impl IncomingDeserializer {
     {
         let name = "rate_limit";
         let parsed = Self::parse_string(deserializer, name)?;
-        RateLimit::try_from(&parsed).map_or(Err(de::Error::custom(name)), Ok)
+        RateLimit::try_from(parsed.as_str()).map_or(Err(de::Error::custom(name)), Ok)
     }
 
     /// Only allow tokens in either format 000 000 (with/without space)

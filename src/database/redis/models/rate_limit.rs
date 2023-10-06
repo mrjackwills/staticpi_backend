@@ -89,10 +89,10 @@ async fn get_admin_limit(rate_limit: RateLimit, redis: &AMRedis) -> Result<Admin
 
 /// Used to convert a full rate limit, e.g. `ratelimit::ws_pro::123` into a RateLimit
 /// Used to delete a rate limit by an Admin user
-impl TryFrom<&String> for RateLimit {
+impl TryFrom<&str> for RateLimit {
     type Error = ApiError;
 
-    fn try_from(key: &String) -> Result<Self, ApiError> {
+    fn try_from(key: &str) -> Result<Self, ApiError> {
         let splitter = key.splitn(3, "::").skip(1).collect::<Vec<_>>();
         if let (Some(limit_type), Some(limit_key)) = (splitter.first(), splitter.get(1)) {
             Ok(match *limit_type {
@@ -245,7 +245,7 @@ impl RateLimit {
                 let mut output = vec![];
                 let all_keys: Vec<String> = redis.lock().await.keys("ratelimit::*").await?;
                 for key in all_keys {
-                    let rate_limit = Self::try_from(&key)?;
+                    let rate_limit = Self::try_from(key.as_str())?;
                     output.push(get_admin_limit(rate_limit, redis).await?);
                 }
                 Ok(output)
