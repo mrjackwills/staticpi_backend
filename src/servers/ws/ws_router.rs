@@ -130,7 +130,7 @@ impl WsRouter {
     }
 
     /// Send a message to self, when cache or error
-    async fn send_self<T: ToString + Send>(input: &mut HandlerData<'_>, msg: T) {
+    async fn send_self<T: ToString + Send>(input: &HandlerData<'_>, msg: T) {
         let msg = msg.to_string();
         input
             .connections
@@ -157,7 +157,7 @@ impl WsRouter {
 
     /// Validate rate limit, if structured data
     /// If structured data, return error to sender
-    async fn valid_rate_limit(input: &mut HandlerData<'_>, msg: &Message) -> Result<(), ()> {
+    async fn valid_rate_limit(input: &HandlerData<'_>, msg: &Message) -> Result<(), ()> {
         if !Self::rate_limit_ok(input, msg).await {
             let mut redis = input.redis.lock().await;
             if input.limiter.exceeded(&mut redis).await.unwrap_or(true) {
@@ -176,7 +176,7 @@ impl WsRouter {
 
     /// Validate that a users monthly bandwidth limit hasn't been hit
     /// If structured data, return error to sender
-    async fn valid_bandwidth(input: &mut HandlerData<'_>) -> Result<(), ()> {
+    async fn valid_bandwidth(input: &HandlerData<'_>) -> Result<(), ()> {
         if check_monthly_bandwidth(input.postgres, input.redis, input.device)
             .await
             .is_err()
@@ -191,7 +191,7 @@ impl WsRouter {
 
     /// Check that a given message is smaller than the devices max message size
     /// If structured data, return error to sender
-    async fn valid_message_size(input: &mut HandlerData<'_>) -> Result<(), ()> {
+    async fn valid_message_size(input: &HandlerData<'_>) -> Result<(), ()> {
         if input.msg_size > usize::try_from(input.device.max_message_size_in_bytes).unwrap_or(1000)
         {
             if input.device.structured_data {
@@ -232,7 +232,7 @@ impl WsRouter {
 
         while let Ok(Some(msg)) = receiver.try_next().await {
             handler_data.msg_size = get_message_size(&msg);
-            Self::message_handler(&mut handler_data, msg).await;
+            Self::message_handler(&handler_data, msg).await;
         }
         Self::close_connection(&state.connections, device.device_id, ulid, device_type).await;
 
@@ -243,7 +243,7 @@ impl WsRouter {
     }
 
     /// Deal with text messages when structured data is enabled
-    async fn structured_text_handler(input: &mut HandlerData<'_>, data: String) {
+    async fn structured_text_handler(input: &HandlerData<'_>, data: String) {
         match input.device_type {
             ConnectionType::Client => match serde_json::from_str::<wm::ClientBody>(&data) {
                 Ok(body) => {
@@ -315,7 +315,7 @@ impl WsRouter {
     }
 
     /// This needs to be better!
-    async fn message_handler(input: &mut HandlerData<'_>, msg: Message) {
+    async fn message_handler(input: &HandlerData<'_>, msg: Message) {
         if Self::valid_rate_limit(input, &msg).await.is_err() {
             return;
         }

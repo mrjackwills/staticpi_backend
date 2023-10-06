@@ -23,7 +23,7 @@ impl ModelHourlyBandwidth {
         if msg_size > 0 {
             let spawn_postgres = postgres.clone();
             let spawn_redis = Arc::clone(redis);
-            i64::try_from(msg_size).map_or((), |size_in_bytes| {
+            if let Ok(size_in_bytes) = i64::try_from(msg_size) {
                 tokio::spawn(async move {
                     let query = r"
 INSERT INTO hourly_bandwidth
@@ -66,7 +66,7 @@ SET
                         error!("unable to force update cache");
                     };
                 });
-            });
+            }
         }
     }
 }

@@ -77,7 +77,7 @@ pub async fn verify_password(password: &str, argon_hash: ArgonHash) -> Result<bo
                 "verify_password::new_hash",
             ))),
             |hash| match hash.verify_password(&[&get_hasher()], password) {
-                Ok(_) => Ok(true),
+                Ok(()) => Ok(true),
                 Err(e) => match e {
                     // Could always just return false, no need to worry about internal errors?
                     argon2::password_hash::Error::Password => Ok(false),
