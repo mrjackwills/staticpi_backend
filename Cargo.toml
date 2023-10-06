@@ -13,7 +13,7 @@ readme = "README.md"
 [dependencies]
 argon2 = "0.5"
 axum = { version="0.6", features=[ "headers", "macros", "ws"] }
-axum-extra = { version = "0.7",features =["cookie-private"] }
+axum-extra = { version = "0.8",features =["cookie-private"] }
 cookie = "0.17"
 dotenvy ="0.15"
 futures = "0.3"
@@ -34,17 +34,17 @@ sqlx = { version="0.7", features = ["bigdecimal", "ipnetwork", "postgres", "runt
 thiserror = "1.0"
 time = { version="0.3", features=["local-offset", "parsing", "serde"] }
 tokio = { version = "1.32", features=["full"] }
-totp-rs = { version = "5.2" }
+totp-rs = { version = "5.4" }
 tower = { version = "0.4", features = ["full"] }
 tower-http = { version="0.4", features = ["full"] }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version="0.3", features = ["json"] }
-ulid = { version = "1.0",features = ["serde"] }
+ulid = { version = "1.1", features = ["serde"] }
 
 
 [dev-dependencies]
-tokio-tungstenite = { version = "0.20.0" }
+tokio-tungstenite = { version = "0.20" }
 
 [profile.release]
 lto = 'thin'
