@@ -25,7 +25,7 @@ impl ModelConnection {
     /// Set all connection timestamps to NOW(), for when server is shutdown, make sure db is in sync with the actual connections
     pub async fn update_all_offline(postgres: &PgPool) -> Result<(), ApiError> {
         let query =
-            r#"UPDATE connection SET timestamp_offline = NOW() WHERE timestamp_offline IS NULL"#;
+            "UPDATE connection SET timestamp_offline = NOW() WHERE timestamp_offline IS NULL";
         sqlx::query(query).execute(postgres).await?;
         Ok(())
     }
@@ -35,7 +35,7 @@ impl ModelConnection {
         postgres: &PgPool,
         connection_id: ConnectionId,
     ) -> Result<(), ApiError> {
-        let query = r#"UPDATE connection SET timestamp_offline = NOW() WHERE connection_id = $1"#;
+        let query = "UPDATE connection SET timestamp_offline = NOW() WHERE connection_id = $1";
         sqlx::query(query)
             .bind(connection_id.get())
             .execute(postgres)
@@ -50,7 +50,7 @@ impl ModelConnection {
         user: &ModelUser,
         name_of_device: &str,
     ) -> Result<Vec<Self>, ApiError> {
-        let query = r#"
+        let query = "
 SELECT
     ipa.ip,
     co.timestamp_online::TEXT, co.timestamp_offline::TEXT
@@ -71,7 +71,7 @@ AND
 AND
     dn.name_of_device = $2
 ORDER BY
-    co.timestamp_online"#;
+    co.timestamp_online";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(user.registered_user_id.get())
             .bind(name_of_device)
@@ -86,7 +86,7 @@ ORDER BY
         user_agent_ip: &ModelUserAgentIp,
         device_type: ConnectionType,
     ) -> Result<ConnectionId, ApiError> {
-        let query = r#"INSERT INTO connection(device_id, api_key_id, ip_id, user_agent_id, is_pi) VALUES($1, $2, $3, $4, $5) RETURNING connection_id"#;
+        let query = "INSERT INTO connection(device_id, api_key_id, ip_id, user_agent_id, is_pi) VALUES($1, $2, $3, $4, $5) RETURNING connection_id";
         Ok(sqlx::query_as::<_, ModelConnectionId>(query)
             .bind(device.device_id.get())
             .bind(device.api_key_id.get())

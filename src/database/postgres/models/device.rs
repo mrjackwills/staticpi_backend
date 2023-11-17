@@ -165,7 +165,7 @@ impl DeviceName {
         device_name: &str,
         user: &ModelUser,
     ) -> Result<bool, ApiError> {
-        let query = r#"
+        let query = "
 SELECT
     de.device_id, dn.name_of_device
 FROM
@@ -176,7 +176,7 @@ WHERE
 AND
     de.registered_user_id = $2
 AND
-    de.active = true;"#;
+    de.active = true;";
 
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(device_name)
@@ -233,7 +233,7 @@ impl ModelWsDevice {
         postgres: &PgPool,
         device_id: DeviceId,
     ) -> Result<Option<Self>, ApiError> {
-        let query = r#"
+        let query = "
 SELECT
     de.device_id, de.max_clients, de.structured_data, de.client_password_id, de.device_password_id,
     ap.api_key_string AS api_key, ap.api_key_id,
@@ -255,7 +255,7 @@ AND
     de.paused = FALSE
 AND
     de.device_id = $1;
-"#;
+";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(device_id.get())
             .fetch_optional(postgres)
@@ -267,7 +267,7 @@ AND
         postgres: &PgPool,
         api_key: &ApiKey,
     ) -> Result<Option<Self>, ApiError> {
-        let query = r#"
+        let query = "
 SELECT
     de.device_id, de.max_clients, de.structured_data, de.client_password_id, de.device_password_id,
     ap.api_key_string AS api_key, ap.api_key_id,
@@ -289,7 +289,7 @@ AND
     de.paused = FALSE
 AND
     ap.api_key_string = $1;
-"#;
+";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
             .fetch_optional(postgres)
@@ -644,12 +644,12 @@ AND
             DeviceName::insert(&mut transaction, &device_name).await?
         };
 
-        let query = r#"
+        let query = "
 INSERT INTO
     device(registered_user_id, ip_id, user_agent_id, device_name_id, api_key_id, max_clients, client_password_id, device_password_id, structured_data)
 VALUES
     ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-"#;
+";
         sqlx::query(query)
             .bind(user.registered_user_id.get())
             .bind(useragent_ip.ip_id.get())
