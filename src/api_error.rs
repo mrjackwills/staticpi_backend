@@ -1,4 +1,4 @@
-use axum::response::{IntoResponse, Response};
+use axum::{response::{IntoResponse, Response}, http::StatusCode};
 use redis::RedisError;
 use std::time::SystemTimeError;
 use thiserror::Error;
@@ -53,51 +53,51 @@ impl IntoResponse for ApiError {
 
         let prefix = self.to_string();
         let (status, op_body) = match self {
-            Self::AccessToken => (axum::http::StatusCode::BAD_REQUEST, None),
+            Self::AccessToken => (StatusCode::BAD_REQUEST, None),
             Self::Authorization => (
-                axum::http::StatusCode::UNAUTHORIZED,
+                StatusCode::UNAUTHORIZED,
                 Some(OutgoingJson::new(prefix)),
             ),
             Self::Authentication => (
-                axum::http::StatusCode::FORBIDDEN,
+                StatusCode::FORBIDDEN,
                 Some(OutgoingJson::new(prefix)),
             ),
             Self::AxumExtension(e) => {
                 error!("{e:?}");
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::Conflict(conflict) => (
-                axum::http::StatusCode::CONFLICT,
+                StatusCode::CONFLICT,
                 Some(OutgoingJson::new(conflict)),
             ),
             Self::Internal(e) => {
                 error!("{e:?}");
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::InvalidValue(value) => (
-                axum::http::StatusCode::BAD_REQUEST,
+                StatusCode::BAD_REQUEST,
                 Some(OutgoingJson::new(value)),
             ),
             Self::Io(e) => {
                 error!("{e:?}");
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::MissingKey(key) => (
-                axum::http::StatusCode::BAD_REQUEST,
+                StatusCode::BAD_REQUEST,
                 Some(OutgoingJson::new(format!("{prefix} {key}"))),
             ),
 
             Self::RateLimited(limit) => (
-                axum::http::StatusCode::TOO_MANY_REQUESTS,
+                StatusCode::TOO_MANY_REQUESTS,
                 Some(OutgoingJson::new(format!("{prefix} {limit} seconds"))),
             ),
             Self::RedisError(e) => {
@@ -106,19 +106,19 @@ impl IntoResponse for ApiError {
                     exit();
                 };
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::Reqwest(e) => {
                 error!("{e:?}");
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::SerdeJson(_) => (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 Some(OutgoingJson::new(prefix)),
             ),
             Self::SqlxError(e) => {
@@ -130,21 +130,21 @@ impl IntoResponse for ApiError {
                     _ => (),
                 };
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::ThreadError(e) => {
                 error!("{e:?}");
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }
             Self::TimeError(e) => {
                 error!("{e:?}");
                 (
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Some(OutgoingJson::new(prefix)),
                 )
             }

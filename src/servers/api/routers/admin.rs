@@ -2,11 +2,10 @@ use axum::{
     extract::State,
     middleware,
     routing::{delete, get, patch},
-    Router,
+    Router, http::StatusCode,
 };
 use axum_extra::extract::PrivateCookieJar;
 use redis::AsyncCommands;
-use reqwest::StatusCode;
 use std::time::SystemTime;
 use tracing::error;
 use ulid::Ulid;
@@ -147,7 +146,7 @@ impl AdminRouter {
     /// Return a user object
     #[allow(clippy::unused_async)]
     async fn base_get() -> StatusCode {
-        axum::http::StatusCode::OK
+        StatusCode::OK
     }
 
     /// Remove a given rate limit, based on key name

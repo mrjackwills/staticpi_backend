@@ -7,11 +7,10 @@ use axum::{
     },
     response::IntoResponse,
     routing::get,
-    Router,
+    Router, http::StatusCode,
 };
 use futures::{StreamExt, TryStreamExt};
 
-use reqwest::StatusCode;
 use sqlx::PgPool;
 use tracing::{debug, error};
 use ulid::Ulid;

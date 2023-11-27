@@ -1,7 +1,7 @@
 use axum::{
     body::Bytes,
     extract::{OriginalUri, State},
-    http::Uri,
+    http::{Uri, StatusCode},
     routing::{get, post},
     Router,
 };
@@ -50,7 +50,7 @@ impl TokenRouter {
         State(state): State<ApplicationState>,
     ) -> Result<StatusOJ<oj::Online>, ApiError> {
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::Online {
                 uptime: calc_uptime(state.start_time),
                 api_version: env!("CARGO_PKG_VERSION").into(),
@@ -159,7 +159,7 @@ impl TokenRouter {
         )
         .await?)
             .map_or(Err(ApiError::AccessToken), |ulid| {
-                Ok((axum::http::StatusCode::OK, oj::OutgoingJson::new(ulid)))
+                Ok((StatusCode::OK, oj::OutgoingJson::new(ulid)))
             })
     }
 

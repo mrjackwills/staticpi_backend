@@ -1,15 +1,12 @@
-use reqwest::Method;
-
 use tower_http::cors::{Any, CorsLayer};
 
-use axum::{async_trait, middleware, Router};
+use axum::{async_trait, middleware, Router, http::Method};
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
-use tracing::error;
 
 use crate::{
     api_error::ApiError,
-    servers::{fallback, parse_addr, rate_limiting, shutdown_signal, ApplicationState},
+    servers::{fallback, parse_addr, rate_limiting, ApplicationState},
     ServeData,
 };
 
@@ -50,14 +47,25 @@ impl Serve for WsServer {
             )
             .with_state(application_state);
 
-        if let Err(e) = axum::Server::bind(&addr)
-            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-            .with_graceful_shutdown(shutdown_signal(&server_name))
-            .await
-        {
-            error!("{e:?}");
-            return Err(ApiError::Internal(format!("bind server::{server_name}")));
-        }
-        Ok(())
+			match axum::serve(
+				tokio::net::TcpListener::bind(&addr).await?,
+				app.into_make_service_with_connect_info::<SocketAddr>(),
+			)
+			.await
+			{
+				Ok(()) => Ok(()),
+				Err(_) => Err(ApiError::Internal(format!("bind server::{server_name}")))
+			}
+
+
+        // if let Err(e) = axum::Server::bind(&addr)
+        //     .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+        //     .with_graceful_shutdown(shutdown_signal(&server_name))
+        //     .await
+        // {
+        //     error!("{e:?}");
+        //     return Err(ApiError::Internal(format!("bind server::{server_name}")));
+        // }
+        // Ok(())
     }
 }

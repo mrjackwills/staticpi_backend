@@ -12,7 +12,7 @@ use crate::{
 use axum::{
     async_trait,
     extract::{ConnectInfo, FromRef, FromRequestParts, OriginalUri, State},
-    http::{HeaderMap, Request},
+    http::{HeaderMap, Request, StatusCode},
     middleware::Next,
     response::Response,
     Router,
@@ -26,7 +26,7 @@ use std::{
     sync::Arc,
     time::SystemTime,
 };
-use tokio::{signal, sync::Mutex};
+use tokio::sync::Mutex;
 use tracing::info;
 use ulid::Ulid;
 
@@ -71,7 +71,7 @@ pub trait Serve {
     async fn serve(serve_data: ServeData) -> Result<(), ApiError>;
 }
 
-type StatusOJ<T> = (axum::http::StatusCode, AsJsonRes<T>);
+type StatusOJ<T> = (StatusCode, AsJsonRes<T>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServerName {
@@ -219,53 +219,23 @@ fn get_api_version() -> String {
     )
 }
 
-#[allow(clippy::expect_used)]
-async fn shutdown_signal(server_name: &ServerName) {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        () = ctrl_c => {},
-        () = terminate => {},
-    }
-
-    info!(
-        "signal received, starting graceful shutdown - {}",
-        server_name
-    );
-}
-
 /// return a unknown endpoint response
 #[allow(clippy::unused_async)]
 pub async fn fallback(
     OriginalUri(original_uri): OriginalUri,
-) -> (axum::http::StatusCode, AsJsonRes<String>) {
+) -> (StatusCode, AsJsonRes<String>) {
     (
-        axum::http::StatusCode::NOT_FOUND,
+        StatusCode::NOT_FOUND,
         OutgoingJson::new(format!("unknown endpoint: {original_uri}")),
     )
 }
 
 // Limit the users request based on ip address, using redis as mem store
-async fn rate_limiting<B: Send + Sync>(
+async fn rate_limiting(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
-    req: Request<B>,
-    next: Next<B>,
+	req: Request<axum::body::Body>,
+    next: Next,
 ) -> Result<Response, ApiError> {
     let (mut parts, body) = req.into_parts();
     let addr = ConnectInfo::<SocketAddr>::from_request_parts(&mut parts, &state).await?;
