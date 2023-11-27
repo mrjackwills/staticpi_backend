@@ -1,6 +1,6 @@
 use tower_http::cors::{Any, CorsLayer};
 
-use axum::{async_trait, middleware, Router, http::Method};
+use axum::{async_trait, http::Method, middleware, Router};
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 
@@ -47,16 +47,15 @@ impl Serve for WsServer {
             )
             .with_state(application_state);
 
-			match axum::serve(
-				tokio::net::TcpListener::bind(&addr).await?,
-				app.into_make_service_with_connect_info::<SocketAddr>(),
-			)
-			.await
-			{
-				Ok(()) => Ok(()),
-				Err(_) => Err(ApiError::Internal(format!("bind server::{server_name}")))
-			}
-
+        match axum::serve(
+            tokio::net::TcpListener::bind(&addr).await?,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        {
+            Ok(()) => Ok(()),
+            Err(_) => Err(ApiError::Internal(format!("bind server::{server_name}"))),
+        }
 
         // if let Err(e) = axum::Server::bind(&addr)
         //     .serve(app.into_make_service_with_connect_info::<SocketAddr>())

@@ -1,8 +1,9 @@
 use axum::{
     extract::State,
+    http::StatusCode,
     middleware,
     routing::{delete, get, patch},
-    Router, http::StatusCode,
+    Router,
 };
 use axum_extra::extract::PrivateCookieJar;
 use redis::AsyncCommands;

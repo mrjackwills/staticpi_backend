@@ -23,6 +23,7 @@ use sqlx::PgPool;
 use std::{
     fmt,
     net::{IpAddr, SocketAddr, ToSocketAddrs},
+    ops::Deref,
     sync::Arc,
     time::SystemTime,
 };
@@ -96,9 +97,25 @@ impl ServerName {
     }
 }
 
-// should have a db struct, then can easily call both without?
 #[derive(Clone)]
-pub struct ApplicationState {
+pub struct ApplicationState(Arc<InnerState>);
+
+// deref so you can still access the inner fields easily
+impl Deref for ApplicationState {
+    type Target = InnerState;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ApplicationState {
+    pub fn new(serve_data: ServeData) -> Self {
+        Self(Arc::new(InnerState::new(serve_data)))
+    }
+}
+
+pub struct InnerState {
     pub connections: Arc<Mutex<Connections>>,
     pub cookie_name: String,
     pub domain: String,
@@ -111,7 +128,7 @@ pub struct ApplicationState {
     invite: String,
 }
 
-impl ApplicationState {
+impl InnerState {
     // Should take in serve_data!
     pub fn new(serve_data: ServeData) -> Self {
         Self {
@@ -131,7 +148,7 @@ impl ApplicationState {
 
 impl FromRef<ApplicationState> for Key {
     fn from_ref(state: &ApplicationState) -> Self {
-        state.cookie_key.clone()
+        state.0.cookie_key.clone()
     }
 }
 
@@ -221,9 +238,7 @@ fn get_api_version() -> String {
 
 /// return a unknown endpoint response
 #[allow(clippy::unused_async)]
-pub async fn fallback(
-    OriginalUri(original_uri): OriginalUri,
-) -> (StatusCode, AsJsonRes<String>) {
+pub async fn fallback(OriginalUri(original_uri): OriginalUri) -> (StatusCode, AsJsonRes<String>) {
     (
         StatusCode::NOT_FOUND,
         OutgoingJson::new(format!("unknown endpoint: {original_uri}")),
@@ -234,7 +249,7 @@ pub async fn fallback(
 async fn rate_limiting(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
-	req: Request<axum::body::Body>,
+    req: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
     let (mut parts, body) = req.into_parts();

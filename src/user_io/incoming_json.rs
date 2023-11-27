@@ -102,7 +102,10 @@ pub mod ij {
     {
         type Rejection = ApiError;
 
-        async fn from_request(req: Request<axum::body::Body>, state: &S) -> Result<Self, Self::Rejection> {
+        async fn from_request(
+            req: Request<axum::body::Body>,
+            state: &S,
+        ) -> Result<Self, Self::Rejection> {
             match axum::Json::<T>::from_request(req, state).await {
                 Ok(value) => Ok(Self(value.0)),
                 Err(rejection) => match rejection {

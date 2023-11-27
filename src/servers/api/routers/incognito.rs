@@ -10,10 +10,11 @@ use ulid::Ulid;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     middleware,
     response::IntoResponse,
     routing::{get, post},
-    Router, http::StatusCode,
+    Router,
 };
 
 use crate::{
@@ -586,13 +587,13 @@ impl IncognitoRouter {
                 Duration::hours(6)
             };
 
-            let mut cookie = Cookie::new(state.cookie_name, ulid.to_string());
-                cookie.set_domain(state.domain);
-                cookie.set_path("/");
-                cookie.set_secure(state.run_mode.is_production());
-                cookie.set_same_site(SameSite::Strict);
-                cookie.set_http_only(true);
-                cookie.set_max_age(ttl);
+            let mut cookie = Cookie::new(state.cookie_name.clone(), ulid.to_string());
+            cookie.set_domain(state.domain.clone());
+            cookie.set_path("/");
+            cookie.set_secure(state.run_mode.is_production());
+            cookie.set_same_site(SameSite::Strict);
+            cookie.set_http_only(true);
+            cookie.set_max_age(ttl);
 
             RedisSession::new(user.registered_user_id, &user.email)
                 .insert(&state.redis, ttl, ulid)

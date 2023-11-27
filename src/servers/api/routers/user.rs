@@ -1,8 +1,9 @@
 use axum::{
     extract::State,
+    http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, patch, post},
-    Router, http::StatusCode,
+    Router,
 };
 use axum_extra::extract::{cookie::Cookie, PrivateCookieJar};
 use futures::{stream::FuturesUnordered, StreamExt};

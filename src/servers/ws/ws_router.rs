@@ -5,9 +5,10 @@ use axum::{
         ws::{Message, WebSocket},
         OriginalUri, State, WebSocketUpgrade,
     },
+    http::StatusCode,
     response::IntoResponse,
     routing::get,
-    Router, http::StatusCode,
+    Router,
 };
 use futures::{StreamExt, TryStreamExt};
 

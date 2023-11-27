@@ -1,8 +1,9 @@
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     middleware,
     routing::{delete, patch},
-    Router, http::StatusCode,
+    Router,
 };
 use std::fmt;
 
