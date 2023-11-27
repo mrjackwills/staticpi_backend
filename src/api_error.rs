@@ -1,4 +1,7 @@
-use axum::{response::{IntoResponse, Response}, http::StatusCode};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use redis::RedisError;
 use std::time::SystemTimeError;
 use thiserror::Error;
@@ -54,14 +57,8 @@ impl IntoResponse for ApiError {
         let prefix = self.to_string();
         let (status, op_body) = match self {
             Self::AccessToken => (StatusCode::BAD_REQUEST, None),
-            Self::Authorization => (
-                StatusCode::UNAUTHORIZED,
-                Some(OutgoingJson::new(prefix)),
-            ),
-            Self::Authentication => (
-                StatusCode::FORBIDDEN,
-                Some(OutgoingJson::new(prefix)),
-            ),
+            Self::Authorization => (StatusCode::UNAUTHORIZED, Some(OutgoingJson::new(prefix))),
+            Self::Authentication => (StatusCode::FORBIDDEN, Some(OutgoingJson::new(prefix))),
             Self::AxumExtension(e) => {
                 error!("{e:?}");
                 (
@@ -69,10 +66,7 @@ impl IntoResponse for ApiError {
                     Some(OutgoingJson::new(prefix)),
                 )
             }
-            Self::Conflict(conflict) => (
-                StatusCode::CONFLICT,
-                Some(OutgoingJson::new(conflict)),
-            ),
+            Self::Conflict(conflict) => (StatusCode::CONFLICT, Some(OutgoingJson::new(conflict))),
             Self::Internal(e) => {
                 error!("{e:?}");
                 (
@@ -80,10 +74,7 @@ impl IntoResponse for ApiError {
                     Some(OutgoingJson::new(prefix)),
                 )
             }
-            Self::InvalidValue(value) => (
-                StatusCode::BAD_REQUEST,
-                Some(OutgoingJson::new(value)),
-            ),
+            Self::InvalidValue(value) => (StatusCode::BAD_REQUEST, Some(OutgoingJson::new(value))),
             Self::Io(e) => {
                 error!("{e:?}");
                 (

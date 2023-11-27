@@ -10,9 +10,7 @@ use std::net::SocketAddr;
 use crate::{
     api_error::ApiError,
     parse_env::RunMode,
-    servers::{
-        fallback, get_api_version, parse_addr, rate_limiting, ApplicationState,
-    },
+    servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState},
 };
 
 use super::{ApiRouter, Serve, ServeData};
@@ -83,15 +81,15 @@ impl Serve for ApiServer {
             )
             .with_state(application_state);
 
-		    match axum::serve(
-				tokio::net::TcpListener::bind(&addr).await?,
-				app.into_make_service_with_connect_info::<SocketAddr>(),
-			)
-			.await
-			{
-				Ok(()) => Ok(()),
-				Err(_) => Err(ApiError::Internal("api_server".to_owned())),
-			}
+        match axum::serve(
+            tokio::net::TcpListener::bind(&addr).await?,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        {
+            Ok(()) => Ok(()),
+            Err(_) => Err(ApiError::Internal("api_server".to_owned())),
+        }
 
         // if let Err(e) = axum::Server::bind(&addr)
         //     .serve(app.into_make_service_with_connect_info::<SocketAddr>())

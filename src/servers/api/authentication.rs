@@ -163,7 +163,7 @@ pub async fn is_authenticated(
 pub async fn is_admin_authenticated(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
-	req: Request<axum::body::Body>,
+    req: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
     if let Some(data) = jar.get(&state.cookie_name) {
