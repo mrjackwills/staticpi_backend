@@ -95,15 +95,14 @@ pub mod ij {
     /// Either return valid json (meeting a struct spec listed below), or return an ApiError
     /// Then each route handler, can use `IncomingJson(body): IncomingJson<T>`, to extract T into param body
     #[async_trait]
-    impl<S, B, T> FromRequest<S, B> for IncomingJson<T>
+    impl<S, T> FromRequest<S> for IncomingJson<T>
     where
-        axum::Json<T>: FromRequest<S, B, Rejection = JsonRejection>,
+        axum::Json<T>: FromRequest<S, Rejection = JsonRejection>,
         S: Send + Sync,
-        B: Send + 'static,
     {
         type Rejection = ApiError;
 
-        async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        async fn from_request(req: Request<axum::body::Body>, state: &S) -> Result<Self, Self::Rejection> {
             match axum::Json::<T>::from_request(req, state).await {
                 Ok(value) => Ok(Self(value.0)),
                 Err(rejection) => match rejection {

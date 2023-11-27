@@ -1,19 +1,17 @@
 pub mod authentication;
 mod routers;
 
-use reqwest::Method;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
 use axum::{async_trait, http::HeaderValue, middleware, Extension, Router};
 use std::net::SocketAddr;
-use tracing::error;
 
 use crate::{
     api_error::ApiError,
     parse_env::RunMode,
     servers::{
-        fallback, get_api_version, parse_addr, rate_limiting, shutdown_signal, ApplicationState,
+        fallback, get_api_version, parse_addr, rate_limiting, ApplicationState,
     },
 };
 
@@ -36,12 +34,12 @@ impl Serve for ApiServer {
         #[allow(clippy::unwrap_used)]
         let cors = CorsLayer::new()
             .allow_methods([
-                Method::DELETE,
-                Method::GET,
-                Method::OPTIONS,
-                Method::PATCH,
-                Method::POST,
-                Method::PUT,
+                axum::http::Method::DELETE,
+                axum::http::Method::GET,
+                axum::http::Method::OPTIONS,
+                axum::http::Method::PATCH,
+                axum::http::Method::POST,
+                axum::http::Method::PUT,
             ])
             .allow_credentials(true)
             .allow_headers(vec![
@@ -85,16 +83,26 @@ impl Serve for ApiServer {
             )
             .with_state(application_state);
 
-        if let Err(e) = axum::Server::bind(&addr)
-            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-            .with_graceful_shutdown(shutdown_signal(&server_name))
-            .await
-        {
-            error!("{e:?}");
-            Err(ApiError::Internal(format!("bind server::{server_name}")))
-        } else {
-            Ok(())
-        }
+		    match axum::serve(
+				tokio::net::TcpListener::bind(&addr).await?,
+				app.into_make_service_with_connect_info::<SocketAddr>(),
+			)
+			.await
+			{
+				Ok(()) => Ok(()),
+				Err(_) => Err(ApiError::Internal("api_server".to_owned())),
+			}
+
+        // if let Err(e) = axum::Server::bind(&addr)
+        //     .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+        //     .with_graceful_shutdown(shutdown_signal(&server_name))
+        //     .await
+        // {
+        //     error!("{e:?}");
+        //     Err(ApiError::Internal(format!("bind server::{server_name}")))
+        // } else {
+        //     Ok(())
+        // }
     }
 }
 

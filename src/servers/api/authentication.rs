@@ -125,11 +125,11 @@ pub async fn check_password_op_token(
 }
 
 /// Middleware for only allowing access to routes if no logged in sessions
-pub async fn not_authenticated<B: Send + Sync>(
+pub async fn not_authenticated(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
-    req: Request<B>,
-    next: Next<B>,
+    req: Request<axum::body::Body>,
+    next: Next,
 ) -> Result<Response, ApiError> {
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
@@ -142,11 +142,11 @@ pub async fn not_authenticated<B: Send + Sync>(
 }
 
 /// Middleware for only allowing access to routes if currently authenticated
-pub async fn is_authenticated<B: Send + Sync>(
+pub async fn is_authenticated(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
-    req: Request<B>,
-    next: Next<B>,
+    req: Request<axum::body::Body>,
+    next: Next,
 ) -> Result<Response, ApiError> {
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
@@ -160,11 +160,11 @@ pub async fn is_authenticated<B: Send + Sync>(
 
 /// Middleware for only allowing access to routes if currently admin & authenticated
 /// Will send a 403 to the frontend, instead of 401 from the other is_x() methods, which logs out the frontend user
-pub async fn is_admin_authenticated<B: Send + Sync>(
+pub async fn is_admin_authenticated(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
-    req: Request<B>,
-    next: Next<B>,
+	req: Request<axum::body::Body>,
+    next: Next,
 ) -> Result<Response, ApiError> {
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {

@@ -3,7 +3,6 @@ use axum_extra::extract::{
     PrivateCookieJar,
 };
 use rand::Rng;
-use reqwest::StatusCode;
 use sqlx::PgPool;
 use std::fmt;
 use time::Duration;
@@ -14,7 +13,7 @@ use axum::{
     middleware,
     response::IntoResponse,
     routing::{get, post},
-    Router,
+    Router, http::StatusCode,
 };
 
 use crate::{
@@ -119,7 +118,7 @@ impl IncognitoRouter {
         State(state): State<ApplicationState>,
     ) -> Result<StatusOJ<ModelAllBandwidth>, ApiError> {
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(ModelAllBandwidth::get(&state.postgres).await?),
         ))
     }
@@ -128,7 +127,7 @@ impl IncognitoRouter {
     /// Return a simple online status response
     async fn get_online(State(state): State<ApplicationState>) -> StatusOJ<oj::Online> {
         (
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::Online {
                 uptime: calc_uptime(state.start_time),
                 api_version: env!("CARGO_PKG_VERSION").into(),
@@ -143,7 +142,7 @@ impl IncognitoRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::Register>,
     ) -> Result<StatusOJ<String>, ApiError> {
         let response = (
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(IncognitoResponse::Instructions.to_string()),
         );
 
@@ -256,7 +255,7 @@ impl IncognitoRouter {
             .await?;
         }
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(IncognitoResponse::Instructions.to_string()),
         ))
     }
@@ -331,7 +330,7 @@ impl IncognitoRouter {
                 .send(&state.postgres, &useragent_ip)
                 .await?;
                 Ok((
-                    axum::http::StatusCode::OK,
+                    StatusCode::OK,
                     oj::OutgoingJson::new(IncognitoResponse::ResetPatch.to_string()),
                 ))
             } else {
@@ -370,7 +369,7 @@ impl IncognitoRouter {
                     two_fa_active: valid_reset.two_fa_secret.is_some(),
                     two_fa_backup: valid_reset.two_fa_backup_count > 0,
                 };
-                Ok((axum::http::StatusCode::OK, oj::OutgoingJson::new(response)))
+                Ok((StatusCode::OK, oj::OutgoingJson::new(response)))
             } else {
                 Err(ApiError::InvalidValue(
                     IncognitoResponse::VerifyInvalid.to_string(),
@@ -405,7 +404,7 @@ impl IncognitoRouter {
                 ModelUser::insert(&state.postgres, &new_user).await?;
                 RedisNewUser::delete(&new_user, &state.redis, &ulid).await?;
                 Ok((
-                    axum::http::StatusCode::OK,
+                    StatusCode::OK,
                     oj::OutgoingJson::new(IncognitoResponse::Verified.to_string()),
                 ))
             } else {
@@ -547,7 +546,7 @@ impl IncognitoRouter {
                 // So that the function return type can be strict
                 // need to included two_backup as a bool
                 return Ok((
-                    axum::http::StatusCode::ACCEPTED,
+                    StatusCode::ACCEPTED,
                     oj::OutgoingJson::new(oj::SigninAccepted {
                         two_fa_backup: user.two_fa_backup_count > 0,
                     }),
@@ -587,14 +586,13 @@ impl IncognitoRouter {
                 Duration::hours(6)
             };
 
-            let cookie = Cookie::build(state.cookie_name, ulid.to_string())
-                .domain(state.domain)
-                .path("/")
-                .secure(state.run_mode.is_production())
-                .same_site(SameSite::Strict)
-                .http_only(true)
-                .max_age(ttl)
-                .finish();
+            let mut cookie = Cookie::new(state.cookie_name, ulid.to_string());
+                cookie.set_domain(state.domain);
+                cookie.set_path("/");
+                cookie.set_secure(state.run_mode.is_production());
+                cookie.set_same_site(SameSite::Strict);
+                cookie.set_http_only(true);
+                cookie.set_max_age(ttl);
 
             RedisSession::new(user.registered_user_id, &user.email)
                 .insert(&state.redis, ttl, ulid)

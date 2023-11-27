@@ -2,9 +2,8 @@ use axum::{
     extract::{Path, State},
     middleware,
     routing::{delete, patch},
-    Router,
+    Router, http::StatusCode,
 };
-use reqwest::StatusCode;
 use std::fmt;
 
 use crate::{
@@ -131,7 +130,7 @@ impl DeviceRouter {
         }
         ModelDevice::delete_all_device_cache_connections(&state, &user).await?;
 
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// Get information on all devices, and include rate limits
@@ -150,7 +149,7 @@ impl DeviceRouter {
             });
         }
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::AllDevices { devices, limits }),
         ))
     }
@@ -203,7 +202,7 @@ impl DeviceRouter {
         }
 
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(
                 ModelDevice::insert(&state.postgres, useragent_ip, &user, body).await?,
             ),
@@ -240,7 +239,7 @@ impl DeviceRouter {
 
             MessageCache::delete(&state.redis, device_id).await?;
 
-            Ok(axum::http::StatusCode::OK)
+            Ok(StatusCode::OK)
         } else {
             Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
         }
@@ -257,7 +256,7 @@ impl DeviceRouter {
             .is_some()
         {
             Ok((
-                axum::http::StatusCode::OK,
+                StatusCode::OK,
                 oj::OutgoingJson::new(
                     ModelConnection::get_client_online(&state.postgres, &user, &device_name)
                         .await?,
