@@ -129,7 +129,6 @@ pub struct InnerState {
 }
 
 impl InnerState {
-    // Should take in serve_data!
     pub fn new(serve_data: ServeData) -> Self {
         Self {
             connections: Arc::clone(&serve_data.connections),
