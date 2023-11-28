@@ -13,15 +13,14 @@
 	"runArgs": [
 		"--cap-add=SYS_PTRACE",
 		"--security-opt",
-		"seccomp=unconfined",
-		"--net=host"
+		"seccomp=unconfined"
 	],
 	"mounts": [
 		"source=/dev/shm,target=/dev/shm,type=bind",
 		"source=/etc/localtime,target=/etc/localtime,type=bind,readonly"
 	],
 
-	"postCreateCommand": "cargo install cargo-watch typos-cli",
+	"postCreateCommand": "cargo install cargo-watch typos-cli cargo-expand",
 	"postStartCommand": "sudo mkdir -p /dev/shm/staticpi/backups /dev/shm/staticpi/pg_data /dev/shm/staticpi/redis_data /dev/shm/staticpi/logs /dev/shm/staticpi/target && sudo chown -R vscode:vscode /dev/shm/staticpi",
 
 	"customizations": {
@@ -33,6 +32,7 @@
 				"ms-vscode.live-server",
 				"mutantdino.resourcemonitor",
 				"rangav.vscode-thunder-client",
+				"redhat.vscode-yaml",
 				"rust-lang.rust-analyzer",
 				"serayuzgur.crates",
 				"tamasfe.even-better-toml",

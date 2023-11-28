@@ -1,12 +1,12 @@
 use axum::{
     extract::State,
+    http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, patch, post},
     Router,
 };
 use axum_extra::extract::{cookie::Cookie, PrivateCookieJar};
 use futures::{stream::FuturesUnordered, StreamExt};
-use reqwest::StatusCode;
 use std::fmt;
 use ulid::Ulid;
 
@@ -121,7 +121,7 @@ impl UserRouter {
     #[allow(clippy::unused_async)]
     async fn user_get(user: ModelUser) -> StatusOJ<oj::AuthenticatedUser> {
         (
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::AuthenticatedUser::from(user)),
         )
     }
@@ -148,7 +148,7 @@ impl UserRouter {
         user.delete(&state.postgres, &state.redis).await?;
         RedisSession::delete_all(&state.redis, user.registered_user_id).await?;
 
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// Sign out user, by removing session from redis
@@ -163,11 +163,11 @@ impl UserRouter {
             }
 
             Ok((
-                axum::http::StatusCode::OK,
-                jar.remove(Cookie::named(cookie.name().to_owned())),
+                StatusCode::OK,
+                jar.remove(Cookie::from(cookie.name().to_owned())),
             ))
         } else {
-            Ok((axum::http::StatusCode::OK, jar))
+            Ok((StatusCode::OK, jar))
         }
     }
 
@@ -178,7 +178,7 @@ impl UserRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::PatchName>,
     ) -> Result<StatusCode, ApiError> {
         ModelUser::update_name(&state.postgres, user.registered_user_id, body.full_name).await?;
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// Download user data
@@ -269,7 +269,7 @@ impl UserRouter {
         .send(&state.postgres, &useragent_ip)
         .await?;
 
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// remove token from redis - used in 2fa setup process,
@@ -278,7 +278,7 @@ impl UserRouter {
         user: ModelUser,
     ) -> Result<StatusCode, ApiError> {
         RedisTwoFASetup::delete(&state.redis, &user).await?;
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// Get a new secret, store in redis until user returns valid token response
@@ -296,7 +296,7 @@ impl UserRouter {
             .insert(&state.redis, &user)
             .await?;
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::TwoFASetup {
                 // Convert to base32, to generate a QR code on the front end that will work with Google Authenticator etc
                 secret: totp.get_secret_base32(),
@@ -331,7 +331,7 @@ impl UserRouter {
                             )
                             .send(&state.postgres, &useragent_ip)
                             .await?;
-                            return Ok(axum::http::StatusCode::OK);
+                            return Ok(StatusCode::OK);
                         }
                     }
                 }
@@ -383,7 +383,7 @@ impl UserRouter {
             ModelTwoFA::update_always_required(&state.postgres, body.always_required, &user)
                 .await?;
         }
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// Remove `two_fa` from user, including any, and all all, backups
@@ -424,7 +424,7 @@ impl UserRouter {
         .send(&state.postgres, &useragent_ip)
         .await?;
 
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 
     /// insert `two_fa_backup_code`
@@ -457,7 +457,7 @@ impl UserRouter {
         .await?;
 
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::TwoFaBackup { backups: backup }),
         ))
     }
@@ -502,7 +502,7 @@ impl UserRouter {
         .await?;
 
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::TwoFaBackup { backups }),
         ))
     }
@@ -535,7 +535,7 @@ impl UserRouter {
         .send(&state.postgres, &useragent_ip)
         .await?;
 
-        Ok(axum::http::StatusCode::OK)
+        Ok(StatusCode::OK)
     }
 }
 

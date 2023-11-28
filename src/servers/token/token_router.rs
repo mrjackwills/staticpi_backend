@@ -1,7 +1,7 @@
 use axum::{
     body::Bytes,
     extract::{OriginalUri, State},
-    http::Uri,
+    http::{StatusCode, Uri},
     routing::{get, post},
     Router,
 };
@@ -50,7 +50,7 @@ impl TokenRouter {
         State(state): State<ApplicationState>,
     ) -> Result<StatusOJ<oj::Online>, ApiError> {
         Ok((
-            axum::http::StatusCode::OK,
+            StatusCode::OK,
             oj::OutgoingJson::new(oj::Online {
                 uptime: calc_uptime(state.start_time),
                 api_version: env!("CARGO_PKG_VERSION").into(),
@@ -78,7 +78,7 @@ impl TokenRouter {
         password: Option<&str>,
         useragent_ip: ModelUserAgentIp,
         device_type: ConnectionType,
-        state: ApplicationState,
+        state: &ApplicationState,
     ) -> Result<Option<Ulid>, ApiError> {
         let mut output = None;
 
@@ -144,7 +144,7 @@ impl TokenRouter {
     async fn _auth_post(
         useragent_ip: ModelUserAgentIp,
         uri: Uri,
-        state: ApplicationState,
+        state: &ApplicationState,
         body: Bytes,
     ) -> Result<StatusOJ<Ulid>, ApiError> {
         let body = serde_json::from_slice::<ij::AuthKeyPassword>(&body)?;
@@ -159,7 +159,7 @@ impl TokenRouter {
         )
         .await?)
             .map_or(Err(ApiError::AccessToken), |ulid| {
-                Ok((axum::http::StatusCode::OK, oj::OutgoingJson::new(ulid)))
+                Ok((StatusCode::OK, oj::OutgoingJson::new(ulid)))
             })
     }
 
@@ -170,7 +170,7 @@ impl TokenRouter {
         State(state): State<ApplicationState>,
         body: Bytes,
     ) -> Result<StatusOJ<Ulid>, ApiError> {
-        match Self::_auth_post(useragent_ip, uri, state, body).await {
+        match Self::_auth_post(useragent_ip, uri, &state, body).await {
             Ok(response) => Ok(response),
             Err(e) => match e {
                 ApiError::RateLimited(ttl) => Err(ApiError::RateLimited(ttl)),

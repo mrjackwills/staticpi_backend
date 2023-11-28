@@ -58,7 +58,7 @@ impl RedisSession {
             let op_session = redis
                 .lock()
                 .await
-                .hget::<&String, &str, Option<Self>>(&key, HASH_FIELD)
+                .hget::<&str, &str, Option<Self>>(key.as_str(), HASH_FIELD)
                 .await?;
 
             if let Some(session) = op_session {

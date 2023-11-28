@@ -11,13 +11,13 @@ impl ModelBannedEmail {
     pub async fn get(postgres: &PgPool, email: &str) -> Result<Option<Self>, sqlx::Error> {
         let domain = email.split_once('@').unwrap_or_default().1;
         sqlx::query_as::<_, Self>(
-            r#"
+            "
 		SELECT
 			domain
 		FROM
 			banned_email_domain
 		WHERE
-			domain = $1"#,
+			domain = $1",
         )
         .bind(domain.to_lowercase())
         .fetch_optional(postgres)
