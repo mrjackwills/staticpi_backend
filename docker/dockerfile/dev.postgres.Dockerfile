@@ -1,4 +1,4 @@
-FROM postgres:15-alpine3.18
+FROM postgres:16-alpine3.18
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \
@@ -24,7 +24,6 @@ COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} ./docker/init/dev.init_postg
 # This is a bit of a hack, for pg_dump.tar
 COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} ./docker/init/init_db.sql ./docker/data/banned_domains.txt ./docker/data/pg_dump.tar* /init/
 COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} ./docker/healthcheck/health_postgres.sh /healthcheck/
-
 
 RUN chmod +x /healthcheck/health_postgres.sh /docker-entrypoint-initdb.d/dev.init_postgres.sh
 
