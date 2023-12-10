@@ -9,7 +9,7 @@ pub mod wm {
     use ulid::Ulid;
 
     pub enum Error {
-        RateLimit(usize),
+        RateLimit(i64),
         InvalidStructure,
         MessageSize,
         MonthlyBandwidth,

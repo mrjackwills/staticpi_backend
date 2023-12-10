@@ -80,7 +80,7 @@ impl RedisSession {
         let session = serde_json::to_string(&self)?;
         let key_session_set = Self::key_session_set(self.registered_user_id);
 
-        let ttl = usize::try_from(ttl.whole_seconds()).unwrap_or(60);
+        let ttl = ttl.whole_seconds();
 
         let mut redis = redis.lock().await;
         redis.hset(&key_session, HASH_FIELD, session).await?;

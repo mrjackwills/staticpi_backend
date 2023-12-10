@@ -243,7 +243,7 @@ pub fn create_html_string(input: &Emailer) -> Option<String> {
 
     match mrml::parse(template) {
         Ok(root) => {
-            let opts = mrml::prelude::render::Options::default();
+            let opts = mrml::prelude::render::RenderOptions::default();
             match root.render(&opts) {
                 Ok(email_string) => Some(email_string),
                 Err(e) => {

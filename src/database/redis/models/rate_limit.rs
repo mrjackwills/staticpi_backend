@@ -16,7 +16,7 @@ use crate::{
     user_io::{deserializer::IncomingDeserializer, outgoing_json::oj::AdminLimit},
 };
 
-const ONE_MINUTE_AS_SEC: usize = 60;
+const ONE_MINUTE_AS_SEC: i64 = 60;
 
 #[derive(Debug, Clone)]
 pub enum LimitContact {
@@ -192,8 +192,8 @@ impl From<(&ModelDevice, &ModelUser)> for RateLimit {
 }
 
 struct BlockTimes {
-    big: usize,
-    small: usize,
+    big: i64,
+    small: i64,
 }
 
 /// Generate big and small block time, in seconds
@@ -259,12 +259,12 @@ impl RateLimit {
     }
 
     /// Get the ttl for a given limiter, converts from the redis isize to usize
-    pub async fn ttl(&self, redis: &mut MutexGuard<'_, Connection>) -> Result<usize, ApiError> {
-        Ok(usize::try_from(redis.ttl::<String, isize>(self.key()).await?).unwrap_or_default())
+    pub async fn ttl(&self, redis: &mut MutexGuard<'_, Connection>) -> Result<i64, ApiError> {
+        Ok(redis.ttl::<String, i64>(self.key()).await?)
     }
 
     /// If currently rate limited, return ttl, else 0
-    pub async fn limited_ttl(&self, redis: &AMRedis) -> Result<usize, ApiError> {
+    pub async fn limited_ttl(&self, redis: &AMRedis) -> Result<i64, ApiError> {
         let mut redis = redis.lock().await;
         if let Some(count) = self.get_count(&mut redis).await? {
             if count >= self.get_limit() {
