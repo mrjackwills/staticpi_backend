@@ -1,3 +1,9 @@
+### Chores
++ dependencies updated, [da528da68a1cb0498cee515c9b32901e635dd767]
++ Rust 1.75.0 linting, [c8ce91aa153bc87b6eae128d7e3f48b36a22472f]
++ dependencies updated, redis method updated, [4000dab991893a52c8f591834a5f817e9f7e36f3]
++ bump alpine to 3.19, [d491323a0e298568241edb8a25e488266116be63]
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.7'>v0.0.7</a>
 ### 2023-11-28
 
