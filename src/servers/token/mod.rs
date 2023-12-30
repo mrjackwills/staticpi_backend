@@ -12,7 +12,7 @@ use crate::{
 
 use self::token_router::TokenRouter;
 
-use super::{ApiRouter, Serve, shutdown_signal};
+use super::{shutdown_signal, ApiRouter, Serve};
 mod token_router;
 
 pub struct TokenServer;
@@ -54,12 +54,12 @@ impl Serve for TokenServer {
         match axum::serve(
             tokio::net::TcpListener::bind(&addr).await?,
             app.into_make_service_with_connect_info::<SocketAddr>(),
-        ).with_graceful_shutdown(shutdown_signal(server_name))
+        )
+        .with_graceful_shutdown(shutdown_signal(server_name))
         .await
         {
             Ok(()) => Ok(()),
             Err(_) => Err(ApiError::Internal(format!("bind server::{server_name}"))),
         }
-
     }
 }

@@ -27,7 +27,7 @@ use std::{
     sync::Arc,
     time::SystemTime,
 };
-use tokio::{sync::Mutex, signal};
+use tokio::{signal, sync::Mutex};
 use tracing::info;
 use ulid::Ulid;
 
@@ -296,7 +296,6 @@ async fn shutdown_signal(server_name: ServerName) {
         server_name
     );
 }
-
 
 /// http tests - ran via actual requests to a (local) server
 /// cargo watch -q -c -w src/ -x 'test http_mod -- --test-threads=1 --nocapture'
