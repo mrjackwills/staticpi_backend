@@ -13,7 +13,7 @@ use crate::{
     servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState},
 };
 
-use super::{ApiRouter, Serve, ServeData, shutdown_signal};
+use super::{shutdown_signal, ApiRouter, Serve, ServeData};
 
 pub struct ApiServer;
 
@@ -84,7 +84,8 @@ impl Serve for ApiServer {
         match axum::serve(
             tokio::net::TcpListener::bind(&addr).await?,
             app.into_make_service_with_connect_info::<SocketAddr>(),
-        ).with_graceful_shutdown(shutdown_signal(server_name))
+        )
+        .with_graceful_shutdown(shutdown_signal(server_name))
         .await
         {
             Ok(()) => Ok(()),

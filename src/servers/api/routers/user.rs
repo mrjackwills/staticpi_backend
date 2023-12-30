@@ -3280,7 +3280,10 @@ mod tests {
         let a_0 = api[0].as_object().unwrap();
         assert!(a_0.get("device_id").is_none());
         assert_eq!(a_0.get("active").unwrap().as_str().unwrap(), "true");
-        assert_eq!(a_0.get("api_key_string").unwrap().as_str().unwrap(), api_key,);
+        assert_eq!(
+            a_0.get("api_key_string").unwrap().as_str().unwrap(),
+            api_key,
+        );
         assert_eq!(a_0.get("ip").unwrap().as_str().unwrap(), "127.0.0.1");
         assert!(a_0.get("timestamp").is_some());
         assert_eq!(
