@@ -488,7 +488,7 @@ mod tests {
     };
     use futures::{SinkExt, StreamExt};
     use redis::AsyncCommands;
-    use reqwest::{StatusCode, Url};
+    use reqwest::{Url, StatusCode};
     use serde_json::Value;
     use std::collections::HashMap;
     use tokio_tungstenite::{
@@ -538,9 +538,11 @@ mod tests {
         assert!(result["uptime"].is_u64());
         assert!(closed);
 
+
         // 90+ request is rate limited
         match connect_async(&url).await.unwrap_err() {
-            Error::Http(response) => assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS),
+			Error::Http(response) => 
+				assert_eq!(response.status(), axum::http::StatusCode::TOO_MANY_REQUESTS),
             _ => unreachable!("connect_async test"),
         }
         let ratelimit_key = "ratelimit::ip::127.0.0.1";
@@ -572,7 +574,7 @@ mod tests {
             .unwrap();
 
         match connect_async(&url).await.unwrap_err() {
-            Error::Http(response) => assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS),
+            Error::Http(response) => assert_eq!(response.status(), axum::http::StatusCode::TOO_MANY_REQUESTS),
             _ => unreachable!("connect_async test"),
         };
 
