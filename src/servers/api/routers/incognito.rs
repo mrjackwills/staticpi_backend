@@ -889,7 +889,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(session_vec.len(), 1);
-        let session_name = session_vec.get(0).unwrap();
+        let session_name = session_vec.first().unwrap();
         let session: RedisSession = test_setup
             .redis
             .lock()
@@ -954,7 +954,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(session_vec.len(), 1);
-        let session_name = session_vec.get(0).unwrap();
+        let session_name = session_vec.first().unwrap();
         let session: RedisSession = test_setup
             .redis
             .lock()

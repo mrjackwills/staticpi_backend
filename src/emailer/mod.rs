@@ -74,7 +74,7 @@ pub struct Emailer {
     name: String,
     email_address: String,
     template: EmailTemplate,
-    emailer: EmailerEnv,
+    env: EmailerEnv,
 }
 
 impl Emailer {
@@ -88,7 +88,7 @@ impl Emailer {
             name: name.to_owned(),
             email_address: email_address.to_owned(),
             template,
-            emailer: email_env.clone(),
+            env: email_env.clone(),
         }
     }
 
@@ -115,7 +115,7 @@ impl Emailer {
     #[cfg(test)]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
-        if let (Ok(from), Ok(to)) = (emailer.emailer.get_from_mailbox(), to_box) {
+        if let (Ok(from), Ok(to)) = (emailer.env.get_from_mailbox(), to_box) {
             let subject = emailer.template.get_subject();
             if let Some(html_string) = create_html_string(&emailer) {
                 let message_builder = Message::builder()
@@ -156,7 +156,7 @@ impl Emailer {
     #[cfg(not(test))]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
-        if let (Ok(from), Ok(to)) = (emailer.emailer.get_from_mailbox(), to_box) {
+        if let (Ok(from), Ok(to)) = (emailer.env.get_from_mailbox(), to_box) {
             let subject = emailer.template.get_subject();
             if let Some(html_string) = create_html_string(&emailer) {
                 let message_builder = Message::builder()
@@ -179,13 +179,13 @@ impl Emailer {
 
                 if let Ok(message) = message_builder {
                     // Only send emails on production
-                    if emailer.emailer.get_production() {
-                        let creds = emailer.emailer.get_credentials();
-                        match emailer.emailer.get_mailer() {
+                    if emailer.env.get_production() {
+                        let creds = emailer.env.get_credentials();
+                        match emailer.env.get_mailer() {
                             Ok(sender) => {
                                 let transport = sender
                                     .credentials(creds)
-                                    .port(emailer.emailer.get_port())
+                                    .port(emailer.env.get_port())
                                     .build();
                                 match transport.send(message).await {
                                     Ok(_) => {

@@ -30,7 +30,7 @@ pub mod oj {
     #[derive(Serialize)]
     pub struct AllLimits {
         pub name_of_device: String,
-        pub ttl: usize,
+        pub ttl: i64,
     }
 
     #[derive(Serialize)]
@@ -136,7 +136,7 @@ pub mod oj {
         pub key: String,
         pub points: u64,
         pub max: u64,
-        pub ttl: usize,
+        pub ttl: i64,
         pub blocked: bool,
     }
 

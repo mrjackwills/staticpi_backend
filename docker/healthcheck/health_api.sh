@@ -15,9 +15,8 @@ wget -nv -t1 --spider "${API_URL}" || exit 1
 
 wget -nv -t1 --spider "${TOKEN_URL}" || exit 1
 
-/healthcheck/websocat "${WSS_URL}" -q -E > /dev/null 2>&1
+/healthcheck/websocat "${WSS_URL}" -q -E >/dev/null 2>&1
 
 sleep 1
 
 exit $?
-

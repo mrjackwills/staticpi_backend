@@ -52,7 +52,7 @@ RUN apt-get update \
 	&& useradd --create-home --no-log-init --uid ${DOCKER_UID} --gid ${DOCKER_GUID} ${DOCKER_APP_USER} \
 	&& mkdir /logs \
 	&& chown ${DOCKER_APP_USER}:${DOCKER_APP_GROUP} /logs
-	
+
 WORKDIR /app
 
 COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} ./docker/healthcheck/health_api.sh /healthcheck/

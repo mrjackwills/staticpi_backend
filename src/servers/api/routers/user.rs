@@ -2700,7 +2700,7 @@ mod tests {
             result["backups"]
                 .as_array()
                 .unwrap()
-                .get(0)
+                .first()
                 .unwrap()
                 .as_str()
                 .unwrap()
@@ -2850,7 +2850,7 @@ mod tests {
         let pre_first_code = result["backups"]
             .as_array()
             .unwrap()
-            .get(0)
+            .first()
             .unwrap()
             .as_str();
 
@@ -2876,7 +2876,7 @@ mod tests {
             result["backups"]
                 .as_array()
                 .unwrap()
-                .get(0)
+                .first()
                 .unwrap()
                 .as_str()
                 .unwrap()
@@ -2888,7 +2888,7 @@ mod tests {
         let post_first_code = result["backups"]
             .as_array()
             .unwrap()
-            .get(0)
+            .first()
             .unwrap()
             .as_str();
 
@@ -3381,6 +3381,7 @@ mod tests {
             connection[1].get("ip").unwrap().as_str().unwrap(),
             "127.0.0.1"
         );
+
         assert_eq!(
             connection[1]
                 .get("name_of_device")

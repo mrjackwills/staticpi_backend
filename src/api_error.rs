@@ -31,7 +31,7 @@ pub enum ApiError {
     #[error("missing")]
     MissingKey(String),
     #[error("rate limited for")]
-    RateLimited(usize),
+    RateLimited(i64),
     #[error("redis error")]
     RedisError(#[from] RedisError),
     #[error("reqwest")]

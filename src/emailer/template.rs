@@ -239,11 +239,11 @@ fn create_template(input: &Emailer, domain: &str) -> String {
 /// Is parsed on own thread
 #[allow(clippy::cognitive_complexity)]
 pub fn create_html_string(input: &Emailer) -> Option<String> {
-    let template = create_template(input, input.emailer.get_domain());
+    let template = create_template(input, input.env.get_domain());
 
     match mrml::parse(template) {
         Ok(root) => {
-            let opts = mrml::prelude::render::Options::default();
+            let opts = mrml::prelude::render::RenderOptions::default();
             match root.render(&opts) {
                 Ok(email_string) => Some(email_string),
                 Err(e) => {

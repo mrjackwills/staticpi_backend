@@ -540,7 +540,9 @@ mod tests {
 
         // 90+ request is rate limited
         match connect_async(&url).await.unwrap_err() {
-            Error::Http(response) => assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS),
+            Error::Http(response) => {
+                assert_eq!(response.status(), axum::http::StatusCode::TOO_MANY_REQUESTS)
+            }
             _ => unreachable!("connect_async test"),
         }
         let ratelimit_key = "ratelimit::ip::127.0.0.1";
@@ -572,7 +574,9 @@ mod tests {
             .unwrap();
 
         match connect_async(&url).await.unwrap_err() {
-            Error::Http(response) => assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS),
+            Error::Http(response) => {
+                assert_eq!(response.status(), axum::http::StatusCode::TOO_MANY_REQUESTS)
+            }
             _ => unreachable!("connect_async test"),
         };
 

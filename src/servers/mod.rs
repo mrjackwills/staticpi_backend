@@ -27,7 +27,7 @@ use std::{
     sync::Arc,
     time::SystemTime,
 };
-use tokio::sync::Mutex;
+use tokio::{signal, sync::Mutex};
 use tracing::info;
 use ulid::Ulid;
 
@@ -215,7 +215,7 @@ fn parse_addr(host: &str, port: u16) -> Result<SocketAddr, ApiError> {
         Ok(i) => {
             let vec_i = i.take(1).collect::<Vec<SocketAddr>>();
             vec_i
-                .get(0)
+                .first()
                 .map_or(Err(ApiError::Internal("No addr".to_string())), |addr| {
                     Ok(*addr)
                 })
@@ -265,6 +265,36 @@ async fn rate_limiting(
     }
     key.check(&state.redis).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
+}
+
+#[allow(clippy::expect_used)]
+async fn shutdown_signal(server_name: ServerName) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        () = ctrl_c => {},
+        () = terminate => {},
+    }
+
+    info!(
+        "signal received, starting graceful shutdown - {}",
+        server_name
+    );
 }
 
 /// http tests - ran via actual requests to a (local) server
@@ -562,7 +592,7 @@ pub mod test_setup {
                 .smembers(format!("session_set::user::{}", user_id.get()))
                 .await
                 .unwrap();
-            sessions.get(0).map(|i| i.to_owned())
+            sessions.first().map(|i| i.to_owned())
         }
 
         pub fn get_user_id(&self) -> UserId {
