@@ -18,6 +18,7 @@ struct TimeStampIpUserAgent {
 #[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Device {
+    #[allow(clippy::struct_field_names)]
     name_of_device: String,
     timestamp: String,
     active: String,
@@ -50,12 +51,14 @@ struct User {
     timestamp: String,
     email: String,
     ip: IpAddr,
+    #[allow(clippy::struct_field_names)]
     user_agent_string: String,
 }
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Api {
+    #[allow(clippy::struct_field_names)]
     api_key_string: String,
     timestamp: String,
     active: String,

@@ -215,7 +215,7 @@ fn parse_addr(host: &str, port: u16) -> Result<SocketAddr, ApiError> {
         Ok(i) => {
             let vec_i = i.take(1).collect::<Vec<SocketAddr>>();
             vec_i
-                .get(0)
+                .first()
                 .map_or(Err(ApiError::Internal("No addr".to_string())), |addr| {
                     Ok(*addr)
                 })
@@ -562,7 +562,7 @@ pub mod test_setup {
                 .smembers(format!("session_set::user::{}", user_id.get()))
                 .await
                 .unwrap();
-            sessions.get(0).map(|i| i.to_owned())
+            sessions.first().map(|i| i.to_owned())
         }
 
         pub fn get_user_id(&self) -> UserId {
