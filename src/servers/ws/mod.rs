@@ -14,7 +14,7 @@ use self::ws_router::WsRouter;
 
 pub use self::ws_router::HandlerData;
 
-use super::{ApiRouter, Serve};
+use super::{ApiRouter, Serve, shutdown_signal};
 mod ws_router;
 
 pub struct WsServer;
@@ -50,21 +50,11 @@ impl Serve for WsServer {
         match axum::serve(
             tokio::net::TcpListener::bind(&addr).await?,
             app.into_make_service_with_connect_info::<SocketAddr>(),
-        )
+        ).with_graceful_shutdown(shutdown_signal(server_name))
         .await
         {
             Ok(()) => Ok(()),
             Err(_) => Err(ApiError::Internal(format!("bind server::{server_name}"))),
         }
-
-        // if let Err(e) = axum::Server::bind(&addr)
-        //     .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        //     .with_graceful_shutdown(shutdown_signal(&server_name))
-        //     .await
-        // {
-        //     error!("{e:?}");
-        //     return Err(ApiError::Internal(format!("bind server::{server_name}")));
-        // }
-        // Ok(())
     }
 }

@@ -27,7 +27,7 @@ use std::{
     sync::Arc,
     time::SystemTime,
 };
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, signal};
 use tracing::info;
 use ulid::Ulid;
 
@@ -266,6 +266,37 @@ async fn rate_limiting(
     key.check(&state.redis).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
 }
+
+#[allow(clippy::expect_used)]
+async fn shutdown_signal(server_name: ServerName) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        () = ctrl_c => {},
+        () = terminate => {},
+    }
+
+    info!(
+        "signal received, starting graceful shutdown - {}",
+        server_name
+    );
+}
+
 
 /// http tests - ran via actual requests to a (local) server
 /// cargo watch -q -c -w src/ -x 'test http_mod -- --test-threads=1 --nocapture'
