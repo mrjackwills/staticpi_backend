@@ -4,6 +4,9 @@
 + dependencies updated, redis method updated, [4000dab991893a52c8f591834a5f817e9f7e36f3]
 + bump alpine to 3.19, [d491323a0e298568241edb8a25e488266116be63]
 
+### Features
++ graceful shutdown re-introduced, [ae753b4f64f2afad394cf4756495171b1834adaa]
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.7'>v0.0.7</a>
 ### 2023-11-28
 
