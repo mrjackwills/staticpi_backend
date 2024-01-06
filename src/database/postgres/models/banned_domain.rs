@@ -12,12 +12,12 @@ impl ModelBannedEmail {
         let domain = email.split_once('@').unwrap_or_default().1;
         sqlx::query_as::<_, Self>(
             "
-		SELECT
-			domain
-		FROM
-			banned_email_domain
-		WHERE
-			domain = $1",
+        SELECT
+            domain
+        FROM
+            banned_email_domain
+        WHERE
+            domain = $1",
         )
         .bind(domain.to_lowercase())
         .fetch_optional(postgres)

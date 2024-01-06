@@ -77,7 +77,7 @@ AND
             ru.registered_user_id
         FROM
             device de
-			LEFT JOIN registered_user ru USING(registered_user_id)
+        LEFT JOIN registered_user ru USING(registered_user_id)
         WHERE
             device_id = $1
     )

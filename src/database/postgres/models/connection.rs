@@ -64,7 +64,7 @@ ON
     dn.device_name_id = de.device_name_id
 WHERE
     de.registered_user_id = $1
-AND	
+AND
     co.is_pi = FALSE
 AND
     co.timestamp_offline IS NULL

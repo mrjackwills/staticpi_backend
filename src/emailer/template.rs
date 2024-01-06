@@ -102,13 +102,13 @@ impl EmailTemplate {
     pub fn get_line_one(&self) -> String {
         match self {
             Self::Custom(custom_email) => custom_email.line_one.clone(),
-			Self::DownloadData => "You have requested a copy of your user data".to_owned(),
+            Self::DownloadData => "You have requested a copy of your user data".to_owned(),
             Self::AccountLocked => "Due to multiple failed login attempts your account has been locked.".to_owned(),
             Self::PasswordChanged => "The password for your staticPi account has been changed.".to_owned(),
             Self::PasswordResetRequested(_) => "This password reset link will only be valid for one hour".to_owned(),
             Self::TwoFABackupDisabled => "You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page.".to_owned(),
             Self::TwoFABackupEnabled => "You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure".to_owned(),
-			Self::TwoFABackupReGenerated => "You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure.".to_owned(),
+            Self::TwoFABackupReGenerated => "You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure.".to_owned(),
             Self::TwoFADisabled => "You have disabled Two-Factor Authentication for your staticPi account.".to_owned(),
             Self::TwoFAEnabled => "You have enabled Two-Factor Authentication for your staticPi account, it is recommended to create and save backup codes, these can be generated in the user settings area.".to_owned(),
             Self::Verify(_) => "Welcome to staticPi, before you start we just need you to verify this email address.".to_owned(),

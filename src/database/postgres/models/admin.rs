@@ -97,7 +97,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -125,7 +125,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -141,7 +141,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -157,7 +157,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -169,7 +169,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -181,7 +181,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -195,7 +195,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -209,7 +209,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -225,7 +225,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM 
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -241,7 +241,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
@@ -253,7 +253,7 @@ SELECT
         SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
         FROM
             hourly_bandwidth hb
-		LEFT JOIN device de USING(device_id)
+        LEFT JOIN device de USING(device_id)
         WHERE
             de.registered_user_id = ru.registered_user_id
         AND
