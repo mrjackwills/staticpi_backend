@@ -1,11 +1,14 @@
-### 2023-12-30
+### 2024-01-06
 
 ### Chores
-+ Rust 1.75.0 linting, [c8ce91aa153bc87b6eae128d7e3f48b36a22472f]
-+ dependencies updated, redis method updated, [4000dab991893a52c8f591834a5f817e9f7e36f3], [da528da68a1cb0498cee515c9b32901e635dd767]
-+ bump alpine to 3.19, [d491323a0e298568241edb8a25e488266116be63]
++ Docker TZ updated, [861a5a072717877cca799e9b04a3a1d82a45c1fc]
++ dependencies updated, [12edddaec1aac46a740e08432f4e194867b5a655], [2ca492f0e96a5321acca77d519a8ad7a0b870693]
 
-### Features
-+ graceful shutdown re-introduced, [ae753b4f64f2afad394cf4756495171b1834adaa]
+### Fixes
++ session_set expire temp fix, [718393bae630d043ff7ea9bca92b0f7f816d49bd]
++ .gitattributes, [053c892aeef8c59e8302e1149a1799a83ea25985]
+
+### Refactors
++ tabs switched for spaces, [01f1745d369514511a09b74ca0f2f86775b5594c]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
