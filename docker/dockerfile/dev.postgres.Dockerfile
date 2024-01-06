@@ -2,8 +2,8 @@ FROM postgres:16-alpine3.19
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \
-	DOCKER_TIME_CONT=America \
-	DOCKER_TIME_CITY=New_York \
+	DOCKER_TIME_CONT=Europe \
+	DOCKER_TIME_CITY=Berlin \
 	DOCKER_APP_USER=app_user \
 	DOCKER_APP_GROUP=app_group
 
