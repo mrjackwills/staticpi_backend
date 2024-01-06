@@ -280,9 +280,9 @@ LEFT JOIN registered_user ru USING(registered_user_id)
 LEFT JOIN api_key ap USING(api_key_id)
 LEFT JOIN device_name dn USING(device_name_id)
 LEFT JOIN
-	user_level ul
+    user_level ul
 ON
-	ul.user_level_id = ru.user_level_id
+    ul.user_level_id = ru.user_level_id
 WHERE
     de.active = TRUE
 AND
@@ -905,4 +905,4 @@ LEFT JOIN device_name dn USING(device_name_id)
 WHERE
     de.active = TRUE
 AND
-	de.registered_user_id = $1";
+    de.registered_user_id = $1";

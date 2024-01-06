@@ -49,9 +49,9 @@ VALUES
     pub async fn get_all(postgres: &PgPool) -> Result<Vec<Self>, ApiError> {
         let query = "
 SELECT
-	cm.contact_message_id, cm.message, cm.timestamp::TEXT, ea.email, ip.ip, ua.user_agent_string AS user_agent, ru.registered_user_id
+    cm.contact_message_id, cm.message, cm.timestamp::TEXT, ea.email, ip.ip, ua.user_agent_string AS user_agent, ru.registered_user_id
 FROM
-	contact_message cm
+    contact_message cm
 LEFT JOIN email_address ea USING(email_address_id)
 LEFT JOIN ip_address ip USING(ip_id)
 LEFT JOIN user_agent ua USING(user_agent_id)

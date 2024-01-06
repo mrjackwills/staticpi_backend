@@ -38,18 +38,19 @@ impl ModelLogin {
     pub async fn admin_delete_attempt(postgres: &PgPool, email: String) -> Result<(), ApiError> {
         let query = r"
 UPDATE
-	login_attempt
+    login_attempt
 SET
-	login_attempt_number = 0
+    login_attempt_number = 0
 WHERE
-	registered_user_id = (
-	SELECT
-		registered_user_id
-	FROM
-		registered_user
-	LEFT JOIN email_address USING(email_address_id)
-	WHERE
-		email_address.email = $1)";
+    registered_user_id = (
+    SELECT
+        registered_user_id
+    FROM
+        registered_user
+    LEFT JOIN email_address USING(email_address_id)
+    WHERE
+        email_address.email = $1
+    )";
         sqlx::query(query).bind(email).execute(postgres).await?;
         Ok(())
     }

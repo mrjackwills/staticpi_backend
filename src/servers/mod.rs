@@ -536,22 +536,22 @@ pub mod test_setup {
             is_counted: bool,
         ) {
             let query = r"
-			INSERT INTO hourly_bandwidth
-				(device_id, size_in_bytes, is_pi, is_counted)
-			VALUES
-				($1, $2, $3, $4)
-			ON CONFLICT (
-					extract(year FROM (timestamp AT TIME ZONE 'UTC')),
-					extract(month FROM (timestamp AT TIME ZONE 'UTC')),
-					extract(day FROM (timestamp AT TIME ZONE 'UTC')),
-					extract(hour FROM (timestamp AT TIME ZONE 'UTC')),
-					device_id,
-					is_pi,
-					is_counted
-				)
-			DO UPDATE
-			SET
-				size_in_bytes = hourly_bandwidth.size_in_bytes + $2";
+            INSERT INTO hourly_bandwidth
+                (device_id, size_in_bytes, is_pi, is_counted)
+            VALUES
+                ($1, $2, $3, $4)
+            ON CONFLICT (
+                    extract(year FROM (timestamp AT TIME ZONE 'UTC')),
+                    extract(month FROM (timestamp AT TIME ZONE 'UTC')),
+                    extract(day FROM (timestamp AT TIME ZONE 'UTC')),
+                    extract(hour FROM (timestamp AT TIME ZONE 'UTC')),
+                    device_id,
+                    is_pi,
+                    is_counted
+                )
+            DO UPDATE
+            SET
+                size_in_bytes = hourly_bandwidth.size_in_bytes + $2";
             sqlx::query(query)
                 .bind(device_id.get())
                 .bind(size_in_bytes)
@@ -947,26 +947,25 @@ pub mod test_setup {
             name_of_device: &str,
         ) -> Vec<ModelConnection> {
             let query = r#"
-			SELECT
-				ipa.ip,
-				co.connection_id, co.timestamp_online::TEXT, co.timestamp_offline::TEXT
-			FROM
-				connection co
-			LEFT JOIN ip_address ipa USING(ip_id)
-			LEFT JOIN device de USING(device_id)
-			LEFT JOIN
-				device_name dn
-			ON
-				de.device_name_id = dn.device_name_id
-		
-			WHERE
-				de.registered_user_id = $1
-			AND	
-				co.is_pi = $2
-			AND
-				dn.name_of_device = $3
-			ORDER BY
-				co.timestamp_online"#;
+            SELECT
+                ipa.ip,
+                co.connection_id, co.timestamp_online::TEXT, co.timestamp_offline::TEXT
+            FROM
+                connection co
+            LEFT JOIN ip_address ipa USING(ip_id)
+            LEFT JOIN device de USING(device_id)
+            LEFT JOIN
+                device_name dn
+            ON
+                de.device_name_id = dn.device_name_id
+            WHERE
+                de.registered_user_id = $1
+            AND
+                co.is_pi = $2
+            AND
+                dn.name_of_device = $3
+            ORDER BY
+                co.timestamp_online"#;
             sqlx::query_as::<_, ModelConnection>(query)
                 .bind(self.model_user.as_ref().unwrap().registered_user_id.get())
                 .bind(device_type == ConnectionType::Pi)

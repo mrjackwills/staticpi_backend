@@ -61,24 +61,24 @@ DELETE
 FROM ip_address
 WHERE ip_id
 IN (
-	SELECT ip_address.ip_id
-	FROM ip_address
-	LEFT JOIN api_key USING(ip_id)
-	LEFT JOIN connection USING(ip_id)
-	LEFT JOIN device USING(ip_id)
-	LEFT JOIN login_history USING(ip_id)
-	LEFT JOIN password_reset USING(ip_id)
-	LEFT JOIN registered_user USING(ip_id)
-	LEFT JOIN two_fa_backup USING(ip_id)
-	LEFT JOIN two_fa_secret USING(ip_id)
-	WHERE api_key.ip_id IS NULL
-	AND connection.ip_id IS NULL
-	AND device.ip_id IS NULL
-	AND login_history.ip_id IS NULL
-	AND password_reset.ip_id IS NULL
-	AND registered_user.ip_id IS NULL
-	AND two_fa_backup.ip_id IS NULL
-	AND two_fa_secret.ip_id IS NULL
+    SELECT ip_address.ip_id
+    FROM ip_address
+    LEFT JOIN api_key USING(ip_id)
+    LEFT JOIN connection USING(ip_id)
+    LEFT JOIN device USING(ip_id)
+    LEFT JOIN login_history USING(ip_id)
+    LEFT JOIN password_reset USING(ip_id)
+    LEFT JOIN registered_user USING(ip_id)
+    LEFT JOIN two_fa_backup USING(ip_id)
+    LEFT JOIN two_fa_secret USING(ip_id)
+    WHERE api_key.ip_id IS NULL
+    AND connection.ip_id IS NULL
+    AND device.ip_id IS NULL
+    AND login_history.ip_id IS NULL
+    AND password_reset.ip_id IS NULL
+    AND registered_user.ip_id IS NULL
+    AND two_fa_backup.ip_id IS NULL
+    AND two_fa_secret.ip_id IS NULL
 )
 RETURNING ip_address.ip;";
         let ips = sqlx::query_as::<_, DeleteIp>(query)
@@ -104,22 +104,22 @@ RETURNING ip_address.ip;";
 DELETE FROM user_agent
 WHERE user_agent_id
 IN (
-	SELECT user_agent.user_agent_id
-	FROM user_agent
-	LEFT JOIN api_key USING(user_agent_id)
-	LEFT JOIN device USING(user_agent_id)
-	LEFT JOIN login_history USING(user_agent_id)
-	LEFT JOIN password_reset USING(user_agent_id)
-	LEFT JOIN registered_user USING(user_agent_id)
-	LEFT JOIN two_fa_backup USING(user_agent_id)
-	LEFT JOIN two_fa_secret USING(user_agent_id)
-	WHERE api_key.ip_id IS NULL
-	AND device.user_agent_id IS NULL
-	AND login_history.user_agent_id IS NULL
-	AND password_reset.user_agent_id IS NULL
-	AND registered_user.user_agent_id IS NULL
-	AND two_fa_backup.user_agent_id IS NULL
-	AND two_fa_secret.user_agent_id IS NULL
+    SELECT user_agent.user_agent_id
+    FROM user_agent
+    LEFT JOIN api_key USING(user_agent_id)
+    LEFT JOIN device USING(user_agent_id)
+    LEFT JOIN login_history USING(user_agent_id)
+    LEFT JOIN password_reset USING(user_agent_id)
+    LEFT JOIN registered_user USING(user_agent_id)
+    LEFT JOIN two_fa_backup USING(user_agent_id)
+    LEFT JOIN two_fa_secret USING(user_agent_id)
+    WHERE api_key.ip_id IS NULL
+    AND device.user_agent_id IS NULL
+    AND login_history.user_agent_id IS NULL
+    AND password_reset.user_agent_id IS NULL
+    AND registered_user.user_agent_id IS NULL
+    AND two_fa_backup.user_agent_id IS NULL
+    AND two_fa_secret.user_agent_id IS NULL
 )
 RETURNING user_agent.user_agent_string AS user_agent";
         let user_agents = sqlx::query_as::<_, DeleteUserAgent>(query)

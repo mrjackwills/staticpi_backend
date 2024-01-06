@@ -85,7 +85,8 @@ impl RedisSession {
         let mut redis = redis.lock().await;
         redis.hset(&key_session, HASH_FIELD, session).await?;
         redis.sadd(&key_session_set, &key_session).await?;
-        redis.expire(&key_session_set, ttl).await?;
+        // This won't work as expected, should set TTL to the max at all times
+        // redis.expire(&key_session_set, ttl).await?;
         Ok(redis.expire(&key_session, ttl).await?)
     }
 

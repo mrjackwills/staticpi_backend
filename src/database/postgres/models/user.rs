@@ -228,10 +228,10 @@ VALUES
 DELETE FROM device_name
 WHERE device_name_id
 IN (
-	SELECT device_name.device_name_id
-	FROM device_name
-	LEFT JOIN device USING(device_name_id)
-	WHERE device.device_name_id IS NULL
+    SELECT device_name.device_name_id
+    FROM device_name
+    LEFT JOIN device USING(device_name_id)
+    WHERE device.device_name_id IS NULL
 );";
         sqlx::query(device_name_query)
             .execute(&mut *transaction)
