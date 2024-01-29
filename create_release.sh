@@ -196,7 +196,7 @@ cargo_test() {
 
 cargo_build_x86_linux_gnu() {
 	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
-	cargo build --target x86_64-unknown-linux-gnu --release
+	cross build --target x86_64-unknown-linux-gnu --release
 }
 
 cargo_build_aarch64_linux_gnu() {
