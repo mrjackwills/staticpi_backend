@@ -1000,8 +1000,6 @@ mod tests {
             test_setup.insert_device(&authed_cookie, None).await;
         }
 
-        // Not sure why this sleep is needed
-        sleep!(2500);
         let result = client
             .post(&url)
             .header("cookie", &authed_cookie)

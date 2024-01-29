@@ -8,6 +8,19 @@ repository = "https://github.com/mrjackwills/staticpi_api"
 license = "MIT"
 readme = "README.md"
 
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+expect_used = "warn"
+nursery = "warn"
+pedantic = "warn"
+todo = "warn"
+unused_async = "warn"
+unwrap_used = "warn"
+module_name_repetitions = "allow"
+doc_markdown = "allow"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -60,20 +73,6 @@ tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["json"] }
 ulid = { version = "1.1", features = ["serde"] }
-
-[lints.rust]
-unsafe_code = "forbid"
-
-[lints.clippy]
-expect_used = "warn"
-nursery = "warn"
-pedantic = "warn"
-todo = "warn"
-unused_async = "warn"
-unwrap_used = "warn"
-module_name_repetitions = "allow"
-doc_markdown = "allow"
-
 
 [dev-dependencies]
 tokio-tungstenite = { version = "0.21" }
