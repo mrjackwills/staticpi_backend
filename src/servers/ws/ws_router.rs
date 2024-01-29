@@ -2462,6 +2462,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
+
         let msg_text = (0..=10_000).map(|_| "a".to_owned()).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();

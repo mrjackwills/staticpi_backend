@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # rust create_release
-# v0.3.0
+# v0.5.1
 
 STAR_LINE='****************************************'
 CWD=$(pwd)
@@ -17,6 +17,11 @@ error_close() {
 	echo -e "\n${RED}ERROR - EXITED: ${YELLOW}$1${RESET}\n"
 	exit 1
 }
+
+# Check that dialog is installed
+if ! [ -x "$(command -v dialog)" ]; then
+	error_close "dialog is not installed"
+fi
 
 # $1 string - question to ask
 ask_yn() {
@@ -189,10 +194,22 @@ cargo_test() {
 	ask_continue
 }
 
-# build for production, as Github action would do
-cross_build() {
-	echo -e "\n${GREEN}cargo build --release${RESET}"
-	cargo build --release
+cargo_build_x86_linux_gnu() {
+	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
+	cross build --target x86_64-unknown-linux-gnu --release
+}
+
+cargo_build_aarch64_linux_gnu() {
+	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-gnu --release${RESET}"
+	cross build --target aarch64-unknown-linux-gnu --release
+}
+
+cargo_build_all() {
+	cargo install cross
+	cargo_build_aarch64_linux_gnu
+	ask_continue
+	cargo_build_x86_linux_gnu
+	ask_continue
 }
 
 # $1 text to colourise
@@ -207,15 +224,27 @@ check_typos() {
 	ask_continue
 }
 
+#  Make sure the unused lint isn't used
+check_allow_unused() {
+	matches_any=$(find . -type d \( -name .git -o -name target \) -prune -o -type f -exec grep -lE '^#!\[allow\(unused\)\]$' {} +)
+	matches_cargo=$(grep "^unused = \"allow\"" ./Cargo.toml)
+	if [ -n "$matches_any" ]; then
+		error_close "\"#[allow(unused)]\" in ${matches_any}"
+	elif [ -n "$matches_cargo" ]; then
+		error_close "\"unused = \"allow\"\" in Cargo.toml"
+	fi
+}
+
 # Full flow to create a new release
 release_flow() {
+	check_allow_unused
 	check_typos
 
 	check_git
 	get_git_remote_url
 
 	cargo_test
-	cargo_build
+	cargo_build_all
 
 	cd "${CWD}" || error_close "Can't find ${CWD}"
 	check_tag
@@ -246,8 +275,14 @@ release_flow() {
 	git commit -m "chore: release ${NEW_TAG_WITH_V}"
 
 	release_continue "git checkout main"
-	echo -e "git merge --no-ff \"${RELEASE_BRANCH}\" -m \"chore: merge ${RELEASE_BRANCH} into main\""
+
+	echo -e "\n${PURPLE}git checkout main${RESET}"
 	git checkout main
+
+	echo -e "\n${PURPLE}git pull origin main${RESET}"
+	git pull origin main
+
+	echo -e "git merge --no-ff \"${RELEASE_BRANCH}\" -m \"chore: merge ${RELEASE_BRANCH} into main\""
 	git merge --no-ff "$RELEASE_BRANCH" -m "chore: merge ${RELEASE_BRANCH} into main"
 
 	release_continue "git tag -am \"${RELEASE_BRANCH}\" \"$NEW_TAG_WITH_V\""
@@ -269,11 +304,46 @@ release_flow() {
 	git branch -d "$RELEASE_BRANCH"
 }
 
+build_choice() {
+	cmd=(dialog --backtitle "Choose option" --radiolist "choose" 14 80 16)
+	options=(
+		1 "x86 linux gnu" off
+		2 "aarch64 linux gnu" off
+		5 "all" off
+	)
+	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+	exitStatus=$?
+	clear
+	if [ $exitStatus -ne 0 ]; then
+		exit
+	fi
+	for choice in $choices; do
+		case $choice in
+		0)
+			exit
+			;;
+		1)
+			cargo_build_x86_linux_gnu
+			exit
+			;;
+		2)
+			cargo_build_aarch64_linux_gnu
+			exit
+			;;
+		5)
+			cargo_build_all
+			exit
+			;;
+		esac
+	done
+}
+
 main() {
 	cmd=(dialog --backtitle "Choose option" --radiolist "choose" 14 80 16)
 	options=(
 		1 "test" off
 		2 "release" off
+		3 "build" off
 	)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	exitStatus=$?
@@ -293,6 +363,11 @@ main() {
 			;;
 		2)
 			release_flow
+			break
+			;;
+		3)
+			build_choice
+			main
 			break
 			;;
 		esac

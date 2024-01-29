@@ -1,14 +1,16 @@
-### 2024-01-06
+### 2024-01-29
 
-### Chores
-+ Docker TZ updated, [861a5a072717877cca799e9b04a3a1d82a45c1fc]
-+ dependencies updated, [12edddaec1aac46a740e08432f4e194867b5a655], [2ca492f0e96a5321acca77d519a8ad7a0b870693]
+### CHores
++ GitHub workflow updated, [6dac608515aed97b79188082909251900acb8b27]
++ create_release v0.5.1, [81cfc47826b7048a85609d452ba64b1c0f855974]
++ .sql files formatted, [1d908e5eddef4285c12dec1004109d1c35bf0c62]
++ .devcontainer updated, [b0426eb9eb30004dbda5607e69d80cb3aa578857]
++ dependencies updated, [43833dea35232c4cdbd54a2b8df32965efdc0412]
 
 ### Fixes
-+ session_set expire temp fix, [718393bae630d043ff7ea9bca92b0f7f816d49bd]
-+ .gitattributes, [053c892aeef8c59e8302e1149a1799a83ea25985]
++ argon debug/release cfg, [f01ed9bbebd6450671e6d6bfb5086d30b4213553]
 
 ### Refactors
-+ tabs switched for spaces, [01f1745d369514511a09b74ca0f2f86775b5594c]
++ dead code removed, [be88852891b67a3856fff0756d0b194958f7609c]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
