@@ -25,6 +25,7 @@
 		"vscode": {
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
+				"adpyke.vscode-sql-formatter",
 				"bmuskalla.vscode-tldr",
 				"christian-kohler.path-intellisense",
 				"foxundermoon.shell-format",
