@@ -244,7 +244,7 @@ release_flow() {
 	get_git_remote_url
 
 	cargo_test
-	cargo_build
+	cargo_build_all
 
 	cd "${CWD}" || error_close "Can't find ${CWD}"
 	check_tag
