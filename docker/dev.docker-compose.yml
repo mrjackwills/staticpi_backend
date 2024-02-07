@@ -9,12 +9,7 @@ services:
     hostname: staticpi_postgres
     build:
       context: /workspaces/staticpi
-      dockerfile: ./docker/dockerfile/dev.postgres.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
+      dockerfile: ./docker/dockerfile/postgres.Dockerfile
     env_file: ./env/.postgres.env
     cap_drop:
       - all
@@ -48,11 +43,6 @@ services:
     build:
       context: /workspaces/staticpi
       dockerfile: ./docker/dockerfile/redis.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     env_file: ./env/.redis.env
     volumes:
       - /dev/shm/staticpi/redis_data:/redis_data
@@ -84,11 +74,6 @@ services:
     build:
       context: .
       dockerfile: ./dockerfile/backup.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     env_file: ./env/.backup.env
     cap_drop:
       - all
@@ -119,12 +104,7 @@ services:
     hostname: staticpi_api
     build:
       context: /workspaces/staticpi
-      dockerfile: docker/dockerfile/api.dev.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
+      dockerfile: docker/dockerfile/api.Dockerfile
     volumes:
       - /dev/shm:/logs
       - /workspaces/staticpi/.env:/app_env/.api.env:ro

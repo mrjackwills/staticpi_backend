@@ -10,11 +10,6 @@ services:
     build:
       context:  $HOME/staticpi
       dockerfile: $HOME/staticpi/docker/dockerfile/postgres.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     env_file: $HOME/staticpi/docker/env/.postgres.env
     cap_drop:
       - all
@@ -43,11 +38,6 @@ services:
     build:
       context:  $HOME/staticpi
       dockerfile: $HOME/staticpi/docker/dockerfile/redis.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     env_file: $HOME/staticpi/docker/env/.redis.env
     volumes:
       - $HOME/databases/staticpi/redis_data:/redis_data
@@ -74,11 +64,6 @@ services:
     build:
       context: .
       dockerfile: $HOME/staticpi/docker/dockerfile/backup.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     env_file: $HOME/staticpi/docker/env/.backup.env
     cap_drop:
       - all
@@ -86,7 +71,7 @@ services:
       - no-new-privileges
     ipc: private
     volumes:
-      - /$HOME/databases/staticpi/backups:/backups
+      - $HOME/databases/staticpi/backups:/backups
       - $HOME/databases/staticpi/redis_data:/redis_data:ro
       - $HOME/logs/staticpi:/logs:ro
     networks:
@@ -110,11 +95,6 @@ services:
     build:
       context: $HOME/staticpi
       dockerfile: docker/dockerfile/api.Dockerfile
-      args:
-        - DOCKER_UID=${DOCKER_UID}
-        - DOCKER_GUID=${DOCKER_GUID}
-        - DOCKER_TIME_CONT=${DOCKER_TIME_CONT}
-        - DOCKER_TIME_CITY=${DOCKER_TIME_CITY}
     volumes:
       - $HOME/logs/staticpi:/logs
       - $HOME/staticpi/docker/env/.api.env:/app_env/.api.env:ro

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# v0.1.0
+# v0.2.0
 
 APP_NAME='staticpi'
 
@@ -58,11 +58,6 @@ user_input() {
 	echo "$data"
 }
 
-DOCKER_GUID=$(id -g)
-DOCKER_UID=$(id -u)
-DOCKER_TIME_CONT="Europe"
-DOCKER_TIME_CITY="Berlin"
-
 APP_DIR="${BASE_DIR}/${APP_NAME}"
 DOCKER_DIR="${APP_DIR}/docker"
 
@@ -78,8 +73,8 @@ TO_RUN=("${BASE_CONTAINERS[@]}")
 
 make_db_data() {
 	cd "${BASE_DIR}" || error_close "${BASE_DIR} doesn't exist"
-	local pg_data="${BASE_DIR}/databases/${APP_NAME}/pg_data"
-	local redis_data="${BASE_DIR}/databases/${APP_NAME}/redis_data"
+	local pg_data="${BASE_DIR}/databases.d/${APP_NAME}/pg_data"
+	local redis_data="${BASE_DIR}/databases.d/${APP_NAME}/redis_data"
 
 	for DIRECTORY in $pg_data $redis_data; do
 		if [[ ! -d "$DIRECTORY" ]]; then
@@ -108,54 +103,32 @@ dev_up() {
 	# make_all_directories
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
 	echo "starting containers: ${TO_RUN[*]}"
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		docker compose -f dev.docker-compose.yml up --force-recreate --build -d "${TO_RUN[@]}"
+	docker compose -f dev.docker-compose.yml up --force-recreate --build -d "${TO_RUN[@]}"
 }
 
 dev_down() {
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		docker compose -f dev.docker-compose.yml down
+	docker compose -f dev.docker-compose.yml down
 }
 
 production_up() {
 	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
 	make_all_directories
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		DOCKER_BUILDKIT=0 \
-		docker compose -f docker-compose.yml up -d
+	docker compose -f docker-compose.yml up -d
 
 }
 
 production_down() {
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		docker compose -f docker-compose.yml down
+	docker compose -f docker-compose.yml down
 }
 
 production_rebuild() {
 	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
 	make_all_directories
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-	DOCKER_GUID=${DOCKER_GUID} \
-		DOCKER_UID=${DOCKER_UID} \
-		DOCKER_TIME_CONT=${DOCKER_TIME_CONT} \
-		DOCKER_TIME_CITY=${DOCKER_TIME_CITY} \
-		DOCKER_BUILDKIT=0 \
-		docker compose -f docker-compose.yml up -d --build
+	docker compose -f docker-compose.yml up -d --build
 }
 
 select_containers() {

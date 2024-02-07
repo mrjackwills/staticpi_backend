@@ -31,17 +31,15 @@ RUN cargo build --release
 ## Runtime ##
 #############
 
+# This can then be scratch
+
 # FROM debian:bullseye-slim AS RUNTIME
 FROM ubuntu:22.04 AS RUNTIME
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \
-	DOCKER_TIME_CONT=Europe \
-	DOCKER_TIME_CITY=Berlin \
 	DOCKER_APP_USER=app_user \
 	DOCKER_APP_GROUP=app_group
-
-ENV TZ=${DOCKER_TIME_CONT}/${DOCKER_TIME_CITY}
 
 RUN apt-get update \
 	&& apt-get install -y ca-certificates wget \
@@ -57,6 +55,9 @@ COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} ./docker/healthcheck/health_
 RUN chmod +x /healthcheck/health_api.sh
 
 COPY --from=BUILDER /usr/src/staticpi/target/release/staticpi /app/
+
+# Copy from host filesystem - used when debugging
+# COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} target/release/adsbdb /app
 
 USER ${DOCKER_APP_USER}
 

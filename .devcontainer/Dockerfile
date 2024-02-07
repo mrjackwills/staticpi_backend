@@ -14,3 +14,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 USER vscode
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+# TARGET_CC=x86_64-linux-musl-gcc cargo build --release --target x86_64-unknown-linux-musl
+# install musl-gcc
+# sudo apt-get install -y musl-tools
