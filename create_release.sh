@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # rust create_release
-# v0.5.1
+# v0.5.2
 
 STAR_LINE='****************************************'
 CWD=$(pwd)
@@ -194,21 +194,23 @@ cargo_test() {
 	ask_continue
 }
 
-cargo_build_x86_linux_gnu() {
+# Build for musl?
+
+cargo_build_x86() {
 	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
 	cross build --target x86_64-unknown-linux-gnu --release
 }
 
-cargo_build_aarch64_linux_gnu() {
+cargo_build_aarch64() {
 	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-gnu --release${RESET}"
 	cross build --target aarch64-unknown-linux-gnu --release
 }
 
 cargo_build_all() {
 	cargo install cross
-	cargo_build_aarch64_linux_gnu
+	cargo_build_aarch64
 	ask_continue
-	cargo_build_x86_linux_gnu
+	cargo_build_x86
 	ask_continue
 }
 
@@ -323,11 +325,11 @@ build_choice() {
 			exit
 			;;
 		1)
-			cargo_build_x86_linux_gnu
+			cargo_build_x86
 			exit
 			;;
 		2)
-			cargo_build_aarch64_linux_gnu
+			cargo_build_aarch64
 			exit
 			;;
 		5)
