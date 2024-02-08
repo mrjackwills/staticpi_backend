@@ -1,9 +1,9 @@
+use redis::aio::ConnectionManager;
 use serde::Serialize;
 use sqlx::PgPool;
 
 use crate::{
     api_error::ApiError, connections::AdminConnectionInfo, database::session::RedisSession,
-    servers::AMRedis,
 };
 
 use super::{device::ModelDevice, new_types::UserId, user_level::UserLevel};
@@ -63,7 +63,7 @@ impl AdminModelUser {
     #[allow(clippy::too_many_lines)]
     pub async fn get_all(
         postgres: &PgPool,
-        redis: &AMRedis,
+        redis: &mut ConnectionManager,
     ) -> Result<Vec<AdminUserAndSession>, ApiError> {
         let query = r"
 SELECT

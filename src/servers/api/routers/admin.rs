@@ -155,7 +155,11 @@ impl AdminRouter {
         State(state): State<ApplicationState>,
         ij::IncomingJson(body): ij::IncomingJson<ij::Limit>,
     ) -> Result<StatusCode, ApiError> {
-        state.redis.lock().await.del(body.key.to_string()).await?;
+        state
+            .redis_connection
+            .clone()
+            .del(body.key.to_string())
+            .await?;
         Ok(StatusCode::OK)
     }
 
@@ -166,7 +170,7 @@ impl AdminRouter {
     ) -> Result<StatusOJ<Vec<oj::AdminLimit>>, ApiError> {
         Ok((
             StatusCode::OK,
-            oj::OutgoingJson::new(RateLimit::get_all(&state.redis, &user).await?),
+            oj::OutgoingJson::new(RateLimit::get_all(&mut state.redis(), &user).await?),
         ))
     }
 
@@ -212,7 +216,9 @@ impl AdminRouter {
     ) -> Result<StatusOJ<Vec<AdminUserAndSession>>, ApiError> {
         Ok((
             StatusCode::OK,
-            oj::OutgoingJson::new(AdminModelUser::get_all(&state.postgres, &state.redis).await?),
+            oj::OutgoingJson::new(
+                AdminModelUser::get_all(&state.postgres, &mut state.redis()).await?,
+            ),
         ))
     }
 
@@ -230,7 +236,7 @@ impl AdminRouter {
                     )));
                 }
             }
-            RedisSession::delete(&state.redis, &session).await?;
+            RedisSession::delete(&mut state.redis(), &session).await?;
         } else {
             error!("Unable to parse session_delete user session");
         }
@@ -259,7 +265,8 @@ impl AdminRouter {
                 Err(ApiError::InvalidValue("Can't de-activate self".to_owned()))
             } else {
                 if model_user.active {
-                    RedisSession::delete_all(&state.redis, model_user.registered_user_id).await?;
+                    RedisSession::delete_all(&mut state.redis(), model_user.registered_user_id)
+                        .await?;
                 }
                 model_user.admin_toggle_active(&state.postgres).await?;
                 Ok(StatusCode::OK)
@@ -334,7 +341,7 @@ impl AdminRouter {
                     .close_by_single_device_id(device_id)
                     .await;
 
-                MessageCache::delete(&state.redis, device_id).await?;
+                MessageCache::delete(&mut state.redis(), device_id).await?;
             }
             Ok(StatusCode::OK)
         } else {
@@ -404,7 +411,9 @@ impl AdminRouter {
                     "Admin users can't delete their own accounts",
                 )));
             }
-            model_user.delete(&state.postgres, &state.redis).await?;
+            model_user
+                .delete(&state.postgres, &mut state.redis())
+                .await?;
             Ok(StatusCode::OK)
         } else {
             Err(ApiError::InvalidValue(String::from("unknown user")))
@@ -1140,13 +1149,7 @@ mod tests {
             .as_str()
             .unwrap();
 
-        let exists_in_redis: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(ws_rate_limit_key)
-            .await
-            .unwrap();
+        let exists_in_redis: bool = test_setup.redis.exists(ws_rate_limit_key).await.unwrap();
         assert!(exists_in_redis);
 
         let body = HashMap::from([("key", ws_rate_limit_key)]);
@@ -1179,13 +1182,7 @@ mod tests {
                 .starts_with("ratelimit::ws_pro")
         });
         assert!(ws_pro_index.is_none());
-        let exists_in_redis: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(ws_rate_limit_key)
-            .await
-            .unwrap();
+        let exists_in_redis: bool = test_setup.redis.exists(ws_rate_limit_key).await.unwrap();
         assert!(!exists_in_redis);
     }
 
@@ -1943,18 +1940,10 @@ mod tests {
 
         let session_set: bool = test_setup
             .redis
-            .lock()
-            .await
             .exists(format!("session_set::user::{}", anon_id.get()))
             .await
             .unwrap();
-        let session: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(anon_session)
-            .await
-            .unwrap();
+        let session: bool = test_setup.redis.exists(anon_session).await.unwrap();
         assert!(!session_set);
         assert!(!session);
 
@@ -2219,18 +2208,10 @@ mod tests {
 
         let session_set: bool = test_setup
             .redis
-            .lock()
-            .await
             .exists(format!("session_set::user::{}", anon_id.get()))
             .await
             .unwrap();
-        let session: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(&anon_session)
-            .await
-            .unwrap();
+        let session: bool = test_setup.redis.exists(&anon_session).await.unwrap();
         assert!(session_set);
         assert!(session);
 
@@ -2245,18 +2226,10 @@ mod tests {
 
         let session_set: bool = test_setup
             .redis
-            .lock()
-            .await
             .exists(format!("session_set::user::{}", anon_id.get()))
             .await
             .unwrap();
-        let session: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(anon_session)
-            .await
-            .unwrap();
+        let session: bool = test_setup.redis.exists(anon_session).await.unwrap();
         assert!(!session_set);
         assert!(!session);
 
@@ -3321,15 +3294,11 @@ mod tests {
         // lazy rate limit removal!
         test_setup
             .redis
-            .lock()
-            .await
             .del::<&str, ()>("ratelimit::contact_ip::127.0.0.1")
             .await
             .unwrap();
         test_setup
             .redis
-            .lock()
-            .await
             .del::<&str, ()>(&format!("ratelimit::contact_ip::{TEST_EMAIL}"))
             .await
             .unwrap();

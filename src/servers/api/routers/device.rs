@@ -129,7 +129,13 @@ impl DeviceRouter {
         {
             return Err(ApiError::Authorization);
         }
-        ModelDevice::delete_all_device_cache_connections(&state, &user).await?;
+        ModelDevice::delete_all_device_cache_connections(
+            &state.postgres,
+            &mut state.redis(),
+            &state.connections,
+            &user,
+        )
+        .await?;
 
         Ok(StatusCode::OK)
     }
@@ -146,7 +152,7 @@ impl DeviceRouter {
             let limiter = RateLimit::from((device, &user));
             limits.push(oj::AllLimits {
                 name_of_device: device.name_of_device.clone(),
-                ttl: limiter.limited_ttl(&state.redis).await?,
+                ttl: limiter.limited_ttl(&mut state.redis()).await?,
             });
         }
         Ok((
@@ -238,7 +244,7 @@ impl DeviceRouter {
                 .close_by_single_device_id(device_id)
                 .await;
 
-            MessageCache::delete(&state.redis, device_id).await?;
+            MessageCache::delete(&mut state.redis(), device_id).await?;
 
             Ok(StatusCode::OK)
         } else {
@@ -318,7 +324,7 @@ impl DeviceRouter {
                     .close_by_single_device_id(device.device_id)
                     .await;
 
-                MessageCache::delete(&state.redis, device.device_id).await?;
+                MessageCache::delete(&mut state.redis(), device.device_id).await?;
                 Ok(StatusCode::OK)
             } else {
                 Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
@@ -1699,13 +1705,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!(100);
-        let message_caches: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
 
         assert_eq!(message_caches.len(), 2);
 
@@ -1723,13 +1723,7 @@ mod tests {
             .await
             .unwrap();
 
-        let message_caches: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
         assert!(message_caches.is_empty());
     }
 
@@ -2065,13 +2059,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!(100);
-        let message_caches: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
 
         assert_eq!(message_caches.len(), 2);
 
@@ -2090,13 +2078,7 @@ mod tests {
             .await
             .unwrap();
 
-        let message_caches: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
         assert_eq!(message_caches.len(), 1);
     }
 
@@ -3020,13 +3002,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!(100);
-        let message_caches: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
 
         assert_eq!(message_caches.len(), 1);
 
@@ -3051,13 +3027,7 @@ mod tests {
         assert!(ws_client_01.next().await.unwrap().unwrap().is_close());
         assert!(ws_client_02.next().await.unwrap().unwrap().is_close());
 
-        let message_caches: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
 
         assert!(message_caches.is_empty());
     }

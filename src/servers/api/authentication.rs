@@ -133,7 +133,10 @@ pub async fn not_authenticated(
 ) -> Result<Response, ApiError> {
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if RedisSession::exists(&state.redis, &ulid).await?.is_some() {
+            if RedisSession::exists(&mut state.redis(), &ulid)
+                .await?
+                .is_some()
+            {
                 return Err(ApiError::Authentication);
             }
         }
@@ -150,7 +153,10 @@ pub async fn is_authenticated(
 ) -> Result<Response, ApiError> {
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if RedisSession::exists(&state.redis, &ulid).await?.is_some() {
+            if RedisSession::exists(&mut state.redis(), &ulid)
+                .await?
+                .is_some()
+            {
                 return Ok(next.run(req).await);
             }
         }
@@ -169,7 +175,7 @@ pub async fn is_admin_authenticated(
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
             if let Some(model_user) =
-                RedisSession::get(&state.redis, &state.postgres, &ulid).await?
+                RedisSession::get(&mut state.redis(), &state.postgres, &ulid).await?
             {
                 match model_user.user_level {
                     UserLevel::Admin => {
