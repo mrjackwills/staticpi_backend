@@ -106,12 +106,6 @@ impl Deref for ApplicationState {
     }
 }
 
-// impl DerefMut for ApplicationState {
-// 	fn deref_mut(&mut self) -> &mut Self::Target {
-// 		&mut self.clone()
-// 	}
-// }
-
 impl ApplicationState {
     pub fn new(serve_data: ServeData) -> Self {
         Self(Arc::new(InnerState::new(serve_data)))
