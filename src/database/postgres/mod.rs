@@ -69,6 +69,6 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().current_database, "dev_staticpi");
+        assert_eq!(result.unwrap().current_database, "staticpi");
     }
 }

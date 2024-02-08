@@ -1,14 +1,16 @@
 use futures::Future;
+use redis::aio::ConnectionManager;
 use serde::Serialize;
 use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction};
-use std::{net::IpAddr, pin::Pin};
+use std::{net::IpAddr, pin::Pin, sync::Arc};
+use tokio::sync::Mutex;
 
 use crate::{
     api_error::ApiError,
     argon::ArgonHash,
+    connections::Connections,
     database::{message_cache::MessageCache, postgres::Count},
     helpers::gen_random_device_name,
-    servers::ApplicationState,
     user_io::incoming_json::ij,
 };
 
@@ -337,18 +339,19 @@ pub struct ModelDevice {
 impl ModelDevice {
     /// Delete all devices, remove all/any message caches, and remove all connections to these devices
     pub async fn delete_all_device_cache_connections(
-        state: &ApplicationState,
+        postgres: &PgPool,
+        redis: &mut ConnectionManager,
+        connections: &Arc<Mutex<Connections>>,
         user: &ModelUser,
     ) -> Result<(), ApiError> {
-        let device_ids = Self::delete_all(&state.postgres, user).await?;
-        state
-            .connections
+        let device_ids = Self::delete_all(postgres, user).await?;
+        connections
             .lock()
             .await
             .close_by_multiple_device_id(&device_ids)
             .await;
 
-        MessageCache::delete_all(&state.redis, &device_ids).await?;
+        MessageCache::delete_all(redis, &device_ids).await?;
 
         Ok(())
     }

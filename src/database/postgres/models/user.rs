@@ -4,6 +4,7 @@ use axum::{
     http::request::Parts,
 };
 use axum_extra::extract::{cookie::Key, PrivateCookieJar};
+use redis::aio::ConnectionManager;
 use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Row};
 use time::OffsetDateTime;
 use ulid::Ulid;
@@ -12,7 +13,7 @@ use crate::{
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::{AMRedis, ApplicationState},
+    servers::ApplicationState,
 };
 
 use super::{
@@ -194,7 +195,11 @@ VALUES
 
     /// This is a hard delete, and also checks to see if any IP address, UserAgents, and DeviceNames can also be deleted
     /// take in admin user, and match user id?
-    pub async fn delete(&self, postgres: &PgPool, redis: &AMRedis) -> Result<(), ApiError> {
+    pub async fn delete(
+        &self,
+        postgres: &PgPool,
+        redis: &mut ConnectionManager,
+    ) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
 
         let registered_user_query = "DELETE FROM registered_user WHERE registered_user_id = $1";
@@ -326,7 +331,7 @@ where
             if let Some(data) = jar.get(&state.cookie_name) {
                 if let Ok(ulid) = Ulid::from_string(data.value()) {
                     if let Some(user) =
-                        RedisSession::get(&state.redis, &state.postgres, &ulid).await?
+                        RedisSession::get(&mut state.redis(), &state.postgres, &ulid).await?
                     {
                         return Ok(user);
                     }

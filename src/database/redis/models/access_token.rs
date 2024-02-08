@@ -1,4 +1,4 @@
-use redis::{AsyncCommands, FromRedisValue, RedisResult, Value};
+use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
@@ -10,7 +10,6 @@ use crate::{
         new_types::{DeviceId, IpId},
         redis::{string_to_struct, RedisKey, HASH_FIELD},
     },
-    servers::AMRedis,
 };
 
 impl FromRedisValue for AccessToken {
@@ -48,30 +47,27 @@ impl AccessToken {
     }
 
     /// Insert an access token, with a ttl of 20 seconds,
-    pub async fn insert(&self, redis: &AMRedis, ulid: Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &mut ConnectionManager, ulid: Ulid) -> Result<(), ApiError> {
         let key = Self::key(ulid);
         let data = serde_json::to_string(&self)?;
-        let mut redis = redis.lock().await;
         redis.hset(&key, HASH_FIELD, &data).await?;
         Ok(redis.expire(key, Self::TTL_AS_SEC.into()).await?)
     }
 
     /// Remove access token
-    pub async fn delete(&self, redis: &AMRedis, ulid: Ulid) -> Result<(), ApiError> {
-        redis.lock().await.del(Self::key(ulid)).await?;
+    pub async fn delete(&self, redis: &mut ConnectionManager, ulid: Ulid) -> Result<(), ApiError> {
+        redis.del(Self::key(ulid)).await?;
         Ok(())
     }
 
     /// Retrieve the access token, assuming ttl is still valid, and that the ip_id & device type matches
     pub async fn get(
-        redis: &AMRedis,
+        redis: &mut ConnectionManager,
         ulid: Ulid,
         device_type: ConnectionType,
         useragent_ip: &ModelUserAgentIp,
     ) -> Result<Option<Self>, ApiError> {
         (redis
-            .lock()
-            .await
             .hget::<'_, String, &str, Option<Self>>(Self::key(ulid), HASH_FIELD)
             .await?)
             .map_or(Ok(None), |data| {

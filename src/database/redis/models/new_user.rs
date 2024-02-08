@@ -1,4 +1,4 @@
-use redis::{AsyncCommands, FromRedisValue, RedisResult, Value};
+use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
@@ -11,7 +11,6 @@ use crate::{
         new_types::{EmailAddressId, IpId, UserAgentId},
         redis::{string_to_struct, RedisKey, HASH_FIELD},
     },
-    servers::AMRedis,
 };
 
 impl FromRedisValue for RedisNewUser {
@@ -61,12 +60,11 @@ impl RedisNewUser {
     }
 
     /// On register, insert a new user into redis cache, to be inserted into postgres once verify email responded to
-    pub async fn insert(&self, redis: &AMRedis, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &mut ConnectionManager, ulid: &Ulid) -> Result<(), ApiError> {
         let key_secret = Self::key_secret(ulid);
         let key_email = Self::key_email(&self.email);
 
         let new_user_as_string = serde_json::to_string(&self)?;
-        let mut redis = redis.lock().await;
 
         redis.hset(&key_email, HASH_FIELD, ulid.to_string()).await?;
         redis.expire(key_email, Self::TTL_AS_SEC.into()).await?;
@@ -77,28 +75,20 @@ impl RedisNewUser {
     }
 
     /// Remove both verify keys from redis
-    pub async fn delete(&self, redis: &AMRedis, ulid: &Ulid) -> Result<(), ApiError> {
-        let mut redis = redis.lock().await;
+    pub async fn delete(&self, redis: &mut ConnectionManager, ulid: &Ulid) -> Result<(), ApiError> {
         redis.del(Self::key_secret(ulid)).await?;
         Ok(redis.del(Self::key_email(&self.email)).await?)
     }
 
     /// Just check if a email is in redis cache, so that if a user has register but not yet verified, cannot sign up again
     /// Static method, as want to use before one creates a `NewUser` struct
-    pub async fn exists(redis: &AMRedis, email: &str) -> Result<bool, ApiError> {
-        Ok(redis
-            .lock()
-            .await
-            .hexists(Self::key_email(email), HASH_FIELD)
-            .await?)
+    /// THIS ONE NEEDS TO BE mut redis rather than redis: &mut
+    pub async fn exists(redis: &mut ConnectionManager, email: &str) -> Result<bool, ApiError> {
+        Ok(redis.hexists(Self::key_email(email), HASH_FIELD).await?)
     }
 
     /// Verify a new account, secret emailed to user, user visits url with secret as a param
-    pub async fn get(redis: &AMRedis, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
-        Ok(redis
-            .lock()
-            .await
-            .hget(Self::key_secret(ulid), HASH_FIELD)
-            .await?)
+    pub async fn get(redis: &mut ConnectionManager, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
+        Ok(redis.hget(Self::key_secret(ulid), HASH_FIELD).await?)
     }
 }

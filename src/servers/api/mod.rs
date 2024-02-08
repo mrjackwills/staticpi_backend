@@ -140,7 +140,7 @@ pub mod api_tests {
     #[tokio::test]
     /// request not rate limited, but points == number request, and ttl 60
     async fn http_mod_rate_limit() {
-        let test_setup = start_servers().await;
+        let mut test_setup = start_servers().await;
 
         let url = format!("{}/incognito/online", api_base_url(&test_setup.app_env));
         for _ in 1..=20 {
@@ -149,15 +149,11 @@ pub mod api_tests {
 
         let count: u64 = test_setup
             .redis
-            .lock()
-            .await
             .get("ratelimit::ip::127.0.0.1")
             .await
             .unwrap();
         let ttl: u64 = test_setup
             .redis
-            .lock()
-            .await
             .ttl("ratelimit::ip::127.0.0.1")
             .await
             .unwrap();
@@ -210,8 +206,6 @@ pub mod api_tests {
 
         let points: u64 = test_setup
             .redis
-            .lock()
-            .await
             .get(format!(
                 "ratelimit::user::{}",
                 test_setup.get_user_id().get()
@@ -289,8 +283,6 @@ pub mod api_tests {
 
         let points: u64 = test_setup
             .redis
-            .lock()
-            .await
             .get(format!(
                 "ratelimit::user::{}",
                 test_setup.get_user_id().get()

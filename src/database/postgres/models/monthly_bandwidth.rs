@@ -1,4 +1,4 @@
-use redis::{AsyncCommands, FromRedisValue, RedisResult, Value};
+use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
 use serde::{Deserialize, Serialize};
 
 use sqlx::PgPool;
@@ -6,7 +6,6 @@ use sqlx::PgPool;
 use crate::{
     api_error::ApiError,
     database::{string_to_struct, RedisKey, HASH_FIELD},
-    servers::AMRedis,
 };
 
 use super::new_types::{DeviceId, UserId};
@@ -25,12 +24,10 @@ impl FromRedisValue for ModelMonthlyBandwidth {
 
 impl ModelMonthlyBandwidth {
     async fn get_cache(
-        redis: &AMRedis,
+        redis: &mut ConnectionManager,
         registered_user_id: UserId,
     ) -> Result<Option<Self>, ApiError> {
         Ok(redis
-            .lock()
-            .await
             .hget(
                 RedisKey::CacheMonthlyBandwidth(registered_user_id).to_string(),
                 HASH_FIELD,
@@ -38,20 +35,18 @@ impl ModelMonthlyBandwidth {
             .await?)
     }
 
-    async fn insert_cache(&self, redis: &AMRedis) -> Result<(), ApiError> {
+    async fn insert_cache(&self, redis: &mut ConnectionManager) -> Result<(), ApiError> {
         let key = RedisKey::CacheMonthlyBandwidth(self.registered_user_id).to_string();
         redis
-            .lock()
-            .await
             .hset(&key, HASH_FIELD, serde_json::to_string(&self)?)
             .await?;
-        Ok(redis.lock().await.expire(&key, 30).await?)
+        Ok(redis.expire(&key, 30).await?)
     }
 
     /// Force update monthly bandwidth redis cache, derive user_id from device_id
     pub async fn force_update_cache(
         postgres: &PgPool,
-        redis: &AMRedis,
+        redis: &mut ConnectionManager,
         device_id: DeviceId,
     ) -> Result<(), ApiError> {
         let query = r"
@@ -96,7 +91,7 @@ GROUP BY
     /// Get a users monthly bandwidth, check redis cache before hitting postgres
     pub async fn get(
         postgres: &PgPool,
-        redis: &AMRedis,
+        redis: &mut ConnectionManager,
         registered_user_id: UserId,
     ) -> Result<Option<Self>, ApiError> {
         if let Some(cache) = Self::get_cache(redis, registered_user_id).await? {

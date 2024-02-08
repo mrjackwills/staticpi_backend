@@ -1,4 +1,4 @@
-use redis::{AsyncCommands, FromRedisValue, RedisResult, Value};
+use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -8,7 +8,6 @@ use crate::{
         redis::{string_to_struct, RedisKey, HASH_FIELD},
         user::ModelUser,
     },
-    servers::AMRedis,
 };
 
 impl FromRedisValue for RedisTwoFASetup {
@@ -35,39 +34,40 @@ impl RedisTwoFASetup {
     }
 
     // Insert new twofa secret & set ttl od 2 minutes
-    pub async fn insert(&self, redis: &AMRedis, user: &ModelUser) -> Result<&Self, ApiError> {
+    pub async fn insert(
+        &self,
+        redis: &mut ConnectionManager,
+        user: &ModelUser,
+    ) -> Result<&Self, ApiError> {
         let key = Self::key(user.registered_user_id);
         let session = serde_json::to_string(&self)?;
         {
-            redis.lock().await.hset(&key, HASH_FIELD, session).await?;
-            redis.lock().await.expire(&key, 120).await?;
+            redis.hset(&key, HASH_FIELD, session).await?;
+            redis.expire(&key, 120).await?;
         }
         Ok(self)
     }
 
     /// Delete twofa secret
-    pub async fn delete(redis: &AMRedis, user: &ModelUser) -> Result<(), ApiError> {
+    pub async fn delete(redis: &mut ConnectionManager, user: &ModelUser) -> Result<(), ApiError> {
         Ok(redis
-            .lock()
-            .await
             .del::<String, ()>(Self::key(user.registered_user_id))
             .await?)
     }
 
     /// get twofa setup secret
-    pub async fn get(redis: &AMRedis, user: &ModelUser) -> Result<Option<Self>, ApiError> {
+    pub async fn get(
+        redis: &mut ConnectionManager,
+        user: &ModelUser,
+    ) -> Result<Option<Self>, ApiError> {
         Ok(redis
-            .lock()
-            .await
             .hget::<String, &str, Option<Self>>(Self::key(user.registered_user_id), HASH_FIELD)
             .await?)
     }
 
     /// Check twofa setup secret is in cache or not
-    pub async fn exists(redis: &AMRedis, user: &ModelUser) -> Result<bool, ApiError> {
+    pub async fn exists(redis: &mut ConnectionManager, user: &ModelUser) -> Result<bool, ApiError> {
         Ok(redis
-            .lock()
-            .await
             .hexists::<String, &str, bool>(Self::key(user.registered_user_id), HASH_FIELD)
             .await?)
     }

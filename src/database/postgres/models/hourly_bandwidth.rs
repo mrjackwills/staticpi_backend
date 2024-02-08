@@ -1,8 +1,8 @@
 use super::{monthly_bandwidth::ModelMonthlyBandwidth, new_types::DeviceId};
-use crate::{connections::ConnectionType, servers::AMRedis};
+use crate::connections::ConnectionType;
 
+use redis::aio::ConnectionManager;
 use sqlx::PgPool;
-use std::sync::Arc;
 use tracing::error;
 
 pub struct ModelHourlyBandwidth;
@@ -18,11 +18,11 @@ impl ModelHourlyBandwidth {
         is_counted: bool,
         msg_size: usize,
         postgres: &PgPool,
-        redis: &AMRedis,
+        redis: &ConnectionManager,
     ) {
         if msg_size > 0 {
             let spawn_postgres = postgres.clone();
-            let spawn_redis = Arc::clone(redis);
+            let mut spawn_redis = redis.clone();
             if let Ok(size_in_bytes) = i64::try_from(msg_size) {
                 tokio::spawn(async move {
                     let query = r"
@@ -56,7 +56,7 @@ SET
                     }
                     if let Some(e) = ModelMonthlyBandwidth::force_update_cache(
                         &spawn_postgres,
-                        &spawn_redis,
+                        &mut spawn_redis,
                         device_id,
                     )
                     .await
