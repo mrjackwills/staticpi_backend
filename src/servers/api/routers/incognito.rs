@@ -983,6 +983,80 @@ mod tests {
         assert!(post_set.len() == 1);
     }
 
+	#[tokio::test]
+	async fn api_router_incognito_signin_post_backup_token_invalid() {
+		let mut test_setup = start_servers().await;
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.insert_two_fa().await;
+
+        let client = reqwest::Client::new();
+        let url = format!("{}/authenticated/user/twofa/backup", api_base_url(&test_setup.app_env));
+
+        let result = client
+            .post(&url)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(result.status(), StatusCode::OK);
+
+        let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
+
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 10);
+
+        // This can fail! Unlikely but not zero
+        let token = "519181150EEEAC92";
+
+        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let result = client.post(&url).json(&body).send().await.unwrap();
+        assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 10);
+	}
+
+	#[tokio::test]
+	async fn api_router_incognito_signin_post_backup_token_valid() {
+		let mut test_setup = start_servers().await;
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.insert_two_fa().await;
+
+        let client = reqwest::Client::new();
+        let url = format!("{}/authenticated/user/twofa/backup", api_base_url(&test_setup.app_env));
+
+		let result = client
+		.post(&url)
+		.header("cookie", &authed_cookie)
+		.send()
+		.await
+		.unwrap();
+
+	    assert_eq!(result.status(), StatusCode::OK);
+
+        let result = result.json::<Response>().await.unwrap().response;
+        let codes = result["backups"].as_array().unwrap();
+
+        let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
+
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 10);
+
+        let token = codes[4].as_str().unwrap();
+
+        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let result = client.post(&url).json(&body).send().await.unwrap();
+        assert_eq!(result.status(), StatusCode::OK);
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 9);
+
+        // Using the same backup code again fails
+        let result = client.post(&url).json(&body).send().await.unwrap();
+        assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 9);
+	}
+
     // ****************
     // * Online route *
     // ****************

@@ -156,8 +156,7 @@ impl AdminRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::Limit>,
     ) -> Result<StatusCode, ApiError> {
         state
-            .redis_connection
-            .clone()
+            .redis()
             .del(body.key.to_string())
             .await?;
         Ok(StatusCode::OK)

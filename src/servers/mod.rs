@@ -124,11 +124,11 @@ pub struct InnerState {
     pub domain: String,
     pub email_env: EmailerEnv,
     pub postgres: PgPool,
-    redis_connection: ConnectionManager,
     pub run_mode: RunMode,
     pub start_time: SystemTime,
     cookie_key: Key,
     invite: String,
+    redis_connection: ConnectionManager,
 }
 
 impl InnerState {
@@ -156,12 +156,6 @@ impl FromRef<ApplicationState> for Key {
         state.0.cookie_key.clone()
     }
 }
-
-// impl FromRef<ApplicationState> for ConnectionManager {
-//     fn from_ref(state: &ApplicationState) -> Self {
-//         state.0.redis.clone()
-//     }
-// }
 
 const X_REAL_IP: &str = "x-real-ip";
 const X_FORWARDED_FOR: &str = "x-forwarded-for";
@@ -267,7 +261,7 @@ async fn rate_limiting(
     let addr = ConnectInfo::<SocketAddr>::from_request_parts(&mut parts, &state).await?;
     let ip = get_ip(&parts.headers, addr);
     let mut key = RateLimit::Ip(ip);
-    let mut redis = state.redis();
+    let mut redis: ConnectionManager = state.redis();
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
             if let Some(user) = RedisSession::exists(&mut redis, &ulid).await? {

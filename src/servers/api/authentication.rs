@@ -44,21 +44,14 @@ pub async fn check_token(
                 return Ok(totp.check_current(&token_text)?);
             }
             Token::Backup(token_text) => {
-                // SHOULD USE A TRANSACTION!?
                 if two_fa_backup_count > 0 {
                     let backups = ModelTwoFABackup::get(postgres, registered_user_id).await?;
-
-                    let mut backup_token_id = None;
-                    for backup_code in backups {
+					for backup_code in backups {
                         if verify_password(&token_text, backup_code.as_hash()).await? {
-                            backup_token_id = Some(backup_code.two_fa_backup_id);
+                            ModelTwoFABackup::delete_one(postgres, backup_code.two_fa_backup_id)
+                                .await?;
+                            return Ok(true);
                         }
-                    }
-                    // Delete backup code if it's valid
-                    if let Some(id) = backup_token_id {
-                        ModelTwoFABackup::delete_one(postgres, id).await?;
-                    } else {
-                        return Ok(false);
                     }
                 }
             }
