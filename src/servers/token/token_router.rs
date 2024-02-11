@@ -81,7 +81,6 @@ impl TokenRouter {
         device_type: ConnectionType,
         state: &ApplicationState,
     ) -> Result<Option<Ulid>, ApiError> {
-        // TODO fix me
         let mut output = None;
 
         // if is Err, return empty response?

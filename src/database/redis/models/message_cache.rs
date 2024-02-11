@@ -21,7 +21,6 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MessageCache(pub serde_json::Value);
 
-// TODO not sure if this will work as expected
 redis_hash_to_struct!(MessageCache);
 
 impl MessageCache {
