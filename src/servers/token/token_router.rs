@@ -108,7 +108,7 @@ impl TokenRouter {
             if let Some(id) = password_id {
                 if let Some(device_hash) = ModelDevicePasswordHash::get(&state.postgres, id).await?
                 {
-                    if argon::verify_password(password.map_or("", |f| f), device_hash.password_hash)
+                    if argon::verify_password(password.unwrap_or(""), device_hash.password_hash)
                         .await?
                     {
                         output = Some(
