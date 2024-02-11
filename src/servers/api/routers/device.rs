@@ -131,7 +131,7 @@ impl DeviceRouter {
         }
         ModelDevice::delete_all_device_cache_connections(
             &state.postgres,
-            &mut state.redis(),
+            &state.redis,
             &state.connections,
             &user,
         )
@@ -152,7 +152,7 @@ impl DeviceRouter {
             let limiter = RateLimit::from((device, &user));
             limits.push(oj::AllLimits {
                 name_of_device: device.name_of_device.clone(),
-                ttl: limiter.limited_ttl(&mut state.redis()).await?,
+                ttl: limiter.limited_ttl(&state.redis).await?,
             });
         }
         Ok((
@@ -244,7 +244,7 @@ impl DeviceRouter {
                 .close_by_single_device_id(device_id)
                 .await;
 
-            MessageCache::delete(&mut state.redis(), device_id).await?;
+            MessageCache::delete(&state.redis, device_id).await?;
 
             Ok(StatusCode::OK)
         } else {
@@ -324,7 +324,7 @@ impl DeviceRouter {
                     .close_by_single_device_id(device.device_id)
                     .await;
 
-                MessageCache::delete(&mut state.redis(), device.device_id).await?;
+                MessageCache::delete(&state.redis, device.device_id).await?;
                 Ok(StatusCode::OK)
             } else {
                 Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
@@ -512,13 +512,12 @@ mod tests {
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::{
-        api_base_url, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
+        api_base_url, get_keys, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
     };
     use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
 
     use futures::{SinkExt, StreamExt};
-    use redis::AsyncCommands;
     use reqwest::StatusCode;
     use std::collections::HashMap;
     use time::OffsetDateTime;
@@ -1705,7 +1704,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!(100);
-        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
 
         assert_eq!(message_caches.len(), 2);
 
@@ -1723,7 +1722,7 @@ mod tests {
             .await
             .unwrap();
 
-        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
         assert!(message_caches.is_empty());
     }
 
@@ -2059,7 +2058,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!(100);
-        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
 
         assert_eq!(message_caches.len(), 2);
 
@@ -2078,7 +2077,7 @@ mod tests {
             .await
             .unwrap();
 
-        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
         assert_eq!(message_caches.len(), 1);
     }
 
@@ -3002,7 +3001,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!(100);
-        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
 
         assert_eq!(message_caches.len(), 1);
 
@@ -3027,7 +3026,7 @@ mod tests {
         assert!(ws_client_01.next().await.unwrap().unwrap().is_close());
         assert!(ws_client_02.next().await.unwrap().unwrap().is_close());
 
-        let message_caches: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
 
         assert!(message_caches.is_empty());
     }

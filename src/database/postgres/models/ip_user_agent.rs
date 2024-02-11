@@ -1,4 +1,3 @@
-use redis::{aio::ConnectionManager, AsyncCommands};
 use std::net::{IpAddr, SocketAddr};
 
 use axum::{
@@ -6,12 +5,16 @@ use axum::{
     extract::{ConnectInfo, FromRef, FromRequestParts},
     http::request::Parts,
 };
+use fred::{
+    clients::RedisPool,
+    interfaces::{HashesInterface, KeysInterface},
+};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::{
     api_error::ApiError,
-    database::{redis::RedisKey, HASH_FIELD},
+    database::{gen_hashmap, redis::RedisKey, HASH_FIELD},
     servers::{get_ip, get_user_agent_header, ApplicationState},
 };
 
@@ -54,7 +57,7 @@ impl ModelUserAgentIp {
     /// Search for ip_addresses that are not longer referenced anywhere, delete, and also remove from redis cache
     pub async fn delete_ip(
         transaction: &mut Transaction<'_, Postgres>,
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
     ) -> Result<(), ApiError> {
         let query = r"
 DELETE
@@ -94,7 +97,7 @@ RETURNING ip_address.ip;";
     /// Search for user_agent's that are not longer referenced anywhere, delete, and also remove from redis cache
     pub async fn delete_useragent(
         transaction: &mut Transaction<'_, Postgres>,
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
     ) -> Result<(), ApiError> {
         let query = "
 DELETE FROM user_agent
@@ -129,18 +132,18 @@ RETURNING user_agent.user_agent_string AS user_agent";
         Ok(())
     }
 
-    async fn insert_cache(&self, redis: &mut ConnectionManager) -> Result<(), ApiError> {
+    async fn insert_cache(&self, redis: &RedisPool) -> Result<(), ApiError> {
         let ip_key = RedisKey::CacheIp(self.ip).to_string();
         let user_agent_key = RedisKey::CacheUseragent(&self.user_agent).to_string();
 
-        redis.hset(ip_key, HASH_FIELD, self.ip_id.get()).await?;
+        redis.hset(ip_key, gen_hashmap(self.ip_id.get())).await?;
         Ok(redis
-            .hset(user_agent_key, HASH_FIELD, self.user_agent_id.get())
+            .hset(user_agent_key, gen_hashmap(self.user_agent_id.get()))
             .await?)
     }
 
     async fn get_cache(
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         ip: IpAddr,
         user_agent: &str,
     ) -> Result<Option<Self>, ApiError> {
@@ -215,7 +218,7 @@ RETURNING user_agent.user_agent_string AS user_agent";
     /// get `ip_id` and `user_agent_id`
     pub async fn get(
         postgres: &PgPool,
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         req: &ReqUserAgentIp,
     ) -> Result<Self, ApiError> {
         if let Some(cache) = Self::get_cache(redis, req.ip, &req.user_agent).await? {
@@ -264,6 +267,6 @@ where
             user_agent: get_user_agent_header(&parts.headers),
             ip: get_ip(&parts.headers, addr),
         };
-        Ok(Self::get(&state.postgres, &mut state.redis(), &useragent_ip).await?)
+        Ok(Self::get(&state.postgres, &state.redis, &useragent_ip).await?)
     }
 }

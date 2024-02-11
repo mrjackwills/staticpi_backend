@@ -1,4 +1,7 @@
-use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
+use fred::{
+    clients::RedisPool,
+    interfaces::{HashesInterface, KeysInterface},
+};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
@@ -7,17 +10,19 @@ use crate::{
     argon::ArgonHash,
     database::{
         email_address::ModelEmailAddress,
+        gen_hashmap,
         ip_user_agent::ModelUserAgentIp,
         new_types::{EmailAddressId, IpId, UserAgentId},
-        redis::{string_to_struct, RedisKey, HASH_FIELD},
+        redis::{RedisKey, HASH_FIELD},
     },
+    redis_hash_to_struct,
 };
 
-impl FromRedisValue for RedisNewUser {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        string_to_struct::<Self>(v)
-    }
-}
+// impl FromRedisValue for RedisNewUser {
+//     fn from_redis_value(v: &Value) -> RedisResult<Self> {
+//         string_to_struct::<Self>(v)
+//     }
+// }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RedisNewUser {
@@ -28,6 +33,8 @@ pub struct RedisNewUser {
     pub ip_id: IpId,
     pub user_agent_id: UserAgentId,
 }
+
+redis_hash_to_struct!(RedisNewUser);
 
 impl RedisNewUser {
     /// one hour
@@ -60,22 +67,24 @@ impl RedisNewUser {
     }
 
     /// On register, insert a new user into redis cache, to be inserted into postgres once verify email responded to
-    pub async fn insert(&self, redis: &mut ConnectionManager, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
         let key_secret = Self::key_secret(ulid);
         let key_email = Self::key_email(&self.email);
 
         let new_user_as_string = serde_json::to_string(&self)?;
 
-        redis.hset(&key_email, HASH_FIELD, ulid.to_string()).await?;
+        redis
+            .hset(&key_email, gen_hashmap(ulid.to_string()))
+            .await?;
         redis.expire(key_email, Self::TTL_AS_SEC.into()).await?;
         redis
-            .hset(&key_secret, HASH_FIELD, &new_user_as_string)
+            .hset(&key_secret, gen_hashmap(new_user_as_string))
             .await?;
         Ok(redis.expire(key_secret, Self::TTL_AS_SEC.into()).await?)
     }
 
     /// Remove both verify keys from redis
-    pub async fn delete(&self, redis: &mut ConnectionManager, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn delete(&self, redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
         redis.del(Self::key_secret(ulid)).await?;
         Ok(redis.del(Self::key_email(&self.email)).await?)
     }
@@ -83,12 +92,12 @@ impl RedisNewUser {
     /// Just check if a email is in redis cache, so that if a user has register but not yet verified, cannot sign up again
     /// Static method, as want to use before one creates a `NewUser` struct
     /// THIS ONE NEEDS TO BE mut redis rather than redis: &mut
-    pub async fn exists(redis: &mut ConnectionManager, email: &str) -> Result<bool, ApiError> {
+    pub async fn exists(redis: &RedisPool, email: &str) -> Result<bool, ApiError> {
         Ok(redis.hexists(Self::key_email(email), HASH_FIELD).await?)
     }
 
     /// Verify a new account, secret emailed to user, user visits url with secret as a param
-    pub async fn get(redis: &mut ConnectionManager, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
+    pub async fn get(redis: &RedisPool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
         Ok(redis.hget(Self::key_secret(ulid), HASH_FIELD).await?)
     }
 }

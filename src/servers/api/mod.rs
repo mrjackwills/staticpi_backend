@@ -99,8 +99,8 @@ impl Serve for ApiServer {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod api_tests {
+    use fred::interfaces::KeysInterface;
     use rand::{distributions::Alphanumeric, Rng};
-    use redis::AsyncCommands;
     use reqwest::StatusCode;
 
     use crate::servers::test_setup::api_base_url;
@@ -140,7 +140,7 @@ pub mod api_tests {
     #[tokio::test]
     /// request not rate limited, but points == number request, and ttl 60
     async fn http_mod_rate_limit() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
 
         let url = format!("{}/incognito/online", api_base_url(&test_setup.app_env));
         for _ in 1..=20 {

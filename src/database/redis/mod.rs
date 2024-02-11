@@ -1,13 +1,10 @@
 mod models;
 
 use crate::{api_error::ApiError, parse_env::AppEnv};
+use fred::{clients::RedisPool, interfaces::ClientLike, types::ReconnectPolicy};
+
 pub use models::*;
-use redis::{
-    aio::ConnectionManager, from_redis_value, ConnectionAddr, ConnectionInfo, RedisConnectionInfo,
-    Value,
-};
-use serde::de::DeserializeOwned;
-use std::{fmt, net::IpAddr};
+use std::{collections::HashMap, fmt, net::IpAddr};
 use ulid::Ulid;
 
 use self::rate_limit::RateLimit;
@@ -54,35 +51,64 @@ impl<'a> fmt::Display for RedisKey<'a> {
     }
 }
 
-/// Convert from a Redis string into the struct they are based on
-pub fn string_to_struct<T>(v: &Value) -> Result<T, redis::RedisError>
-where
-    T: DeserializeOwned,
-{
-    let json_str: String = from_redis_value(v)?;
-    let result: Result<T, serde_json::Error> = serde_json::from_str(&json_str);
-    result.map_or(
-        Err((redis::ErrorKind::TypeError, "Parse to JSON Failed").into()),
-        Ok,
-    )
+/// Macro to convert a stringified struct back into the struct
+#[macro_export]
+macro_rules! redis_hash_to_struct {
+    ($struct_name:ident) => {
+        impl fred::types::FromRedis for $struct_name {
+            fn from_value(
+                value: fred::prelude::RedisValue,
+            ) -> Result<Self, fred::prelude::RedisError> {
+                value.as_str().map_or(
+                    Err(fred::error::RedisError::new(
+                        fred::error::RedisErrorKind::Parse,
+                        format!("FromRedis: {}", stringify!(struct_name)),
+                    )),
+                    |i| {
+                        if let Ok(x) = serde_json::from_str::<Self>(&i) {
+                            Ok(x)
+                        } else {
+                            Err(fred::error::RedisError::new(
+                                fred::error::RedisErrorKind::Parse,
+                                "serde",
+                            ))
+                        }
+                    },
+                )
+            }
+        }
+    };
 }
 
+// macro?
+// Generate a hashmap with a fixed key
+pub fn gen_hashmap<'a, T: ToOwned>(x: T) -> HashMap<&'a str, T> {
+    HashMap::from([(HASH_FIELD, x)])
+}
 pub struct DbRedis;
 
 impl DbRedis {
     /// Open up a redis connection, to be saved in an Arc<Mutex> in application state
     /// Get an async redis connection
-    pub async fn get_connection(app_env: &AppEnv) -> Result<ConnectionManager, ApiError> {
-        let connection_info = ConnectionInfo {
-            redis: RedisConnectionInfo {
-                db: i64::from(app_env.redis_database),
-                password: Some(app_env.redis_password.clone()),
-                username: None,
-            },
-            addr: ConnectionAddr::Tcp(app_env.redis_host.clone(), app_env.redis_port),
-        };
+    pub async fn get_pool(app_env: &AppEnv) -> Result<RedisPool, ApiError> {
+        let redis_url = format!(
+            "redis://:{password}@{host}:{port}/{db}",
+            password = app_env.redis_password,
+            host = app_env.redis_host,
+            port = app_env.redis_port,
+            db = app_env.redis_database
+        );
 
-        Ok(redis::aio::ConnectionManager::new(redis::Client::open(connection_info)?).await?)
+        let config = fred::types::RedisConfig::from_url(&redis_url)?;
+        let pool = fred::types::Builder::from_config(config)
+            .with_performance_config(|config| {
+                config.auto_pipeline = true;
+            })
+            // use exponential backoff, starting at 100 ms and doubling on each failed attempt up to 30 sec
+            .set_policy(ReconnectPolicy::new_exponential(0, 100, 30_000, 2))
+            .build_pool(32)?;
+        pool.init().await?;
+        Ok(pool)
     }
 }
 
@@ -91,8 +117,6 @@ impl DbRedis {
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 mod tests {
 
-    use redis::{cmd, RedisError};
-
     use crate::parse_env;
 
     use super::*;
@@ -100,11 +124,11 @@ mod tests {
     #[tokio::test]
     async fn db_redis_mod_get_connection_and_ping() {
         let app_env = parse_env::AppEnv::get_env();
-        let result = DbRedis::get_connection(&app_env).await;
+        let result = DbRedis::get_pool(&app_env).await;
         assert!(result.is_ok());
+        let result = result.unwrap();
 
-        let result: Result<String, RedisError> =
-            cmd("PING").query_async(&mut result.unwrap()).await;
+        let result = result.ping::<String>().await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "PONG");

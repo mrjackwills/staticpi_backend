@@ -1,4 +1,7 @@
-use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
+use fred::{
+    clients::RedisPool,
+    interfaces::{HashesInterface, KeysInterface, SetsInterface},
+};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use time::{Duration, OffsetDateTime};
@@ -8,17 +11,13 @@ use crate::{
     api_error::ApiError,
     database::{
         admin::AdminSession,
+        gen_hashmap,
         new_types::UserId,
-        redis::{string_to_struct, RedisKey, HASH_FIELD},
+        redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
     },
+    redis_hash_to_struct,
 };
-
-impl FromRedisValue for RedisSession {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        string_to_struct::<Self>(v)
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RedisSession {
@@ -26,6 +25,8 @@ pub struct RedisSession {
     pub email: String,
     pub timestamp: i64,
 }
+
+redis_hash_to_struct!(RedisSession);
 
 impl RedisSession {
     pub fn new(registered_user_id: UserId, email: &str) -> Self {
@@ -47,18 +48,17 @@ impl RedisSession {
     }
 
     pub async fn admin_get_all(
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         registered_user_id: UserId,
     ) -> Result<Vec<AdminSession>, ApiError> {
         let key_session_set = Self::key_session_set(registered_user_id);
         let session_keys: Vec<String> = redis.smembers(&key_session_set).await?;
         let mut output = vec![];
         for key in session_keys {
-            let op_session = redis
-                .hget::<&str, &str, Option<Self>>(key.as_str(), HASH_FIELD)
-                .await?;
-
-            if let Some(session) = op_session {
+            if let Some(session) = redis
+                .hget::<Option<Self>, &str, &str>(key.as_str(), HASH_FIELD)
+                .await?
+            {
                 let ttl = redis.ttl(&key).await?;
                 output.push(AdminSession {
                     key,
@@ -74,7 +74,7 @@ impl RedisSession {
     /// Insert new session & set ttl
     pub async fn insert(
         &self,
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         ttl: Duration,
         ulid: Ulid,
     ) -> Result<(), ApiError> {
@@ -84,7 +84,7 @@ impl RedisSession {
 
         let ttl = ttl.whole_seconds();
 
-        redis.hset(&key_session, HASH_FIELD, session).await?;
+        redis.hset(&key_session, gen_hashmap(session)).await?;
         redis.sadd(&key_session_set, &key_session).await?;
         // This won't work as expected, should set TTL to the max at all times
         // redis.expire(&key_session_set, ttl).await?;
@@ -92,7 +92,7 @@ impl RedisSession {
     }
 
     // On any setting change, need to make sure to update session
-    // pub async fn update(&self, redis: &mut ConnectionManager, ulid: Ulid) -> Result<(), ApiError> {
+    // pub async fn update(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
     //     let key = RedisKey::Session(&ulid);
     //     let session = serde_json::to_string(&self)?;
     //     redis.set(key.to_string(), session).await?;
@@ -100,11 +100,10 @@ impl RedisSession {
     // }
 
     /// Delete session
-    pub async fn delete(redis: &mut ConnectionManager, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn delete(redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
         let key_session = Self::key_session(ulid);
-
         if let Some(session) = redis
-            .hget::<&str, &str, Option<Self>>(&key_session, HASH_FIELD)
+            .hget::<Option<Self>, &str, &str>(&key_session, HASH_FIELD)
             .await?
         {
             let key_session_set = Self::key_session_set(session.registered_user_id);
@@ -112,7 +111,7 @@ impl RedisSession {
 
             // Need to test this!
             if redis
-                .smembers::<&str, Vec<String>>(&key_session_set)
+                .smembers::<Vec<String>, &str>(&key_session_set)
                 .await?
                 .is_empty()
             {
@@ -123,10 +122,7 @@ impl RedisSession {
     }
 
     /// Delete all sessions for a single user - used when setting a user active status to false, or password reset!
-    pub async fn delete_all(
-        redis: &mut ConnectionManager,
-        registered_user_id: UserId,
-    ) -> Result<(), ApiError> {
+    pub async fn delete_all(redis: &RedisPool, registered_user_id: UserId) -> Result<(), ApiError> {
         let key_session_set = Self::key_session_set(registered_user_id);
 
         let session_set: Vec<String> = redis.smembers(&key_session_set).await?;
@@ -138,14 +134,15 @@ impl RedisSession {
 
     /// Convert a session into a `ModelUser` object
     pub async fn get(
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         postgres: &PgPool,
         ulid: &Ulid,
     ) -> Result<Option<ModelUser>, ApiError> {
         let key_session = Self::key_session(ulid);
-
-        let op_session: Option<Self> = redis.hget(&key_session, HASH_FIELD).await?;
-        if let Some(session) = op_session {
+        if let Some(session) = redis
+            .hget::<Option<Self>, &str, &str>(&key_session, HASH_FIELD)
+            .await?
+        {
             let user = ModelUser::get(postgres, &session.email).await?;
             // If, for some reason, user isn't in postgres, delete session
             if user.is_none() {
@@ -157,10 +154,7 @@ impl RedisSession {
         }
     }
     /// Check session exists in redis
-    pub async fn exists(
-        redis: &mut ConnectionManager,
-        ulid: &Ulid,
-    ) -> Result<Option<Self>, ApiError> {
+    pub async fn exists(redis: &RedisPool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
         Ok(redis.hget(Self::key_session(ulid), HASH_FIELD).await?)
     }
 }

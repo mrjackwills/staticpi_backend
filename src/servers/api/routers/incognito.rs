@@ -170,12 +170,11 @@ impl IncognitoRouter {
                 IncognitoResponse::UnsafePassword.to_string(),
             ));
         }
-        let mut redis = state.redis();
 
         // If email address can be found in redis verify cache, or postgres proper, just return a success response
         // Shouldn't even let a client know if a user is registered or not
         let (redis_user, postgres_email, postgres_user) = tokio::try_join!(
-            RedisNewUser::exists(&mut redis, &body.email),
+            RedisNewUser::exists(&state.redis, &body.email),
             ModelEmailAddress::get(&state.postgres, &body.email),
             ModelUser::get(&state.postgres, &body.email)
         )?;
@@ -185,7 +184,7 @@ impl IncognitoRouter {
         }
 
         if RateLimit::Register(body.email.clone())
-            .check(&mut redis)
+            .check(&state.redis)
             .await
             .is_err()
         {
@@ -210,7 +209,7 @@ impl IncognitoRouter {
         };
 
         RedisNewUser::new(&email, &body.full_name, &password_hash, &useragent_ip)
-            .insert(&mut redis, &secret)
+            .insert(&state.redis, &secret)
             .await?;
 
         // Email user verification code/link email
@@ -322,7 +321,7 @@ impl IncognitoRouter {
                     ),
                     ModelPasswordReset::consume(&state.postgres, reset_user.password_reset_id)
                 )?;
-                RedisSession::delete_all(&mut state.redis(), reset_user.registered_user_id).await?;
+                RedisSession::delete_all(&state.redis, reset_user.registered_user_id).await?;
                 Emailer::new(
                     &reset_user.full_name,
                     &reset_user.email,
@@ -401,10 +400,9 @@ impl IncognitoRouter {
                     IncognitoResponse::VerifyInvalid.to_string(),
                 ));
             }
-            let mut redis = state.redis();
-            if let Some(new_user) = RedisNewUser::get(&mut redis, &ulid).await? {
+            if let Some(new_user) = RedisNewUser::get(&state.redis, &ulid).await? {
                 ModelUser::insert(&state.postgres, &new_user).await?;
-                RedisNewUser::delete(&new_user, &mut redis, &ulid).await?;
+                RedisNewUser::delete(&new_user, &state.redis, &ulid).await?;
                 Ok((
                     StatusCode::OK,
                     oj::OutgoingJson::new(IncognitoResponse::Verified.to_string()),
@@ -438,12 +436,11 @@ impl IncognitoRouter {
         jar: PrivateCookieJar,
         ij::IncomingJson(body): ij::IncomingJson<ij::Contact>,
     ) -> Result<StatusCode, ApiError> {
-        let mut redis = state.redis();
         let ip_limit = RateLimit::Contact(LimitContact::Ip(useragent_ip.ip))
-            .check(&mut redis)
+            .check(&state.redis)
             .await;
         let email_limit = RateLimit::Contact(LimitContact::Email(body.email.clone()))
-            .check(&mut redis)
+            .check(&state.redis)
             .await;
 
         ip_limit?;
@@ -451,7 +448,7 @@ impl IncognitoRouter {
 
         let registered_user_id = if let Some(data) = jar.get(&state.cookie_name) {
             if let Ok(ulid) = Ulid::from_string(data.value()) {
-                RedisSession::get(&mut redis, &state.postgres, &ulid)
+                RedisSession::get(&state.redis, &state.postgres, &ulid)
                     .await?
                     .map(|i| i.registered_user_id)
             } else {
@@ -493,12 +490,10 @@ impl IncognitoRouter {
     ) -> Result<impl IntoResponse, ApiError> {
         // If front end and back end out of sync, and front end user has an api cookie, but not front-end authed, delete server cookie api session
         let ms = || rand::thread_rng().gen_range(100..500);
-
-		let mut redis = state.redis();
         // remove previous current session
         if let Some(data) = jar.get(&state.cookie_name) {
             if let Ok(ulid) = Ulid::from_string(data.value()) {
-                RedisSession::delete(&mut redis, &ulid).await?;
+                RedisSession::delete(&state.redis, &ulid).await?;
             }
         }
 
@@ -599,7 +594,7 @@ impl IncognitoRouter {
             cookie.set_max_age(ttl);
 
             RedisSession::new(user.registered_user_id, &user.email)
-                .insert(&mut redis, ttl, ulid)
+                .insert(&state.redis, ttl, ulid)
                 .await?;
 
             Ok(jar.add(cookie).into_response())
@@ -628,8 +623,7 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::*;
     use crate::sleep;
-
-    use redis::AsyncCommands;
+    use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
     use ulid::Ulid;
@@ -884,7 +878,7 @@ mod tests {
             .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=21600"));
 
         // Assert session in db
-        let session_vec: Vec<String> = test_setup.redis.keys("session::*").await.unwrap();
+        let session_vec = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(session_vec.len(), 1);
         let session_name = session_vec.first().unwrap();
         let session: RedisSession = test_setup.redis.hget(session_name, "data").await.unwrap();
@@ -931,7 +925,7 @@ mod tests {
             .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=14515200"));
 
         // Assert session in db
-        let session_vec: Vec<String> = test_setup.redis.keys("session::*").await.unwrap();
+        let session_vec = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(session_vec.len(), 1);
         let session_name = session_vec.first().unwrap();
         let session: RedisSession = test_setup.redis.hget(session_name, "data").await.unwrap();
@@ -983,14 +977,17 @@ mod tests {
         assert!(post_set.len() == 1);
     }
 
-	#[tokio::test]
-	async fn api_router_incognito_signin_post_backup_token_invalid() {
-		let mut test_setup = start_servers().await;
+    #[tokio::test]
+    async fn api_router_incognito_signin_post_backup_token_invalid() {
+        let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_two_fa().await;
 
         let client = reqwest::Client::new();
-        let url = format!("{}/authenticated/user/twofa/backup", api_base_url(&test_setup.app_env));
+        let url = format!(
+            "{}/authenticated/user/twofa/backup",
+            api_base_url(&test_setup.app_env)
+        );
 
         let result = client
             .post(&url)
@@ -1014,25 +1011,28 @@ mod tests {
         assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
         let user = test_setup.get_model_user().await.unwrap();
         assert_eq!(user.two_fa_backup_count, 10);
-	}
+    }
 
-	#[tokio::test]
-	async fn api_router_incognito_signin_post_backup_token_valid() {
-		let mut test_setup = start_servers().await;
+    #[tokio::test]
+    async fn api_router_incognito_signin_post_backup_token_valid() {
+        let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_two_fa().await;
 
         let client = reqwest::Client::new();
-        let url = format!("{}/authenticated/user/twofa/backup", api_base_url(&test_setup.app_env));
+        let url = format!(
+            "{}/authenticated/user/twofa/backup",
+            api_base_url(&test_setup.app_env)
+        );
 
-		let result = client
-		.post(&url)
-		.header("cookie", &authed_cookie)
-		.send()
-		.await
-		.unwrap();
+        let result = client
+            .post(&url)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
 
-	    assert_eq!(result.status(), StatusCode::OK);
+        assert_eq!(result.status(), StatusCode::OK);
 
         let result = result.json::<Response>().await.unwrap().response;
         let codes = result["backups"].as_array().unwrap();
@@ -1055,7 +1055,7 @@ mod tests {
         assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
         let user = test_setup.get_model_user().await.unwrap();
         assert_eq!(user.two_fa_backup_count, 9);
-	}
+    }
 
     // ****************
     // * Online route *
@@ -1342,7 +1342,7 @@ mod tests {
         );
 
         // Check email HAS NOT been sent
-        let result = RedisNewUser::exists(&mut test_setup.redis, "email@mrjackwills.com").await;
+        let result = RedisNewUser::exists(&test_setup.redis, "email@mrjackwills.com").await;
         assert!(result.is_ok());
         assert!(!result.unwrap());
         let result = std::fs::metadata("/dev/shm/email_headers.txt");
@@ -1390,7 +1390,7 @@ mod tests {
 
     #[tokio::test]
     async fn api_router_incognito_register_newuser_in_redis() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!("{}/incognito/register", api_base_url(&test_setup.app_env));
 
@@ -1410,7 +1410,7 @@ mod tests {
             result.json::<Response>().await.unwrap().response,
             "Instructions have been sent to the email address provided"
         );
-        let result = RedisNewUser::exists(&mut test_setup.redis, TEST_EMAIL).await;
+        let result = RedisNewUser::exists(&test_setup.redis, TEST_EMAIL).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
 
@@ -1438,7 +1438,7 @@ mod tests {
     #[tokio::test]
     /// Registereding, when already registered, will result in email instructions sent, but nothing in db, check redis register rate limit is valid
     async fn api_router_incognito_register_twice() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!("{}/incognito/register", api_base_url(&test_setup.app_env));
 
@@ -1459,7 +1459,7 @@ mod tests {
             "Instructions have been sent to the email address provided"
         );
 
-        let result = RedisNewUser::exists(&mut test_setup.redis, TEST_EMAIL).await;
+        let result = RedisNewUser::exists(&test_setup.redis, TEST_EMAIL).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
 
@@ -1483,7 +1483,7 @@ mod tests {
             1
         );
 
-        let first_secret: Vec<String> = test_setup.redis.keys("verify::secret::*").await.unwrap();
+        let first_secret = get_keys(&test_setup.redis, "verify::secret::*").await;
 
         test_setup.delete_email_log().await;
         TestSetup::delete_emails();
@@ -1505,7 +1505,7 @@ mod tests {
             "Instructions have been sent to the email address provided"
         );
 
-        let result = RedisNewUser::exists(&mut test_setup.redis, TEST_EMAIL).await;
+        let result = RedisNewUser::exists(&test_setup.redis, TEST_EMAIL).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
         assert_eq!(
@@ -1520,7 +1520,7 @@ mod tests {
         let result = std::fs::metadata("/dev/shm/email_body.txt");
         assert!(result.is_err());
 
-        let second_secret: Vec<String> = test_setup.redis.keys("verify::secret::*").await.unwrap();
+        let second_secret = get_keys(&test_setup.redis, "verify::secret::*").await;
         assert_eq!(first_secret, second_secret);
 
         let register_rate_limit: i8 = test_setup
@@ -1564,7 +1564,7 @@ mod tests {
             "Instructions have been sent to the email address provided"
         );
 
-        let result = RedisNewUser::exists(&mut test_setup.redis, ANON_EMAIL).await;
+        let result = RedisNewUser::exists(&test_setup.redis, ANON_EMAIL).await;
         assert!(result.is_ok());
         assert!(result.unwrap());
 
@@ -1620,7 +1620,7 @@ mod tests {
 
     #[tokio::test]
     async fn api_router_incognito_register_then_verify_ok() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!("{}/incognito/register", api_base_url(&test_setup.app_env));
 
@@ -1633,7 +1633,7 @@ mod tests {
             true,
         );
         client.post(&url).json(&body).send().await.unwrap();
-        let secret: Vec<String> = test_setup.redis.keys("verify::secret::*").await.unwrap();
+        let secret = get_keys(&test_setup.redis, "verify::secret::*").await;
         let secret = secret[0].replace("verify::secret::", "");
 
         let secret_as_ulid = Ulid::from_string(&secret);
@@ -1657,11 +1657,11 @@ mod tests {
             "Account verified, please sign in to continue"
         );
 
-        let result = RedisNewUser::get(&mut test_setup.redis, &secret_as_ulid.unwrap()).await;
+        let result = RedisNewUser::get(&test_setup.redis, &secret_as_ulid.unwrap()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
 
-        let result = RedisNewUser::exists(&mut test_setup.redis, TEST_EMAIL).await;
+        let result = RedisNewUser::exists(&test_setup.redis, TEST_EMAIL).await;
         assert!(result.is_ok());
         assert!(!result.unwrap());
     }
@@ -2246,17 +2246,9 @@ mod tests {
         let reset_secret = test_setup.request_reset().await;
         let client = TestSetup::get_client();
 
-        let keys = test_setup
-            .redis
-            .keys::<&str, Vec<String>>("session::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(keys.len(), 1);
-        let keys = test_setup
-            .redis
-            .keys::<&str, Vec<String>>("session_set::user::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session_set::user::*").await;
         assert_eq!(keys.len(), 1);
 
         let url = format!(
@@ -2269,17 +2261,9 @@ mod tests {
 
         let result = client.patch(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::OK);
-        let keys = test_setup
-            .redis
-            .keys::<&str, Vec<String>>("session_set::user::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session_set::user::*").await;
         assert_eq!(keys.len(), 0);
-        let keys = test_setup
-            .redis
-            .keys::<&str, Vec<String>>("session::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(keys.len(), 0);
     }
 
@@ -2485,7 +2469,7 @@ mod tests {
     #[tokio::test]
     /// rate limit in place after successful message post
     async fn api_router_incognito_contact_post_ratelimit_ok() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
             "{}{}",
@@ -2508,7 +2492,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .get::<&str, usize>(contact_ip)
+                .get::<usize, &str>(contact_ip)
                 .await
                 .unwrap(),
             1
@@ -2516,7 +2500,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .ttl::<&str, isize>(contact_ip)
+                .ttl::<isize, &str>(contact_ip)
                 .await
                 .unwrap(),
             60
@@ -2525,7 +2509,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .get::<&str, usize>(&contact_email)
+                .get::<usize, &str>(&contact_email)
                 .await
                 .unwrap(),
             1
@@ -2533,7 +2517,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .ttl::<&str, isize>(&contact_email)
+                .ttl::<isize, &str>(&contact_email)
                 .await
                 .unwrap(),
             60
@@ -2543,7 +2527,7 @@ mod tests {
     #[tokio::test]
     /// rate limit in place after successful message post
     async fn api_router_incognito_contact_post_ratelimit_small() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
             "{}{}",
@@ -2580,7 +2564,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .get::<&str, usize>(contact_ip)
+                .get::<usize, &str>(contact_ip)
                 .await
                 .unwrap(),
             3
@@ -2588,7 +2572,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .ttl::<&str, isize>(contact_ip)
+                .ttl::<isize, &str>(contact_ip)
                 .await
                 .unwrap(),
             60
@@ -2597,7 +2581,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .get::<&str, usize>(&contact_email)
+                .get::<usize, &str>(&contact_email)
                 .await
                 .unwrap(),
             3
@@ -2605,7 +2589,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .ttl::<&str, isize>(&contact_email)
+                .ttl::<isize, &str>(&contact_email)
                 .await
                 .unwrap(),
             60
@@ -2615,7 +2599,7 @@ mod tests {
     #[tokio::test]
     /// Big rate limit in place after 8 messages sent
     async fn api_router_incognito_contact_post_ratelimit_big() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
         let client = TestSetup::get_client();
         let url = format!(
             "{}{}",
@@ -2650,7 +2634,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .get::<&str, usize>(contact_ip)
+                .get::<usize, &str>(contact_ip)
                 .await
                 .unwrap(),
             9
@@ -2658,7 +2642,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .ttl::<&str, isize>(contact_ip)
+                .ttl::<isize, &str>(contact_ip)
                 .await
                 .unwrap(),
             21600
@@ -2667,7 +2651,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .get::<&str, usize>(&contact_email)
+                .get::<usize, &str>(&contact_email)
                 .await
                 .unwrap(),
             9
@@ -2675,7 +2659,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .ttl::<&str, isize>(&contact_email)
+                .ttl::<isize, &str>(&contact_email)
                 .await
                 .unwrap(),
             21600

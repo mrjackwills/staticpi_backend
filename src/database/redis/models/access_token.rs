@@ -1,4 +1,7 @@
-use redis::{aio::ConnectionManager, AsyncCommands, FromRedisValue, RedisResult, Value};
+use fred::{
+    clients::RedisPool,
+    interfaces::{HashesInterface, KeysInterface},
+};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
@@ -6,17 +9,13 @@ use crate::{
     api_error::ApiError,
     connections::ConnectionType,
     database::{
+        gen_hashmap,
         ip_user_agent::ModelUserAgentIp,
         new_types::{DeviceId, IpId},
-        redis::{string_to_struct, RedisKey, HASH_FIELD},
+        redis::{RedisKey, HASH_FIELD},
     },
+    redis_hash_to_struct,
 };
-
-impl FromRedisValue for AccessToken {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        string_to_struct::<Self>(v)
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AccessToken {
@@ -24,6 +23,8 @@ pub struct AccessToken {
     pub ip_id: IpId,
     pub device_type: ConnectionType,
 }
+
+redis_hash_to_struct!(AccessToken);
 
 impl AccessToken {
     /// twenty seconds
@@ -47,28 +48,28 @@ impl AccessToken {
     }
 
     /// Insert an access token, with a ttl of 20 seconds,
-    pub async fn insert(&self, redis: &mut ConnectionManager, ulid: Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
         let key = Self::key(ulid);
-        let data = serde_json::to_string(&self)?;
-        redis.hset(&key, HASH_FIELD, &data).await?;
+        redis
+            .hset(&key, gen_hashmap(serde_json::to_string(&self)?))
+            .await?;
         Ok(redis.expire(key, Self::TTL_AS_SEC.into()).await?)
     }
 
     /// Remove access token
-    pub async fn delete(&self, redis: &mut ConnectionManager, ulid: Ulid) -> Result<(), ApiError> {
-        redis.del(Self::key(ulid)).await?;
-        Ok(())
+    pub async fn delete(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
+        Ok(redis.del(Self::key(ulid)).await?)
     }
 
     /// Retrieve the access token, assuming ttl is still valid, and that the ip_id & device type matches
     pub async fn get(
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         ulid: Ulid,
         device_type: ConnectionType,
         useragent_ip: &ModelUserAgentIp,
     ) -> Result<Option<Self>, ApiError> {
         (redis
-            .hget::<'_, String, &str, Option<Self>>(Self::key(ulid), HASH_FIELD)
+            .hget::<Option<Self>, String, &str>(Self::key(ulid), HASH_FIELD)
             .await?)
             .map_or(Ok(None), |data| {
                 if data.ip_id == useragent_ip.ip_id && data.device_type == device_type {

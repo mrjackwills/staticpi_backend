@@ -43,6 +43,8 @@ pub mod wm {
         pub unique: Option<Ulid>,
     }
 
+    // redis_hash_to_struct!(PiBody);
+
     impl fmt::Display for PiBody {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(f, "{}", serde_json::to_string(&self).unwrap_or_default())

@@ -1,5 +1,5 @@
+use fred::clients::RedisPool;
 use futures::Future;
-use redis::aio::ConnectionManager;
 use serde::Serialize;
 use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction};
 use std::{net::IpAddr, pin::Pin, sync::Arc};
@@ -340,7 +340,7 @@ impl ModelDevice {
     /// Delete all devices, remove all/any message caches, and remove all connections to these devices
     pub async fn delete_all_device_cache_connections(
         postgres: &PgPool,
-        redis: &mut ConnectionManager,
+        redis: &RedisPool,
         connections: &Arc<Mutex<Connections>>,
         user: &ModelUser,
     ) -> Result<(), ApiError> {

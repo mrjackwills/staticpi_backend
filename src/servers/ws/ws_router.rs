@@ -10,9 +10,9 @@ use axum::{
     routing::get,
     Router,
 };
+use fred::clients::RedisPool;
 use futures::{StreamExt, TryStreamExt};
 
-use redis::aio::ConnectionManager;
 use sqlx::PgPool;
 use tracing::{debug, error};
 use ulid::Ulid;
@@ -67,7 +67,7 @@ pub struct HandlerData<'a> {
     pub limiter: &'a RateLimit,
     pub msg_size: usize,
     pub postgres: &'a PgPool,
-    pub redis: &'a ConnectionManager,
+    pub redis: &'a RedisPool,
     pub ulid: Ulid,
 }
 impl<'a> HandlerData<'a> {
@@ -87,7 +87,7 @@ impl<'a> HandlerData<'a> {
             limiter,
             msg_size: 0,
             postgres: &state.postgres,
-            redis: &state.redis_connection,
+            redis: &state.redis,
             ulid,
         }
     }
@@ -149,10 +149,10 @@ impl WsRouter {
                 if data.is_empty() {
                     true
                 } else {
-                    input.limiter.check(&mut input.redis.clone()).await.is_ok()
+                    input.limiter.check(input.redis).await.is_ok()
                 }
             }
-            _ => input.limiter.check(&mut input.redis.clone()).await.is_ok(),
+            _ => input.limiter.check(input.redis).await.is_ok(),
         }
     }
 
@@ -161,21 +161,12 @@ impl WsRouter {
     async fn valid_rate_limit(input: &HandlerData<'_>, msg: &Message) -> Result<(), ()> {
         if !Self::rate_limit_ok(input, msg).await {
             // let mut redis = input.redis;
-            if input
-                .limiter
-                .exceeded(&mut input.redis.clone())
-                .await
-                .unwrap_or(true)
-            {
+            if input.limiter.exceeded(input.redis).await.unwrap_or(true) {
                 Self::handler_close(input).await;
             }
 
             if input.device.structured_data {
-                let ttl = input
-                    .limiter
-                    .ttl(&mut input.redis.clone())
-                    .await
-                    .unwrap_or(60);
+                let ttl = input.limiter.ttl(input.redis).await.unwrap_or(60);
                 Self::send_self(input, wm::Error::RateLimit(ttl)).await;
             }
             return Err(());
@@ -186,7 +177,7 @@ impl WsRouter {
     /// Validate that a users monthly bandwidth limit hasn't been hit
     /// If structured data, return error to sender
     async fn valid_bandwidth(input: &HandlerData<'_>) -> Result<(), ()> {
-        if check_monthly_bandwidth(input.postgres, &mut input.redis.clone(), input.device)
+        if check_monthly_bandwidth(input.postgres, input.redis, input.device)
             .await
             .is_err()
         {
@@ -236,14 +227,8 @@ impl WsRouter {
         }
 
         let limiter = RateLimit::from(&device);
-        let mut handler_data = HandlerData::new(
-            connection_id,
-            device_type,
-            &device,
-            &limiter,
-            &state,
-            ulid,
-        );
+        let mut handler_data =
+            HandlerData::new(connection_id, device_type, &device, &limiter, &state, ulid);
 
         while let Ok(Some(msg)) = receiver.try_next().await {
             handler_data.msg_size = get_message_size(&msg);
@@ -282,9 +267,7 @@ impl WsRouter {
                             .send_all(input, SendMessage::from(to_send))
                             .await;
                     } else {
-                        match MessageCache::get(&mut input.redis.clone(), input.device.device_id)
-                            .await
-                        {
+                        match MessageCache::get(input.redis, input.device.device_id).await {
                             Ok(Some(cache_msg)) => {
                                 Self::send_self(input, cache_msg).await;
                             }
@@ -303,8 +286,7 @@ impl WsRouter {
                                 .insert(&input.redis.clone(), input.device.device_id);
                         // Don't like this syntax?
                         } else if let Err(e) =
-                            MessageCache::delete(&mut input.redis.clone(), input.device.device_id)
-                                .await
+                            MessageCache::delete(input.redis, input.device.device_id).await
                         {
                             error!("{e:?}");
                         };
@@ -438,12 +420,10 @@ impl WsRouter {
             return Ok((StatusCode::BAD_REQUEST).into_response());
         }
 
-        let mut redis = state.redis();
-
         if let Some(token) =
-            AccessToken::get(&mut redis, access_token, device_type, &useragent_ip).await?
+            AccessToken::get(&state.redis, access_token, device_type, &useragent_ip).await?
         {
-            token.delete(&mut redis, access_token).await?;
+            token.delete(&state.redis, access_token).await?;
             if let Some(device) = ModelWsDevice::get_by_id(&state.postgres, token.device_id).await?
             {
                 let max_connections = state
@@ -453,10 +433,10 @@ impl WsRouter {
                     .max_connected(&device, device_type);
 
                 if !max_connections
-                    && check_monthly_bandwidth(&state.postgres, &mut redis, &device)
+                    && check_monthly_bandwidth(&state.postgres, &state.redis, &device)
                         .await
                         .is_ok()
-                    && RateLimit::from(&device).limited_ttl(&mut redis).await? == 0
+                    && RateLimit::from(&device).limited_ttl(&state.redis).await? == 0
                 {
                     let connection_id = ModelConnection::insert(
                         &state.postgres,
@@ -503,12 +483,14 @@ mod tests {
             user_level::UserLevel, RedisKey,
         },
         helpers::gen_random_hex,
-        servers::test_setup::{start_servers, token_base_url, ws_base_url, Response, TestSetup},
+        servers::test_setup::{
+            get_keys, start_servers, token_base_url, ws_base_url, Response, TestSetup,
+        },
         sleep,
         user_io::incoming_json::ij::DevicePost,
     };
+    use fred::interfaces::{HashesInterface, KeysInterface};
     use futures::{SinkExt, StreamExt};
-    use redis::AsyncCommands;
     use reqwest::{StatusCode, Url};
     use serde_json::Value;
     use std::collections::HashMap;
@@ -540,7 +522,7 @@ mod tests {
     #[tokio::test]
     /// small ban rate limit when using ip as a key, when connecting to /online route
     async fn ws_server_rate_limit_small() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
 
         let url = Url::parse(&format!("{}/online", ws_base_url(&test_setup.app_env))).unwrap();
         for _ in 1..=44 {
@@ -569,7 +551,7 @@ mod tests {
         let ratelimit_key = "ratelimit::ip::127.0.0.1";
         let ttl = test_setup
             .redis
-            .ttl::<&str, usize>(ratelimit_key)
+            .ttl::<usize, &str>(ratelimit_key)
             .await
             .unwrap();
         assert_eq!(ttl, 60);
@@ -578,7 +560,7 @@ mod tests {
     #[tokio::test]
     /// big ban rate limit when using ip as a key, ttl reset on extra request
     async fn ws_server_rate_limit_big() {
-        let mut test_setup = start_servers().await;
+        let test_setup = start_servers().await;
 
         let url = Url::parse(&format!("{}/online", ws_base_url(&test_setup.app_env))).unwrap();
 
@@ -586,7 +568,7 @@ mod tests {
 
         test_setup
             .redis
-            .set::<&str, i64, ()>(ratelimit_key, 90)
+            .set::<(), &str, i64>(ratelimit_key, 90, None, None, false)
             .await
             .unwrap();
 
@@ -599,7 +581,7 @@ mod tests {
 
         let ttl = test_setup
             .redis
-            .ttl::<&str, usize>(ratelimit_key)
+            .ttl::<usize, &str>(ratelimit_key)
             .await
             .unwrap();
 
@@ -609,7 +591,7 @@ mod tests {
         assert!(connect_async(&url).await.is_err());
         let ttl = test_setup
             .redis
-            .ttl::<&str, usize>(ratelimit_key)
+            .ttl::<usize, &str>(ratelimit_key)
             .await
             .unwrap();
         assert_eq!(ttl, 300);
@@ -1000,7 +982,7 @@ mod tests {
         sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -1044,7 +1026,7 @@ mod tests {
         sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -1090,7 +1072,7 @@ mod tests {
         sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -1136,7 +1118,7 @@ mod tests {
         sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -1592,7 +1574,7 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!();
-        let message_cache: Vec<String> = test_setup.redis.keys("cache::message::*").await.unwrap();
+        let message_cache = get_keys(&test_setup.redis, "cache::message::*").await;
 
         assert_eq!(message_cache.len(), 1);
 
@@ -1674,7 +1656,7 @@ mod tests {
         assert_eq!(rate_limit, 16);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup.redis.del::<&str, ()>(&key).await.unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
@@ -1730,7 +1712,7 @@ mod tests {
         assert_eq!(rate_limit, 16);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup.redis.del::<&str, ()>(&key).await.unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
@@ -1971,7 +1953,7 @@ mod tests {
         assert_eq!(rate_limit, 301);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup.redis.del::<&str, ()>(&key).await.unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
@@ -2029,7 +2011,7 @@ mod tests {
         assert_eq!(rate_limit, 301);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup.redis.del::<&str, ()>(&key).await.unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
@@ -2079,12 +2061,12 @@ mod tests {
             "cache::monthly_bandwidth::{}",
             user.registered_user_id.get()
         );
-        test_setup.redis.del::<&str, ()>(&key).await.unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
 
         // This will now be from postgres
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2133,12 +2115,12 @@ mod tests {
             "cache::monthly_bandwidth::{}",
             user.registered_user_id.get()
         );
-        test_setup.redis.del::<&str, ()>(&key).await.unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
 
         // This will now be from postgres
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2430,7 +2412,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2471,7 +2453,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2510,7 +2492,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2552,7 +2534,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2596,7 +2578,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2638,7 +2620,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2688,7 +2670,7 @@ mod tests {
         sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2746,7 +2728,7 @@ mod tests {
         sleep!();
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2788,7 +2770,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2830,7 +2812,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2874,7 +2856,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
@@ -2916,7 +2898,7 @@ mod tests {
 
         let bandwidth = ModelMonthlyBandwidth::get(
             &test_setup.postgres,
-            &mut test_setup.redis.clone(),
+            &test_setup.redis,
             test_setup.get_user_id(),
         )
         .await
