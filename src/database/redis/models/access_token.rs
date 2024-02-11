@@ -6,11 +6,14 @@ use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError, connections::ConnectionType, database::{
+    api_error::ApiError,
+    connections::ConnectionType,
+    database::{
         ip_user_agent::ModelUserAgentIp,
         new_types::{DeviceId, IpId},
         redis::{RedisKey, HASH_FIELD},
-    }, hmap, redis_hash_to_struct
+    },
+    hmap, redis_hash_to_struct,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

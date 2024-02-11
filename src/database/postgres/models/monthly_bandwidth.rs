@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    api_error::ApiError, database::{RedisKey, HASH_FIELD}, hmap, redis_hash_to_struct
+    api_error::ApiError,
+    database::{RedisKey, HASH_FIELD},
+    hmap, redis_hash_to_struct,
 };
 
 use super::new_types::{DeviceId, UserId};
@@ -50,7 +52,7 @@ impl ModelMonthlyBandwidth {
     ) -> Result<(), ApiError> {
         let query = r"
 SELECT
-	COALESCE(SUM(hb.size_in_bytes), 0) :: BIGINT AS size_in_bytes,
+	COALESCE(SUM(hb.size_in_bytes), 0)::BIGINT AS size_in_bytes,
 	ru.registered_user_id
 FROM
 	hourly_bandwidth hb
@@ -108,7 +110,7 @@ GROUP BY
         }
         let query = r"
 SELECT
-	hb.size_in_bytes :: BIGINT AS size_in_bytes,
+	hb.size_in_bytes::BIGINT AS size_in_bytes,
 	$1 AS registered_user_id
 FROM
 	hourly_bandwidth hb

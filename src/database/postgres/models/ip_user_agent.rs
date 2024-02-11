@@ -13,7 +13,10 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::{
-    api_error::ApiError, database::{redis::RedisKey, HASH_FIELD}, hmap, servers::{get_ip, get_user_agent_header, ApplicationState}
+    api_error::ApiError,
+    database::{redis::RedisKey, HASH_FIELD},
+    hmap,
+    servers::{get_ip, get_user_agent_header, ApplicationState},
 };
 
 use super::new_types::{IpId, UserAgentId};
@@ -58,30 +61,32 @@ impl ModelUserAgentIp {
         redis: &RedisPool,
     ) -> Result<(), ApiError> {
         let query = r"
-DELETE
-FROM ip_address
-WHERE ip_id
-IN (
-    SELECT ip_address.ip_id
-    FROM ip_address
-    LEFT JOIN api_key USING(ip_id)
-    LEFT JOIN connection USING(ip_id)
-    LEFT JOIN device USING(ip_id)
-    LEFT JOIN login_history USING(ip_id)
-    LEFT JOIN password_reset USING(ip_id)
-    LEFT JOIN registered_user USING(ip_id)
-    LEFT JOIN two_fa_backup USING(ip_id)
-    LEFT JOIN two_fa_secret USING(ip_id)
-    WHERE api_key.ip_id IS NULL
-    AND connection.ip_id IS NULL
-    AND device.ip_id IS NULL
-    AND login_history.ip_id IS NULL
-    AND password_reset.ip_id IS NULL
-    AND registered_user.ip_id IS NULL
-    AND two_fa_backup.ip_id IS NULL
-    AND two_fa_secret.ip_id IS NULL
-)
-RETURNING ip_address.ip;";
+DELETE FROM
+	ip_address
+WHERE
+	ip_id IN (
+		SELECT
+			ip_address.ip_id
+		FROM
+			ip_address
+			LEFT JOIN api_key USING(ip_id)
+			LEFT JOIN connection USING(ip_id)
+			LEFT JOIN device USING(ip_id)
+			LEFT JOIN login_history USING(ip_id)
+			LEFT JOIN password_reset USING(ip_id)
+			LEFT JOIN registered_user USING(ip_id)
+			LEFT JOIN two_fa_backup USING(ip_id)
+			LEFT JOIN two_fa_secret USING(ip_id)
+		WHERE
+			api_key.ip_id IS NULL
+			AND connection.ip_id IS NULL
+			AND device.ip_id IS NULL
+			AND login_history.ip_id IS NULL
+			AND password_reset.ip_id IS NULL
+			AND registered_user.ip_id IS NULL
+			AND two_fa_backup.ip_id IS NULL
+			AND two_fa_secret.ip_id IS NULL
+	) RETURNING ip_address.ip";
         let ips = sqlx::query_as::<_, DeleteIp>(query)
             .fetch_all(&mut **transaction)
             .await?;
@@ -98,27 +103,30 @@ RETURNING ip_address.ip;";
         redis: &RedisPool,
     ) -> Result<(), ApiError> {
         let query = "
-DELETE FROM user_agent
-WHERE user_agent_id
-IN (
-    SELECT user_agent.user_agent_id
-    FROM user_agent
-    LEFT JOIN api_key USING(user_agent_id)
-    LEFT JOIN device USING(user_agent_id)
-    LEFT JOIN login_history USING(user_agent_id)
-    LEFT JOIN password_reset USING(user_agent_id)
-    LEFT JOIN registered_user USING(user_agent_id)
-    LEFT JOIN two_fa_backup USING(user_agent_id)
-    LEFT JOIN two_fa_secret USING(user_agent_id)
-    WHERE api_key.ip_id IS NULL
-    AND device.user_agent_id IS NULL
-    AND login_history.user_agent_id IS NULL
-    AND password_reset.user_agent_id IS NULL
-    AND registered_user.user_agent_id IS NULL
-    AND two_fa_backup.user_agent_id IS NULL
-    AND two_fa_secret.user_agent_id IS NULL
-)
-RETURNING user_agent.user_agent_string AS user_agent";
+DELETE FROM
+	user_agent
+WHERE
+	user_agent_id IN (
+		SELECT
+			user_agent.user_agent_id
+		FROM
+			user_agent
+			LEFT JOIN api_key USING(user_agent_id)
+			LEFT JOIN device USING(user_agent_id)
+			LEFT JOIN login_history USING(user_agent_id)
+			LEFT JOIN password_reset USING(user_agent_id)
+			LEFT JOIN registered_user USING(user_agent_id)
+			LEFT JOIN two_fa_backup USING(user_agent_id)
+			LEFT JOIN two_fa_secret USING(user_agent_id)
+		WHERE
+			api_key.ip_id IS NULL
+			AND device.user_agent_id IS NULL
+			AND login_history.user_agent_id IS NULL
+			AND password_reset.user_agent_id IS NULL
+			AND registered_user.user_agent_id IS NULL
+			AND two_fa_backup.user_agent_id IS NULL
+			AND two_fa_secret.user_agent_id IS NULL
+	) RETURNING user_agent.user_agent_string AS user_agent";
         let user_agents = sqlx::query_as::<_, DeleteUserAgent>(query)
             .fetch_all(&mut **transaction)
             .await?;
@@ -169,7 +177,13 @@ RETURNING user_agent.user_agent_string AS user_agent";
         transaction: &mut Transaction<'_, Postgres>,
         req: &ReqUserAgentIp,
     ) -> Result<Option<Ip>, sqlx::Error> {
-        let query = "SELECT ip_id from ip_address WHERE ip = $1::inet";
+        let query = "
+SELECT
+	ip_id
+FROM
+	ip_address
+WHERE
+	ip = $1::inet";
         sqlx::query_as::<_, Ip>(query)
             .bind(req.ip.to_string())
             .fetch_optional(&mut **transaction)
@@ -182,7 +196,13 @@ RETURNING user_agent.user_agent_string AS user_agent";
         transaction: &mut Transaction<'_, Postgres>,
         req: &ReqUserAgentIp,
     ) -> Result<Ip, sqlx::Error> {
-        let query = "INSERT INTO ip_address(ip) VALUES ($1::inet) RETURNING ip_id";
+        let query = "
+INSERT INTO
+	ip_address(ip)
+VALUES
+	($1::inet)
+RETURNING
+	ip_id";
         sqlx::query_as::<_, Ip>(query)
             .bind(req.ip.to_string())
             .fetch_one(&mut **transaction)
@@ -194,7 +214,13 @@ RETURNING user_agent.user_agent_string AS user_agent";
         transaction: &mut Transaction<'_, Postgres>,
         req: &ReqUserAgentIp,
     ) -> Result<Option<Useragent>, sqlx::Error> {
-        let query = "SELECT user_agent_id from user_agent WHERE user_agent_string = $1";
+        let query = "
+SELECT
+	user_agent_id
+FROM
+	user_agent
+WHERE
+	user_agent_string = $1";
         sqlx::query_as::<_, Useragent>(query)
             .bind(req.user_agent.clone())
             .fetch_optional(&mut **transaction)
@@ -206,7 +232,13 @@ RETURNING user_agent.user_agent_string AS user_agent";
         transaction: &mut Transaction<'_, Postgres>,
         req: &ReqUserAgentIp,
     ) -> Result<Useragent, sqlx::Error> {
-        let query = "INSERT INTO user_agent(user_agent_string) VALUES ($1) RETURNING user_agent_id";
+        let query = "
+INSERT INTO
+	user_agent(user_agent_string)
+VALUES
+	($1)
+RETURNING
+	user_agent_id";
         sqlx::query_as::<_, Useragent>(query)
             .bind(req.user_agent.clone())
             .fetch_one(&mut **transaction)

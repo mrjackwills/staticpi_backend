@@ -56,7 +56,13 @@ impl ModelApiKey {
         transaction: &mut Transaction<'_, Postgres>,
         api_key: &ApiKey,
     ) -> Result<Option<Self>, ApiError> {
-        let query = "SELECT * FROM api_key WHERE api_key_string = $1";
+        let query = "
+SELECT
+	*
+FROM
+	api_key
+WHERE
+	api_key_string = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
             .fetch_optional(&mut **transaction)
@@ -72,7 +78,13 @@ impl ModelApiKey {
     ) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
         let api_key = Self::insert(&mut transaction, user, &useragent_ip).await?;
-        let query = "UPDATE device SET api_key_id = $1 WHERE device_id = $2;";
+        let query = "
+UPDATE
+	device
+SET
+	api_key_id = $1
+WHERE
+	device_id = $2";
         sqlx::query(query)
             .bind(api_key.api_key_id.get())
             .bind(device.device_id.get())
@@ -88,7 +100,16 @@ impl ModelApiKey {
         useragent_ip: &ModelUserAgentIp,
     ) -> Result<Self, ApiError> {
         let api_key = Self::create_api_key(transaction).await?;
-        let query = "INSERT INTO api_key(api_key_string, registered_user_id, ip_id, user_agent_id) VALUES ($1, $2, $3, $4) RETURNING api_key_id";
+        let query = "
+INSERT INTO
+	api_key(
+		api_key_string,
+		registered_user_id,
+		ip_id,
+		user_agent_id
+	)
+VALUES
+	($1, $2, $3, $4) RETURNING api_key_id";
         let api_key = sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
             .bind(user.registered_user_id.get())
@@ -119,8 +140,13 @@ impl ModelDevicePasswordHash {
         transaction: &mut Transaction<'_, Postgres>,
         hash: ArgonHash,
     ) -> Result<Self, ApiError> {
-        let query =
-            "INSERT INTO device_password(password_hash) VALUES($1) RETURNING device_password_id, password_hash";
+        let query = "
+INSERT INTO
+	device_password(password_hash)
+VALUES
+	($1)
+RETURNING
+	device_password_id, password_hash";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(hash.to_string())
             .fetch_one(&mut **transaction)
@@ -132,8 +158,14 @@ impl ModelDevicePasswordHash {
         postgres: &PgPool,
         device_password_id: DevicePasswordId,
     ) -> Result<Option<Self>, ApiError> {
-        let query =
-            "SELECT device_password_id, password_hash FROM device_password WHERE device_password_id = $1;";
+        let query = "
+SELECT
+	device_password_id,
+password_hash
+	FROM
+	device_password
+WHERE
+	device_password_id = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(device_password_id.get())
             .fetch_optional(postgres)
@@ -145,7 +177,11 @@ impl ModelDevicePasswordHash {
         transaction: &mut Transaction<'_, Postgres>,
         device_password_id: DevicePasswordId,
     ) -> Result<(), ApiError> {
-        let query = "DELETE FROM device_password WHERE device_password_id = $1;";
+        let query = "
+DELETE FROM
+	device_password
+WHERE
+	device_password_id = $1";
         sqlx::query(query)
             .bind(device_password_id.get())
             .execute(&mut **transaction)
@@ -169,16 +205,15 @@ impl DeviceName {
     ) -> Result<bool, ApiError> {
         let query = "
 SELECT
-    de.device_id, dn.name_of_device
+	de.device_id,
+	dn.name_of_device
 FROM
-    device de
-LEFT JOIN device_name dn USING(device_name_id)
+	device de
+	LEFT JOIN device_name dn USING(device_name_id)
 WHERE
-    dn.name_of_device = $1
-AND
-    de.registered_user_id = $2
-AND
-    de.active = true;";
+	dn.name_of_device = $1
+	AND de.registered_user_id = $2
+	AND de.active = true;";
 
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(device_name)
@@ -193,8 +228,14 @@ AND
         transaction: &mut Transaction<'_, Postgres>,
         device_name: &str,
     ) -> Result<Self, ApiError> {
-        let query =
-            "SELECT device_name_id, name_of_device FROM device_name WHERE name_of_device = $1";
+        let query = "
+SELECT
+	device_name_id,
+	name_of_device
+FROM
+	device_name
+WHERE
+	name_of_device = $1";
         if let Some(exists) = sqlx::query_as::<_, Self>(query)
             .bind(device_name)
             .fetch_optional(&mut **transaction)
@@ -202,8 +243,13 @@ AND
         {
             Ok(exists)
         } else {
-            let query =
-                "INSERT INTO device_name(name_of_device) VALUES($1) RETURNING device_name_id, name_of_device";
+            let query = "
+INSERT INTO
+	device_name(name_of_device)
+VALUES
+	($1)
+RETURNING
+	device_name_id, name_of_device";
             Ok(sqlx::query_as::<_, Self>(query)
                 .bind(device_name)
                 .fetch_one(&mut **transaction)
@@ -237,27 +283,28 @@ impl ModelWsDevice {
     ) -> Result<Option<Self>, ApiError> {
         let query = "
 SELECT
-    de.device_id, de.max_clients, de.structured_data, de.client_password_id, de.device_password_id,
-    ap.api_key_string AS api_key, ap.api_key_id,
-    ru.registered_user_id,
-    ul.max_message_size_in_bytes, ul.max_monthly_bandwidth_in_bytes, ul.user_level_name AS user_level,
-    dn.name_of_device
-FROM 
-    device de
-LEFT JOIN registered_user ru USING(registered_user_id)
-LEFT JOIN api_key ap USING(api_key_id)
-LEFT JOIN device_name dn USING(device_name_id)
-LEFT JOIN
-    user_level ul
-ON
-    ul.user_level_id = ru.user_level_id
+	de.device_id,
+	de.max_clients,
+	de.structured_data,
+	de.client_password_id,
+	de.device_password_id,
+	ap.api_key_string AS api_key,
+	ap.api_key_id,
+	ru.registered_user_id,
+	ul.max_message_size_in_bytes,
+	ul.max_monthly_bandwidth_in_bytes,
+	ul.user_level_name AS user_level,
+	dn.name_of_device
+FROM
+	device de
+	LEFT JOIN registered_user ru USING(registered_user_id)
+	LEFT JOIN api_key ap USING(api_key_id)
+	LEFT JOIN device_name dn USING(device_name_id)
+	LEFT JOIN user_level ul ON ul.user_level_id = ru.user_level_id
 WHERE
-    de.active = TRUE
-AND
-    de.paused = FALSE
-AND
-    de.device_id = $1;
-";
+	de.active = TRUE
+	AND de.paused = FALSE
+	AND de.device_id = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(device_id.get())
             .fetch_optional(postgres)
@@ -271,27 +318,28 @@ AND
     ) -> Result<Option<Self>, ApiError> {
         let query = "
 SELECT
-    de.device_id, de.max_clients, de.structured_data, de.client_password_id, de.device_password_id,
-    ap.api_key_string AS api_key, ap.api_key_id,
-    ru.registered_user_id,
-    ul.max_message_size_in_bytes, ul.max_monthly_bandwidth_in_bytes, ul.user_level_name AS user_level,
-    dn.name_of_device
-FROM 
-    device de
-LEFT JOIN registered_user ru USING(registered_user_id)
-LEFT JOIN api_key ap USING(api_key_id)
-LEFT JOIN device_name dn USING(device_name_id)
-LEFT JOIN
-    user_level ul
-ON
-    ul.user_level_id = ru.user_level_id
+	de.device_id,
+	de.max_clients,
+	de.structured_data,
+	de.client_password_id,
+	de.device_password_id,
+	ap.api_key_string AS api_key,
+	ap.api_key_id,
+	ru.registered_user_id,
+	ul.max_message_size_in_bytes,
+	ul.max_monthly_bandwidth_in_bytes,
+	ul.user_level_name AS user_level,
+	dn.name_of_device
+FROM
+	device de
+	LEFT JOIN registered_user ru USING(registered_user_id)
+	LEFT JOIN api_key ap USING(api_key_id)
+	LEFT JOIN device_name dn USING(device_name_id)
+	LEFT JOIN user_level ul ON ul.user_level_id = ru.user_level_id
 WHERE
-    de.active = TRUE
-AND
-    de.paused = FALSE
-AND
-    ap.api_key_string = $1;
-";
+	de.active = TRUE
+	AND de.paused = FALSE
+	AND ap.api_key_string = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(api_key.get())
             .fetch_optional(postgres)
@@ -363,19 +411,37 @@ impl ModelDevice {
     ) -> Result<Vec<ModelDeviceId>, ApiError> {
         let mut transaction = postgres.begin().await?;
 
-        let query = "UPDATE api_key SET active = FALSE WHERE registered_user_id = $1";
+        let query = "
+UPDATE
+	api_key
+SET
+	active = FALSE
+WHERE
+	registered_user_id = $1";
         sqlx::query(query)
             .bind(user.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
 
-        let query = "UPDATE device SET active = FALSE WHERE registered_user_id = $1";
+        let query = "
+UPDATE
+	device
+SET
+	active = FALSE
+WHERE
+	registered_user_id = $1";
         sqlx::query(query)
             .bind(user.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
 
-        let query = "SELECT device_id FROM device WHERE registered_user_id = $1";
+        let query = "
+SELECT
+	device_id
+FROM
+	device
+WHERE
+	registered_user_id = $1";
         let device_ids = sqlx::query_as::<_, ModelDeviceId>(query)
             .bind(user.registered_user_id.get())
             .fetch_all(&mut *transaction)
@@ -386,7 +452,14 @@ impl ModelDevice {
 
     /// Get count of total number current active (as in not deleted) devices for a given user
     pub async fn count(postgres: &PgPool, user: &ModelUser) -> Result<i64, ApiError> {
-        let query = "SELECT COUNT(*) FROM device WHERE registered_user_id = $1 AND active = TRUE";
+        let query = "
+SELECT
+	COUNT(*)
+FROM
+	device
+WHERE
+	registered_user_id = $1
+	AND active = TRUE";
         let count = sqlx::query_as::<_, Count>(query)
             .bind(user.registered_user_id.get())
             .fetch_one(postgres)
@@ -396,7 +469,13 @@ impl ModelDevice {
 
     /// Toggle the devices paused state
     pub async fn update_paused(&mut self, postgres: &PgPool, pause: bool) -> Result<(), ApiError> {
-        let query = "UPDATE device SET paused = $1 WHERE device_id = $2";
+        let query = "
+UPDATE
+	device
+SET
+	paused = $1
+WHERE
+	device_id = $2";
         sqlx::query(query)
             .bind(pause)
             .bind(self.device_id.get())
@@ -427,7 +506,14 @@ impl ModelDevice {
         .await?
         .device_password_id;
 
-        let query = "UPDATE device SET client_password_id = $1, device_password_id = $2 WHERE device_id = $3";
+        let query = "
+UPDATE
+	device
+SET
+	client_password_id = $1,
+	device_password_id = $2
+WHERE
+	device_id = $3";
         sqlx::query(query)
             .bind(client_hash_id.get())
             .bind(device_hash_id.get())
@@ -441,7 +527,14 @@ impl ModelDevice {
     pub async fn remove_password(&mut self, postgres: &PgPool) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
 
-        let query = "UPDATE device SET client_password_id = NULL, device_password_id = NULL WHERE device_id = $1";
+        let query = "
+UPDATE
+	device
+SET
+	client_password_id = NULL,
+	device_password_id = NULL
+WHERE
+	device_id = $1";
         sqlx::query(query)
             .bind(self.device_id.get())
             .execute(&mut *transaction)
@@ -464,7 +557,13 @@ impl ModelDevice {
         postgres: &PgPool,
         structured_data: bool,
     ) -> Result<(), ApiError> {
-        let query = "UPDATE device SET structured_data = $1 WHERE device_id = $2";
+        let query = "
+UPDATE
+	device
+SET
+	structured_data = $1
+WHERE
+	device_id = $2";
         sqlx::query(query)
             .bind(structured_data)
             .bind(self.device_id.get())
@@ -479,7 +578,13 @@ impl ModelDevice {
         postgres: &PgPool,
         max_clients: i16,
     ) -> Result<(), ApiError> {
-        let query = "UPDATE device SET max_clients = $1 WHERE device_id = $2";
+        let query = "
+UPDATE
+	device
+SET
+	max_clients = $1
+WHERE
+	device_id = $2";
         sqlx::query(query)
             .bind(max_clients)
             .bind(self.device_id.get())
@@ -492,7 +597,13 @@ impl ModelDevice {
     pub async fn update_name(&mut self, postgres: &PgPool, name: String) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
         let device_name = DeviceName::insert(&mut transaction, &name).await?;
-        let query = "UPDATE device SET device_name_id = $1 WHERE device_id = $2";
+        let query = "
+UPDATE
+	device
+SET
+	device_name_id = $1
+WHERE
+	device_id = $2";
         sqlx::query(query)
             .bind(device_name.device_name_id.get())
             .bind(self.device_id.get())
@@ -525,29 +636,33 @@ impl ModelDevice {
 
         let query = r"
 UPDATE
-    device
-SET 
-    active = FALSE
+	device
+SET
+	active = FALSE
 WHERE
-    registered_user_id = $1
-AND 
-    device_name_id = (
-        SELECT
-            device_name_id
-        FROM
-            device_name
-        WHERE
-            name_of_device = $2
-    )
-RETURNING
-    device_id, api_key_id";
+	registered_user_id = $1
+	AND device_name_id = (
+		SELECT
+			device_name_id
+		FROM
+			device_name
+		WHERE
+			name_of_device = $2
+	) RETURNING device_id,
+	api_key_id";
         if let Some(device_api_id) = sqlx::query_as::<_, ModelDeviceIdApiKeyId>(query)
             .bind(user.registered_user_id.get())
             .bind(device_name)
             .fetch_optional(&mut *transaction)
             .await?
         {
-            let query = "UPDATE api_key set active = FALSE WHERE api_key_id = $1";
+            let query = "
+UPDATE
+	api_key
+SET
+	active = FALSE
+WHERE
+	api_key_id = $1";
             sqlx::query(query)
                 .bind(device_api_id.api_key_id.get())
                 .execute(&mut *transaction)
@@ -649,10 +764,19 @@ AND
 
         let query = "
 INSERT INTO
-    device(registered_user_id, ip_id, user_agent_id, device_name_id, api_key_id, max_clients, client_password_id, device_password_id, structured_data)
+	device(
+		registered_user_id,
+		ip_id,
+		user_agent_id,
+		device_name_id,
+		api_key_id,
+		max_clients,
+		client_password_id,
+		device_password_id,
+		structured_data
+	)
 VALUES
-    ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-";
+	($1, $2, $3, $4, $5, $6, $7, $8, $9)";
         sqlx::query(query)
             .bind(user.registered_user_id.get())
             .bind(useragent_ip.ip_id.get())
@@ -673,239 +797,325 @@ VALUES
 /// Query to get fully joined device, for frontend api usage
 const QUERY: &str = r"
 SELECT
-    de.device_id, de.timestamp::TEXT AS creation_date, de.paused, de.max_clients, de.structured_data,
-    ap.api_key_string AS api_key,
-    de.client_password_id, de.device_password_id,
-    CASE WHEN de.client_password_id IS NULL THEN FALSE ELSE TRUE END AS client_password_required,
-    CASE WHEN de.device_password_id IS NULL THEN FALSE ELSE TRUE END AS device_password_required,
-    dn.name_of_device,
-    (
-        SELECT
-            co.timestamp_online::TEXT
-        FROM
-            connection co
-        WHERE
-            co.device_id = de.device_id
-        AND
-            co.is_pi = TRUE
-        ORDER BY
-            co.connection_id
-        DESC LIMIT 1
-    ) AS timestamp_online,
-    (
-        SELECT
-            co.timestamp_offline::TEXT
-        FROM
-            connection co
-        WHERE
-            co.device_id = de.device_id
-        AND
-            co.is_pi = TRUE
-        ORDER BY
-            co.connection_id
-        DESC LIMIT 1
-    ) AS timestamp_offline,
-    (
-        SELECT
-            ip.ip
-        FROM
-            connection co
-        LEFT JOIN ip_address ip USING(ip_id)
-        WHERE
-            co.device_id = de.device_id
-        AND
-            co.is_pi = TRUE
-        ORDER BY
-            co.connection_id
-        DESC LIMIT 1
-    ) AS ip,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = TRUE
-        AND
-            DATE(hb.timestamp) = CURRENT_DATE
-        AND
-            hb.is_counted = FALSE
-    ) AS pi_bytes_day_in,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = TRUE
-        AND
-            DATE(hb.timestamp) = CURRENT_DATE
-        AND
-            hb.is_counted = TRUE
-    ) AS pi_bytes_day_out,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM 
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = TRUE
-        AND
-            extract(month FROM hb.timestamp) = extract(month FROM CURRENT_DATE)
-        AND
-            extract(year FROM hb.timestamp) = extract(year FROM CURRENT_DATE)
-        AND
-            hb.is_counted = FALSE
-    ) AS pi_bytes_month_in,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM 
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = TRUE
-        AND
-            extract(month FROM hb.timestamp) = extract (month FROM CURRENT_DATE)
-        AND
-            extract(year FROM hb.timestamp) = extract (year FROM CURRENT_DATE)
-        AND
-            hb.is_counted = TRUE
-    ) AS pi_bytes_month_out,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = TRUE
-        AND
-            hb.is_counted = FALSE
-    ) AS pi_bytes_total_in,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = TRUE
-        AND
-            hb.is_counted = TRUE
-    ) AS pi_bytes_total_out,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = FALSE
-        AND
-            DATE(hb.timestamp) = CURRENT_DATE
-        AND
-            hb.is_counted = FALSE
-    ) AS client_bytes_day_in,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = FALSE
-        AND
-           DATE(hb.timestamp) = CURRENT_DATE
-        AND
-            hb.is_counted = TRUE
-    ) AS client_bytes_day_out,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM 
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = FALSE
-        AND
-            extract(month FROM hb.timestamp) = extract (month FROM CURRENT_DATE)
-        AND
-            extract(year FROM hb.timestamp) = extract (year FROM CURRENT_DATE)
-        AND
-            hb.is_counted = FALSE
-    ) AS client_bytes_month_in,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM 
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = FALSE
-            AND
-            extract(month FROM hb.timestamp) = extract (month FROM CURRENT_DATE)
-        AND
-            extract(year FROM hb.timestamp) = extract (year FROM CURRENT_DATE)
-        AND
-            hb.is_counted = TRUE
-    ) AS client_bytes_month_out,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = FALSE
-        AND
-            hb.is_counted = FALSE
-    ) AS client_bytes_total_in,
-    (
-        SELECT CASE WHEN SUM(size_in_bytes) IS NULL THEN 0::BIGINT ELSE SUM(size_in_bytes)::BIGINT END
-        FROM
-            hourly_bandwidth hb
-        WHERE
-            hb.device_id = de.device_id
-        AND
-            hb.is_pi = FALSE
-        AND
-            hb.is_counted = TRUE
-    ) AS client_bytes_total_out,
-    (
-        SELECT
-            co.timestamp_online::TEXT
-        FROM
-            connection co
-        WHERE
-            co.device_id = de.device_id
-        AND
-            co.is_pi = TRUE
-        ORDER BY
-            co.connection_id
-        DESC LIMIT 1
-    ) AS timestamp_online,
-    (
-        SELECT
-            co.timestamp_offline::TEXT
-        FROM
-            connection co
-        WHERE
-            co.device_id = de.device_id
-        AND
-            co.is_pi = TRUE
-        ORDER BY
-            co.connection_id
-        DESC LIMIT 1
-    ) AS timestamp_offline
-FROM 
-    device de
-LEFT JOIN api_key ap USING(api_key_id)
-LEFT JOIN device_name dn USING(device_name_id)
+	de.device_id,
+	de.timestamp :: TEXT AS creation_date,
+	de.paused,
+	de.max_clients,
+	de.structured_data,
+	ap.api_key_string AS api_key,
+	de.client_password_id,
+	de.device_password_id,
+	CASE
+		WHEN de.client_password_id IS NULL THEN FALSE
+		ELSE TRUE
+	END AS client_password_required,
+	CASE
+		WHEN de.device_password_id IS NULL THEN FALSE
+		ELSE TRUE
+	END AS device_password_required,
+	dn.name_of_device,
+	(
+		SELECT
+			co.timestamp_online :: TEXT
+		FROM
+			connection co
+		WHERE
+			co.device_id = de.device_id
+			AND co.is_pi = TRUE
+		ORDER BY
+			co.connection_id DESC
+		LIMIT
+			1
+	) AS timestamp_online,
+	(
+		SELECT
+			co.timestamp_offline :: TEXT
+		FROM
+			connection co
+		WHERE
+			co.device_id = de.device_id
+			AND co.is_pi = TRUE
+		ORDER BY
+			co.connection_id DESC
+		LIMIT
+			1
+	) AS timestamp_offline,
+	(
+		SELECT
+			ip.ip
+		FROM
+			connection co
+			LEFT JOIN ip_address ip USING(ip_id)
+		WHERE
+			co.device_id = de.device_id
+			AND co.is_pi = TRUE
+		ORDER BY
+			co.connection_id DESC
+		LIMIT
+			1
+	) AS ip,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = TRUE
+			AND DATE(hb.timestamp) = CURRENT_DATE
+			AND hb.is_counted = FALSE
+	) AS pi_bytes_day_in,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = TRUE
+			AND DATE(hb.timestamp) = CURRENT_DATE
+			AND hb.is_counted = TRUE
+	) AS pi_bytes_day_out,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = TRUE
+			AND extract(
+				month
+				FROM
+					hb.timestamp
+			) = extract(
+				month
+				FROM
+					CURRENT_DATE
+			)
+			AND extract(
+				year
+				FROM
+					hb.timestamp
+			) = extract(
+				year
+				FROM
+					CURRENT_DATE
+			)
+			AND hb.is_counted = FALSE
+	) AS pi_bytes_month_in,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = TRUE
+			AND extract(
+				month
+				FROM
+					hb.timestamp
+			) = extract (
+				month
+				FROM
+					CURRENT_DATE
+			)
+			AND extract(
+				year
+				FROM
+					hb.timestamp
+			) = extract (
+				year
+				FROM
+					CURRENT_DATE
+			)
+			AND hb.is_counted = TRUE
+	) AS pi_bytes_month_out,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = TRUE
+			AND hb.is_counted = FALSE
+	) AS pi_bytes_total_in,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = TRUE
+			AND hb.is_counted = TRUE
+	) AS pi_bytes_total_out,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = FALSE
+			AND DATE(hb.timestamp) = CURRENT_DATE
+			AND hb.is_counted = FALSE
+	) AS client_bytes_day_in,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = FALSE
+			AND DATE(hb.timestamp) = CURRENT_DATE
+			AND hb.is_counted = TRUE
+	) AS client_bytes_day_out,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = FALSE
+			AND extract(
+				month
+				FROM
+					hb.timestamp
+			) = extract (
+				month
+				FROM
+					CURRENT_DATE
+			)
+			AND extract(
+				year
+				FROM
+					hb.timestamp
+			) = extract (
+				year
+				FROM
+					CURRENT_DATE
+			)
+			AND hb.is_counted = FALSE
+	) AS client_bytes_month_in,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = FALSE
+			AND extract(
+				month
+				FROM
+					hb.timestamp
+			) = extract (
+				month
+				FROM
+					CURRENT_DATE
+			)
+			AND extract(
+				year
+				FROM
+					hb.timestamp
+			) = extract (
+				year
+				FROM
+					CURRENT_DATE
+			)
+			AND hb.is_counted = TRUE
+	) AS client_bytes_month_out,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = FALSE
+			AND hb.is_counted = FALSE
+	) AS client_bytes_total_in,
+	(
+		SELECT
+			CASE
+				WHEN SUM(size_in_bytes) IS NULL THEN 0 :: BIGINT
+				ELSE SUM(size_in_bytes) :: BIGINT
+			END
+		FROM
+			hourly_bandwidth hb
+		WHERE
+			hb.device_id = de.device_id
+			AND hb.is_pi = FALSE
+			AND hb.is_counted = TRUE
+	) AS client_bytes_total_out,
+	(
+		SELECT
+			co.timestamp_online :: TEXT
+		FROM
+			connection co
+		WHERE
+			co.device_id = de.device_id
+			AND co.is_pi = TRUE
+		ORDER BY
+			co.connection_id DESC
+		LIMIT
+			1
+	) AS timestamp_online,
+	(
+		SELECT
+			co.timestamp_offline :: TEXT
+		FROM
+			connection co
+		WHERE
+			co.device_id = de.device_id
+			AND co.is_pi = TRUE
+		ORDER BY
+			co.connection_id DESC
+		LIMIT
+			1
+	) AS timestamp_offline
+FROM
+	device de
+	LEFT JOIN api_key ap USING(api_key_id)
+	LEFT JOIN device_name dn USING(device_name_id)
 WHERE
-    de.active = TRUE
-AND
-    de.registered_user_id = $1";
+	de.active = TRUE
+	AND de.registered_user_id = $1";

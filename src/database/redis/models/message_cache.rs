@@ -8,11 +8,14 @@ use serde::{Deserialize, Serialize};
 use tracing::error;
 
 use crate::{
-    api_error::ApiError, database::{
+    api_error::ApiError,
+    database::{
         device::ModelDeviceId,
         new_types::DeviceId,
         redis::{RedisKey, HASH_FIELD},
-    }, hmap, redis_hash_to_struct, user_io::ws_message::wm
+    },
+    hmap, redis_hash_to_struct,
+    user_io::ws_message::wm,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -39,10 +42,7 @@ impl MessageCache {
         tokio::spawn(async move {
             if let Ok(data) = serde_json::to_string(&spawn_self) {
                 if let Err(e) = spawn_redis
-                    .hset::<(), String, HashMap<&str, String>>(
-                        Self::key(device_id),
-                        hmap!(data),
-                    )
+                    .hset::<(), String, HashMap<&str, String>>(Self::key(device_id), hmap!(data))
                     .await
                 {
                     error!("{e:?}");

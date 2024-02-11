@@ -8,12 +8,14 @@ use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError, database::{
+    api_error::ApiError,
+    database::{
         admin::AdminSession,
         new_types::UserId,
         redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
-    }, hmap, redis_hash_to_struct
+    },
+    hmap, redis_hash_to_struct,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

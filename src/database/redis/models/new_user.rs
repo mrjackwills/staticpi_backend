@@ -6,14 +6,16 @@ use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError, argon::ArgonHash, database::{
+    api_error::ApiError,
+    argon::ArgonHash,
+    database::{
         email_address::ModelEmailAddress,
         ip_user_agent::ModelUserAgentIp,
         new_types::{EmailAddressId, IpId, UserAgentId},
         redis::{RedisKey, HASH_FIELD},
-    }, hmap, redis_hash_to_struct
+    },
+    hmap, redis_hash_to_struct,
 };
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RedisNewUser {
@@ -64,13 +66,9 @@ impl RedisNewUser {
 
         let new_user_as_string = serde_json::to_string(&self)?;
 
-        redis
-            .hset(&key_email, hmap!(ulid.to_string()))
-            .await?;
+        redis.hset(&key_email, hmap!(ulid.to_string())).await?;
         redis.expire(key_email, Self::TTL_AS_SEC.into()).await?;
-        redis
-            .hset(&key_secret, hmap!(new_user_as_string))
-            .await?;
+        redis.hset(&key_secret, hmap!(new_user_as_string)).await?;
         Ok(redis.expire(key_secret, Self::TTL_AS_SEC.into()).await?)
     }
 

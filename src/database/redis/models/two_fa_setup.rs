@@ -5,11 +5,13 @@ use fred::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api_error::ApiError, database::{
+    api_error::ApiError,
+    database::{
         new_types::UserId,
         redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
-    }, hmap, redis_hash_to_struct
+    },
+    hmap, redis_hash_to_struct,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

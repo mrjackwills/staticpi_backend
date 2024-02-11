@@ -88,56 +88,65 @@ impl ModelUser {
     pub async fn admin_get_all(postgres: &PgPool) -> Result<Vec<Self>, ApiError> {
         let query = r"
 SELECT
-    ru.registered_user_id, ru.active, ru.password_hash, ru.full_name, ru.timestamp,
-    ea.email, ea.email_address_id,
-    COALESCE(la.login_attempt_number, 0) AS login_attempt_number,
-    tfs.two_fa_secret,
-    COALESCE(tfs.always_required, false) AS two_fa_always_required,
-    (
-        SELECT
-        COALESCE(COUNT(*),0)
-        FROM
-        two_fa_backup
-        WHERE
-        registered_user_id = ru.registered_user_id
-    ) AS two_fa_backup_count,
-    ul.*
+	ru.registered_user_id,
+	ru.active,
+	ru.password_hash,
+	ru.full_name,
+	ru.timestamp,
+	ea.email,
+	ea.email_address_id,
+	COALESCE(la.login_attempt_number, 0) AS login_attempt_number,
+	tfs.two_fa_secret,
+	COALESCE(tfs.always_required, false) AS two_fa_always_required,
+	(
+		SELECT
+			COALESCE(COUNT(*), 0)
+		FROM
+			two_fa_backup
+		WHERE
+			registered_user_id = ru.registered_user_id
+	) AS two_fa_backup_count,
+	ul.*
 FROM
-    registered_user ru
-LEFT JOIN two_fa_secret tfs USING(registered_user_id)
-LEFT JOIN login_attempt la USING(registered_user_id)
-LEFT JOIN user_level ul USING(user_level_id)
-LEFT JOIN email_address ea USING(email_address_id)";
+	registered_user ru
+	LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+	LEFT JOIN login_attempt la USING(registered_user_id)
+	LEFT JOIN user_level ul USING(user_level_id)
+	LEFT JOIN email_address ea USING(email_address_id)";
         Ok(sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?)
     }
 
     pub async fn get(postgres: &PgPool, email: &str) -> Result<Option<Self>, ApiError> {
         let query = r"
 SELECT
-    ru.registered_user_id, ru.active, ru.password_hash, ru.full_name, ru.timestamp,
-    ea.email, ea.email_address_id,
-    COALESCE(la.login_attempt_number, 0) AS login_attempt_number,
-    tfs.two_fa_secret,
-    COALESCE(tfs.always_required, false) AS two_fa_always_required,
-    (
-        SELECT
-        COALESCE(COUNT(*),0)
-        FROM
-        two_fa_backup
-        WHERE
-        registered_user_id = ru.registered_user_id
-    ) AS two_fa_backup_count,
-    ul.*
+	ru.registered_user_id,
+	ru.active,
+	ru.password_hash,
+	ru.full_name,
+	ru.timestamp,
+	ea.email,
+	ea.email_address_id,
+	COALESCE(la.login_attempt_number, 0) AS login_attempt_number,
+	tfs.two_fa_secret,
+	COALESCE(tfs.always_required, false) AS two_fa_always_required,
+	(
+		SELECT
+			COALESCE(COUNT(*), 0)
+		FROM
+			two_fa_backup
+		WHERE
+			registered_user_id = ru.registered_user_id
+	) AS two_fa_backup_count,
+	ul.*
 FROM
-    registered_user ru
-LEFT JOIN two_fa_secret tfs USING(registered_user_id)
-LEFT JOIN login_attempt la USING(registered_user_id)
-LEFT JOIN user_level ul USING(user_level_id)
-LEFT JOIN email_address ea USING(email_address_id)
+	registered_user ru
+	LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+	LEFT JOIN login_attempt la USING(registered_user_id)
+	LEFT JOIN user_level ul USING(user_level_id)
+	LEFT JOIN email_address ea USING(email_address_id)
 WHERE
-    ea.email = $1
-AND
-    active = true";
+	ea.email = $1
+	AND active = true";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(email.to_lowercase())
             .fetch_optional(postgres)
@@ -149,9 +158,17 @@ AND
 
         let query = r"
 INSERT INTO
-    registered_user(full_name, email_address_id, password_hash, ip_id, user_agent_id, active, user_level_id)
+	registered_user(
+		full_name,
+		email_address_id,
+		password_hash,
+		ip_id,
+		user_agent_id,
+		active,
+		user_level_id
+	)
 VALUES
-    ($1, $2, $3, $4, $5, $6, $7)";
+	($1, $2, $3, $4, $5, $6, $7)";
         sqlx::query(query)
             .bind(user.full_name.clone())
             .bind(user.email_address_id.get())
@@ -171,7 +188,13 @@ VALUES
         registered_user_id: UserId,
         password_hash: ArgonHash,
     ) -> Result<(), ApiError> {
-        let query = "UPDATE registered_user SET password_hash = $1 WHERE registered_user_id = $2";
+        let query = "
+UPDATE
+	registered_user
+SET
+	password_hash = $1
+WHERE
+	registered_user_id = $2";
         sqlx::query(query)
             .bind(password_hash.to_string())
             .bind(registered_user_id.get())
@@ -185,7 +208,13 @@ VALUES
         registered_user_id: UserId,
         full_name: String,
     ) -> Result<(), ApiError> {
-        let query = "UPDATE registered_user SET full_name = $1 WHERE registered_user_id = $2";
+        let query = "
+UPDATE
+	registered_user
+SET
+	full_name = $1
+WHERE
+	registered_user_id = $2";
         sqlx::query(query)
             .bind(full_name)
             .bind(registered_user_id.get())
@@ -196,28 +225,60 @@ VALUES
 
     /// This is a hard delete, and also checks to see if any IP address, UserAgents, and DeviceNames can also be deleted
     /// take in admin user, and match user id?
+    #[allow(clippy::too_many_lines)]
     pub async fn delete(&self, postgres: &PgPool, redis: &RedisPool) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
 
-        let registered_user_query = "DELETE FROM registered_user WHERE registered_user_id = $1";
+        let registered_user_query = "
+DELETE FROM
+	registered_user
+WHERE
+	registered_user_id = $1";
         sqlx::query(registered_user_query)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
 
-        let email_log = "DELETE FROM email_log el WHERE el.email_address_id = (SELECT ru.email_address_id FROM registered_user ru WHERE ru.registered_user_id = $1)";
+        let email_log = "
+DELETE FROM
+	email_log el
+WHERE
+	el.email_address_id = (
+		SELECT
+			ru.email_address_id
+		FROM
+			registered_user ru
+		WHERE
+			ru.registered_user_id = $1
+	)";
         sqlx::query(email_log)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
 
-        let contact_messages = "DELETE FROM contact_message cm WHERE cm.email_address_id = (SELECT ru.email_address_id FROM registered_user ru WHERE ru.registered_user_id = $1) OR cm.registered_user_id  =$1";
+        let contact_messages = "
+DELETE FROM
+	contact_message cm
+WHERE
+	cm.email_address_id = (
+		SELECT
+			ru.email_address_id
+		FROM
+			registered_user ru
+		WHERE
+			ru.registered_user_id = $1
+	)
+	OR cm.registered_user_id = $1";
         sqlx::query(contact_messages)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
 
-        let email_address_query = "DELETE FROM email_address WHERE email_address_id = $1";
+        let email_address_query = "
+DELETE FROM
+	email_address
+WHERE
+	email_address_id = $1";
         sqlx::query(email_address_query)
             .bind(self.email_address_id.get())
             .execute(&mut *transaction)
@@ -227,39 +288,68 @@ VALUES
         ModelUserAgentIp::delete_useragent(&mut transaction, redis).await?;
 
         let device_name_query = "
-DELETE FROM device_name
-WHERE device_name_id
-IN (
-    SELECT device_name.device_name_id
-    FROM device_name
-    LEFT JOIN device USING(device_name_id)
-    WHERE device.device_name_id IS NULL
-);";
+DELETE FROM
+	device_name
+WHERE
+	device_name_id IN (
+		SELECT
+			device_name.device_name_id
+		FROM
+			device_name
+			LEFT JOIN device USING(device_name_id)
+		WHERE
+			device.device_name_id IS NULL
+	)";
         sqlx::query(device_name_query)
             .execute(&mut *transaction)
             .await?;
 
-        let user_audit_query = "DELETE FROM registered_user_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
+        let user_audit_query = "
+DELETE FROM
+	registered_user_audit
+WHERE
+	(old_values -> 'registered_user_id')::BIGINT = $1
+	OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(user_audit_query)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
-        let device_audit = "DELETE FROM device_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
+        let device_audit = "
+DELETE FROM
+	device_audit
+WHERE
+	(old_values -> 'registered_user_id')::BIGINT = $1
+	OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(device_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
-        let api_key_audit = "DELETE FROM api_key_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
+        let api_key_audit = "
+DELETE FROM
+	api_key_audit
+WHERE
+	(old_values -> 'registered_user_id')::BIGINT = $1
+	OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(api_key_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
-        let two_fa_secret_audit = "DELETE FROM two_fa_secret_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
+        let two_fa_secret_audit = "
+DELETE FROM
+	two_fa_secret_audit
+WHERE
+	(old_values -> 'registered_user_id')::BIGINT = $1
+	OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(two_fa_secret_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
             .await?;
-        let two_fa_backup_audit = "DELETE FROM two_fa_backup_audit WHERE (old_values -> 'registered_user_id')::BIGINT = $1 OR (new_values -> 'registered_user_id')::BIGINT = $1";
+        let two_fa_backup_audit = "
+DELETE FROM
+	two_fa_backup_audit
+WHERE
+	(old_values -> 'registered_user_id')::BIGINT = $1
+	OR (new_values -> 'registered_user_id')::BIGINT = $1";
         sqlx::query(two_fa_backup_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
@@ -273,29 +363,33 @@ IN (
     pub async fn admin_get(postgres: &PgPool, email: &str) -> Result<Option<Self>, ApiError> {
         let query = r"
 SELECT
-    ru.registered_user_id, ru.active, ru.password_hash, ru.full_name, ru.timestamp,
-    ea.email, ea.email_address_id,
-    COALESCE(la.login_attempt_number, 0) AS login_attempt_number,
-    tfs.two_fa_secret,
-    COALESCE(tfs.always_required, false) AS two_fa_always_required,
-    (
-        SELECT
-        COALESCE(COUNT(*),0)
-        FROM
-        two_fa_backup
-        WHERE
-        registered_user_id = ru.registered_user_id
-    ) AS two_fa_backup_count,
-    ul.*
+	ru.registered_user_id,
+	ru.active,
+	ru.password_hash,
+	ru.full_name,
+	ru.timestamp,
+	ea.email,
+	ea.email_address_id,
+	COALESCE(la.login_attempt_number, 0) AS login_attempt_number,
+	tfs.two_fa_secret,
+	COALESCE(tfs.always_required, false) AS two_fa_always_required,
+	(
+		SELECT
+			COALESCE(COUNT(*), 0)
+		FROM
+			two_fa_backup
+		WHERE
+			registered_user_id = ru.registered_user_id
+	) AS two_fa_backup_count,
+	ul.*
 FROM
-    registered_user ru
-
-LEFT JOIN two_fa_secret tfs USING(registered_user_id)
-LEFT JOIN login_attempt la USING(registered_user_id)
-LEFT JOIN email_address ea USING(email_address_id)
-LEFT JOIN user_level ul USING(user_level_id)
+	registered_user ru
+	LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+	LEFT JOIN login_attempt la USING(registered_user_id)
+	LEFT JOIN email_address ea USING(email_address_id)
+	LEFT JOIN user_level ul USING(user_level_id)
 WHERE
-    ea.email = $1";
+	ea.email = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(email.to_lowercase())
             .fetch_optional(postgres)
@@ -303,7 +397,13 @@ WHERE
     }
 
     pub async fn admin_toggle_active(&self, postgres: &PgPool) -> Result<(), ApiError> {
-        let query = "UPDATE registered_user SET active = NOT active WHERE registered_user_id = $1";
+        let query = "
+UPDATE
+	registered_user
+SET
+	active = NOT active
+WHERE
+	registered_user_id = $1";
         sqlx::query(query)
             .bind(self.registered_user_id.get())
             .execute(postgres)

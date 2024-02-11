@@ -33,17 +33,17 @@ VALUES
 		extract(
 			year
 			FROM
-			 (timestamp AT TIME ZONE 'UTC')
+				(timestamp AT TIME ZONE 'UTC')
 		),
 		extract(
 			month
 			FROM
-				 (timestamp AT TIME ZONE 'UTC')
+				(timestamp AT TIME ZONE 'UTC')
 		),
 		extract(
 			day
 			FROM
-			(timestamp AT TIME ZONE 'UTC')
+				(timestamp AT TIME ZONE 'UTC')
 		),
 		extract(
 			hour
@@ -54,9 +54,10 @@ VALUES
 		is_pi,
 		is_counted
 	) DO
-	UPDATE
+UPDATE
 SET
 	size_in_bytes = hourly_bandwidth.size_in_bytes + $2";
+
                     if let Some(e) = sqlx::query(query)
                         .bind(device_id.get())
                         .bind(size_in_bytes)

@@ -112,7 +112,7 @@ macro_rules! generic_id {
                 value.as_i64().map_or(
                     Err(RedisError::new(
                         fred::error::RedisErrorKind::Parse,
-                        "FromRedis",
+                        format!("FromRedis: {}", stringify!($struct_name)),
                     )),
                     |i| Ok(Self(i)),
                 )
@@ -153,27 +153,3 @@ generic_id!(UserId);
 generic_id!(UserLevelId);
 generic_id!(UserAgentId);
 generic_id!(IpId);
-
-// impl FromRedis for IpId {
-//     fn from_value(value: fred::prelude::RedisValue) -> Result<Self, fred::prelude::RedisError> {
-//         value.as_i64().map_or(
-//             Err(RedisError::new(
-//                 fred::error::RedisErrorKind::Parse,
-//                 "FromRedis IpId",
-//             )),
-//             |i| Ok(Self(i)),
-//         )
-//     }
-// }
-
-// impl FromRedisValue for UserAgentId {
-//     fn from_redis_value(v: &Value) -> RedisResult<Self> {
-//         string_to_struct::<Self>(v)
-//     }
-// }
-
-// impl FromRedisValue for IpId {
-//     fn from_redis_value(v: &Value) -> RedisResult<Self> {
-//         string_to_struct::<Self>(v)
-//     }
-// }
