@@ -16,6 +16,7 @@
 + authentication, [0d85b0963f193990c81203eb787a7b63f733668a]
 + authenticate backup codes, tests added, [b626222e24fe396ffca4e2b53c21b611768325fa]
 + Docker setup reduced, [50a078555de7fa8c14943f6d23451256d20ac818]
++ sql queries formatted, [1c6403f72bf7f10c963105c7ed3d0f02cdda8ebb]
 
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.10'>v0.0.10</a>
 ### 2024-01-29
