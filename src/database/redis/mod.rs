@@ -65,14 +65,12 @@ macro_rules! redis_hash_to_struct {
                         format!("FromRedis: {}", stringify!(struct_name)),
                     )),
                     |i| {
-                        if let Ok(x) = serde_json::from_str::<Self>(&i) {
-                            Ok(x)
-                        } else {
-                            Err(fred::error::RedisError::new(
+                        serde_json::from_str::<Self>(&i).map_err(|_| {
+                            fred::error::RedisError::new(
                                 fred::error::RedisErrorKind::Parse,
                                 "serde",
-                            ))
-                        }
+                            )
+                        })
                     },
                 )
             }

@@ -175,7 +175,8 @@ fn x_real_ip(headers: &HeaderMap) -> Option<IpAddr> {
 /// but if for some nothing works, return ipv4 255.255.255.255
 pub fn get_ip(headers: &HeaderMap, addr: ConnectInfo<SocketAddr>) -> IpAddr {
     x_forwarded_for(headers)
-        .or_else(|| x_real_ip(headers)).unwrap_or_else(||addr.0.ip())
+        .or_else(|| x_real_ip(headers))
+        .unwrap_or_else(|| addr.0.ip())
 }
 
 /// Check the current monthly bandwidth of user
