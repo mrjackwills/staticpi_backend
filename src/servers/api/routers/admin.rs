@@ -704,7 +704,7 @@ mod tests {
 
         // Assume the app has been alive for 1..10 seconds, in reality should be 1 or 2
         assert!((1..=10).contains(&result["uptime_app"].as_u64().unwrap()));
-        // Assume the comptuer has been on for longer than 15 seconds
+        // Assume the computer has been on for longer than 15 seconds
         assert!(result["uptime"].as_u64().unwrap() > 15);
 
         assert!(result["virt"].as_u64().unwrap() > result["rss"].as_u64().unwrap());
