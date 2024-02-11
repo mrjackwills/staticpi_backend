@@ -73,7 +73,9 @@ pub async fn check_password_token(
     postgres: &PgPool,
 ) -> Result<bool, ApiError> {
     let valid_password = verify_password(password, user.get_password_hash()).await?;
-
+	if !valid_password{
+		return Ok(false)
+	}
     if let Some(two_fa_secret) = &user.two_fa_secret {
         let valid_token = check_token(
             token,
