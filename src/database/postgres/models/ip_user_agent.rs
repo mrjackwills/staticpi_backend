@@ -13,9 +13,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::{
-    api_error::ApiError,
-    database::{gen_hashmap, redis::RedisKey, HASH_FIELD},
-    servers::{get_ip, get_user_agent_header, ApplicationState},
+    api_error::ApiError, database::{redis::RedisKey, HASH_FIELD}, hmap, servers::{get_ip, get_user_agent_header, ApplicationState}
 };
 
 use super::new_types::{IpId, UserAgentId};
@@ -136,9 +134,9 @@ RETURNING user_agent.user_agent_string AS user_agent";
         let ip_key = RedisKey::CacheIp(self.ip).to_string();
         let user_agent_key = RedisKey::CacheUseragent(&self.user_agent).to_string();
 
-        redis.hset(ip_key, gen_hashmap(self.ip_id.get())).await?;
+        redis.hset(ip_key, hmap!(self.ip_id.get())).await?;
         Ok(redis
-            .hset(user_agent_key, gen_hashmap(self.user_agent_id.get()))
+            .hset(user_agent_key, hmap!(self.user_agent_id.get()))
             .await?)
     }
 

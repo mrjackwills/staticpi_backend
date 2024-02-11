@@ -7,9 +7,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::{
-    api_error::ApiError,
-    database::{gen_hashmap, RedisKey, HASH_FIELD},
-    redis_hash_to_struct,
+    api_error::ApiError, database::{RedisKey, HASH_FIELD}, hmap, redis_hash_to_struct
 };
 
 use super::new_types::{DeviceId, UserId};
@@ -38,7 +36,7 @@ impl ModelMonthlyBandwidth {
     async fn insert_cache(&self, redis: &RedisPool) -> Result<(), ApiError> {
         let key = RedisKey::CacheMonthlyBandwidth(self.registered_user_id).to_string();
         redis
-            .hset(&key, gen_hashmap(serde_json::to_string(&self)?))
+            .hset(&key, hmap!(serde_json::to_string(&self)?))
             .await?;
 
         Ok(redis.expire(&key, 30).await?)

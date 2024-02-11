@@ -6,15 +6,11 @@ use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError,
-    connections::ConnectionType,
-    database::{
-        gen_hashmap,
+    api_error::ApiError, connections::ConnectionType, database::{
         ip_user_agent::ModelUserAgentIp,
         new_types::{DeviceId, IpId},
         redis::{RedisKey, HASH_FIELD},
-    },
-    redis_hash_to_struct,
+    }, hmap, redis_hash_to_struct
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -51,7 +47,7 @@ impl AccessToken {
     pub async fn insert(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
         let key = Self::key(ulid);
         redis
-            .hset(&key, gen_hashmap(serde_json::to_string(&self)?))
+            .hset(&key, hmap!(serde_json::to_string(&self)?))
             .await?;
         Ok(redis.expire(key, Self::TTL_AS_SEC.into()).await?)
     }

@@ -4,7 +4,7 @@ use crate::{api_error::ApiError, parse_env::AppEnv};
 use fred::{clients::RedisPool, interfaces::ClientLike, types::ReconnectPolicy};
 
 pub use models::*;
-use std::{collections::HashMap, fmt, net::IpAddr};
+use std::{fmt, net::IpAddr};
 use ulid::Ulid;
 
 use self::rate_limit::RateLimit;
@@ -80,15 +80,17 @@ macro_rules! redis_hash_to_struct {
     };
 }
 
-// macro?
-// Generate a hashmap with a fixed key
-pub fn gen_hashmap<'a, T: ToOwned>(x: T) -> HashMap<&'a str, T> {
-    HashMap::from([(HASH_FIELD, x)])
+// Generate a hashmap with a fixed key, used for redis hset
+#[macro_export]
+macro_rules! hmap {
+    ($x:expr) => {{
+        std::collections::HashMap::from([(HASH_FIELD, $x)])
+    }};
 }
+
 pub struct DbRedis;
 
 impl DbRedis {
-    /// Open up a redis connection, to be saved in an Arc<Mutex> in application state
     /// Get an async redis connection
     pub async fn get_pool(app_env: &AppEnv) -> Result<RedisPool, ApiError> {
         let redis_url = format!(

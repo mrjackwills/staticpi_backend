@@ -8,15 +8,12 @@ use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError,
-    database::{
+    api_error::ApiError, database::{
         admin::AdminSession,
-        gen_hashmap,
         new_types::UserId,
         redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
-    },
-    redis_hash_to_struct,
+    }, hmap, redis_hash_to_struct
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -84,7 +81,7 @@ impl RedisSession {
 
         let ttl = ttl.whole_seconds();
 
-        redis.hset(&key_session, gen_hashmap(session)).await?;
+        redis.hset(&key_session, hmap!(session)).await?;
         redis.sadd(&key_session_set, &key_session).await?;
         // This won't work as expected, should set TTL to the max at all times
         // redis.expire(&key_session_set, ttl).await?;

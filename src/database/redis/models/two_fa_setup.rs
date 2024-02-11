@@ -5,14 +5,11 @@ use fred::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api_error::ApiError,
-    database::{
-        gen_hashmap,
+    api_error::ApiError, database::{
         new_types::UserId,
         redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
-    },
-    redis_hash_to_struct,
+    }, hmap, redis_hash_to_struct
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -38,7 +35,7 @@ impl RedisTwoFASetup {
     pub async fn insert(&self, redis: &RedisPool, user: &ModelUser) -> Result<&Self, ApiError> {
         let key = Self::key(user.registered_user_id);
         let session = serde_json::to_string(&self)?;
-        redis.hset(&key, gen_hashmap(session)).await?;
+        redis.hset(&key, hmap!(session)).await?;
         redis.expire(&key, 120).await?;
         Ok(self)
     }
