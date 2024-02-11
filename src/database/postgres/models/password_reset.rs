@@ -33,9 +33,14 @@ impl ModelPasswordReset {
     ) -> Result<(), sqlx::Error> {
         let query = r"
 INSERT INTO
-    password_reset (registered_user_id, reset_string, ip_id, user_agent_id)
+	password_reset (
+		registered_user_id,
+		reset_string,
+		ip_id,
+		user_agent_id
+	)
 VALUES
-    ($1, $2, $3, $4)";
+	($1, $2, $3, $4)";
         sqlx::query(query)
             .bind(registered_user_id.get())
             .bind(ulid.to_string())
@@ -48,7 +53,13 @@ VALUES
 
     /// Set the password reset as consumed, so that it can't be used again
     pub async fn consume(db: &PgPool, password_reset_id: PasswordResetId) -> Result<(), ApiError> {
-        let query = "UPDATE password_reset SET consumed = 'true' WHERE password_reset_id = $1";
+        let query = "
+UPDATE
+	password_reset
+SET
+	consumed = 'true'
+WHERE
+	password_reset_id = $1";
         sqlx::query(query)
             .bind(password_reset_id.get())
             .execute(db)
@@ -60,34 +71,32 @@ VALUES
     pub async fn get_by_email(db: &PgPool, email: &str) -> Result<Option<Self>, ApiError> {
         let query = r"
 SELECT
-    ru.registered_user_id, ru.full_name,
-    ea.email, ea.email_address_id,
-    pr.timestamp, pr.password_reset_id, pr.reset_string,
-    tfs.two_fa_secret,
-    (
-        SELECT
-            COALESCE(COUNT(*),0)
-        FROM
-            two_fa_backup
-        WHERE
-            registered_user_id = ru.registered_user_id
-    ) AS two_fa_backup_count
+	ru.registered_user_id,
+	ru.full_name,
+	ea.email,
+	ea.email_address_id,
+	pr.timestamp,
+	pr.password_reset_id,
+	pr.reset_string,
+	tfs.two_fa_secret,
+	(
+		SELECT
+			COALESCE(COUNT(*), 0)
+		FROM
+			two_fa_backup
+		WHERE
+			registered_user_id = ru.registered_user_id
+	) AS two_fa_backup_count
 FROM
-    password_reset pr
-LEFT JOIN registered_user ru USING(registered_user_id)
-LEFT JOIN two_fa_secret tfs USING(registered_user_id)
-LEFT JOIN
-    email_address ea
-ON
-    ea.email_address_id = ru.email_address_id
+	password_reset pr
+	LEFT JOIN registered_user ru USING(registered_user_id)
+	LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+	LEFT JOIN email_address ea ON ea.email_address_id = ru.email_address_id
 WHERE
-    ea.email = $1
-AND
-    pr.timestamp >= NOW () - INTERVAL '1 hour'
-AND
-    ru.active = true
-AND
-    pr.consumed IS NOT TRUE";
+	ea.email = $1
+	AND pr.timestamp >= NOW () - INTERVAL '1 hour'
+	AND ru.active = true
+	AND pr.consumed IS NOT TRUE";
 
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(email.to_lowercase())
@@ -99,34 +108,32 @@ AND
     pub async fn get_by_ulid(db: &PgPool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
         let query = r"
 SELECT
-    ru.registered_user_id, ru.full_name,
-    ea.email, ea.email_address_id,
-    pr.timestamp, pr.password_reset_id, pr.reset_string,
-    tfs.two_fa_secret,
-    (
-        SELECT
-            COALESCE(COUNT(*),0)
-        FROM
-            two_fa_backup
-        WHERE
-            registered_user_id = ru.registered_user_id
-    ) AS two_fa_backup_count
+	ru.registered_user_id,
+	ru.full_name,
+	ea.email,
+	ea.email_address_id,
+	pr.timestamp,
+	pr.password_reset_id,
+	pr.reset_string,
+	tfs.two_fa_secret,
+	(
+		SELECT
+			COALESCE(COUNT(*), 0)
+		FROM
+			two_fa_backup
+		WHERE
+			registered_user_id = ru.registered_user_id
+	) AS two_fa_backup_count
 FROM
-    password_reset pr
-LEFT JOIN registered_user ru USING(registered_user_id)
-LEFT JOIN two_fa_secret tfs USING(registered_user_id)
-LEFT JOIN
-    email_address ea
-ON
-    ea.email_address_id = ru.email_address_id
+	password_reset pr
+	LEFT JOIN registered_user ru USING(registered_user_id)
+	LEFT JOIN two_fa_secret tfs USING(registered_user_id)
+	LEFT JOIN email_address ea ON ea.email_address_id = ru.email_address_id
 WHERE
-    pr.reset_string = $1
-AND
-    ru.active = true
-AND
-    pr.timestamp >= NOW () - INTERVAL '1 hour'
-AND
-    pr.consumed IS NOT TRUE";
+	pr.reset_string = $1
+	AND ru.active = true
+	AND pr.timestamp >= NOW () - INTERVAL '1 hour'
+	AND pr.consumed IS NOT TRUE";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(ulid.to_string())
             .fetch_optional(db)

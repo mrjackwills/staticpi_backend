@@ -18,7 +18,13 @@ impl ModelLogin {
         postgres: &PgPool,
         registered_user_id: UserId,
     ) -> Result<Option<Self>, ApiError> {
-        let query = "SELECT * FROM login_attempt WHERE registered_user_id = $1";
+        let query = "
+SELECT
+	*
+FROM
+	login_attempt
+WHERE
+	registered_user_id = $1";
         Ok(sqlx::query_as::<_, Self>(query)
             .bind(registered_user_id.get())
             .fetch_optional(postgres)
@@ -26,8 +32,13 @@ impl ModelLogin {
     }
 
     async fn reset(postgres: &PgPool, registered_user_id: UserId) -> Result<(), ApiError> {
-        let query =
-            "UPDATE login_attempt SET login_attempt_number = 0 WHERE registered_user_id = $1";
+        let query = "
+UPDATE
+	login_attempt
+SET
+	login_attempt_number = 0
+WHERE
+	registered_user_id = $1";
         sqlx::query(query)
             .bind(registered_user_id.get())
             .execute(postgres)
@@ -38,19 +49,19 @@ impl ModelLogin {
     pub async fn admin_delete_attempt(postgres: &PgPool, email: String) -> Result<(), ApiError> {
         let query = r"
 UPDATE
-    login_attempt
+	login_attempt
 SET
-    login_attempt_number = 0
+	login_attempt_number = 0
 WHERE
-    registered_user_id = (
-    SELECT
-        registered_user_id
-    FROM
-        registered_user
-    LEFT JOIN email_address USING(email_address_id)
-    WHERE
-        email_address.email = $1
-    )";
+	registered_user_id = (
+		SELECT
+			registered_user_id
+		FROM
+			registered_user
+			LEFT JOIN email_address USING(email_address_id)
+		WHERE
+			email_address.email = $1
+	)";
         sqlx::query(query).bind(email).execute(postgres).await?;
         Ok(())
     }
@@ -82,10 +93,15 @@ DO UPDATE
     ) -> Result<(), ApiError> {
         let query = r"
 INSERT INTO
-    login_history(ip_id, success, session_name, user_agent_id, registered_user_id)
+	login_history(
+		ip_id,
+		success,
+		session_name,
+		user_agent_id,
+		registered_user_id
+	)
 VALUES
-    ($1, $2, $3, $4, $5)
-RETURNING login_history_id";
+	($1, $2, $3, $4, $5) RETURNING login_history_id";
 
         sqlx::query(query)
             .bind(useragent_ip.ip_id.get())

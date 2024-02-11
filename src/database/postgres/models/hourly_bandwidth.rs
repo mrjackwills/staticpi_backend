@@ -1,8 +1,8 @@
 use super::{monthly_bandwidth::ModelMonthlyBandwidth, new_types::DeviceId};
-use crate::{connections::ConnectionType, servers::AMRedis};
+use crate::connections::ConnectionType;
 
+use fred::clients::RedisPool;
 use sqlx::PgPool;
-use std::sync::Arc;
 use tracing::error;
 
 pub struct ModelHourlyBandwidth;
@@ -18,30 +18,46 @@ impl ModelHourlyBandwidth {
         is_counted: bool,
         msg_size: usize,
         postgres: &PgPool,
-        redis: &AMRedis,
+        redis: &RedisPool,
     ) {
         if msg_size > 0 {
             let spawn_postgres = postgres.clone();
-            let spawn_redis = Arc::clone(redis);
+            let redis = redis.clone();
             if let Ok(size_in_bytes) = i64::try_from(msg_size) {
                 tokio::spawn(async move {
                     let query = r"
-INSERT INTO hourly_bandwidth
-    (device_id, size_in_bytes, is_pi, is_counted)
+INSERT INTO
+	hourly_bandwidth (device_id, size_in_bytes, is_pi, is_counted)
 VALUES
-    ($1, $2, $3, $4)
-ON CONFLICT (
-    extract(year FROM (timestamp AT TIME ZONE 'UTC')),
-    extract(month FROM (timestamp AT TIME ZONE 'UTC')),
-    extract(day FROM (timestamp AT TIME ZONE 'UTC')),
-    extract(hour FROM (timestamp AT TIME ZONE 'UTC')),
-    device_id,
-    is_pi,
-    is_counted
-)
-DO UPDATE
+	($1, $2, $3, $4) ON CONFLICT (
+		extract(
+			year
+			FROM
+				(timestamp AT TIME ZONE 'UTC')
+		),
+		extract(
+			month
+			FROM
+				(timestamp AT TIME ZONE 'UTC')
+		),
+		extract(
+			day
+			FROM
+				(timestamp AT TIME ZONE 'UTC')
+		),
+		extract(
+			hour
+			FROM
+				(timestamp AT TIME ZONE 'UTC')
+		),
+		device_id,
+		is_pi,
+		is_counted
+	) DO
+UPDATE
 SET
-    size_in_bytes = hourly_bandwidth.size_in_bytes + $2";
+	size_in_bytes = hourly_bandwidth.size_in_bytes + $2";
+
                     if let Some(e) = sqlx::query(query)
                         .bind(device_id.get())
                         .bind(size_in_bytes)
@@ -56,7 +72,7 @@ SET
                     }
                     if let Some(e) = ModelMonthlyBandwidth::force_update_cache(
                         &spawn_postgres,
-                        &spawn_redis,
+                        &redis,
                         device_id,
                     )
                     .await

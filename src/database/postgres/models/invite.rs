@@ -23,9 +23,15 @@ impl ModelInvite {
         // TODO if user.user_level !== admin, error?
         let query = "
 INSERT INTO
-    invite_code (registered_user_id, invite, count, ip_id, user_agent_id)
+	invite_code (
+		registered_user_id,
+		invite,
+		count,
+		ip_id,
+		user_agent_id
+	)
 VALUES
-    ($1, $2, $3, $4, $5)";
+	($1, $2, $3, $4, $5)";
         sqlx::query(query)
             .bind(user.registered_user_id.get())
             .bind(invite)
@@ -39,13 +45,21 @@ VALUES
 
     /// Should check that the executor is an admin user?
     pub async fn get_all(postgres: &PgPool) -> Result<Vec<Self>, ApiError> {
-        let query = "SELECT invite, count, invite_code_id FROM invite_code";
+        let query = "
+SELECT
+	invite, count, invite_code_id
+FROM
+	invite_code";
         Ok(sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?)
     }
 
     /// Should check that the executor is an admin user?
     pub async fn delete(postgres: &PgPool, invite: String) -> Result<(), ApiError> {
-        let query = "DELETE FROM invite_code WHERE invite = $1";
+        let query = "
+DELETE FROM
+	invite_code
+WHERE
+	invite = $1";
         sqlx::query(query).bind(invite).execute(postgres).await?;
         Ok(())
     }
@@ -54,15 +68,29 @@ VALUES
     /// make rename it consume?
     pub async fn valid(postgres: &PgPool, invite: &str) -> Result<bool, ApiError> {
         let mut transaction = postgres.begin().await?;
-        let query =
-            "SELECT invite_code_id, invite, count FROM invite_code WHERE invite = $1 AND count > 0";
+        let query = "
+SELECT
+	invite_code_id,
+	invite,
+	count
+FROM
+	invite_code
+WHERE
+	invite = $1
+	AND count > 0";
 
         if let Some(invite) = sqlx::query_as::<_, Self>(query)
             .bind(invite)
             .fetch_optional(&mut *transaction)
             .await?
         {
-            let query = "UPDATE invite_code SET count = count - 1 WHERE invite_code_id = $1";
+            let query = "
+UPDATE
+	invite_code
+SET
+	count = count - 1
+WHERE
+	invite_code_id = $1";
             sqlx::query(query)
                 .bind(invite.invite_code_id.get())
                 .execute(&mut *transaction)

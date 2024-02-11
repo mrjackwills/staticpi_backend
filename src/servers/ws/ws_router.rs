@@ -10,6 +10,7 @@ use axum::{
     routing::get,
     Router,
 };
+use fred::clients::RedisPool;
 use futures::{StreamExt, TryStreamExt};
 
 use sqlx::PgPool;
@@ -31,7 +32,7 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{check_monthly_bandwidth, AMRedis, ApiRouter, ApplicationState},
+    servers::{check_monthly_bandwidth, ApiRouter, ApplicationState},
     user_io::{
         incoming_json::ij,
         outgoing_json::oj,
@@ -66,7 +67,7 @@ pub struct HandlerData<'a> {
     pub limiter: &'a RateLimit,
     pub msg_size: usize,
     pub postgres: &'a PgPool,
-    pub redis: &'a AMRedis,
+    pub redis: &'a RedisPool,
     pub ulid: Ulid,
 }
 impl<'a> HandlerData<'a> {
@@ -159,16 +160,15 @@ impl WsRouter {
     /// If structured data, return error to sender
     async fn valid_rate_limit(input: &HandlerData<'_>, msg: &Message) -> Result<(), ()> {
         if !Self::rate_limit_ok(input, msg).await {
-            let mut redis = input.redis.lock().await;
-            if input.limiter.exceeded(&mut redis).await.unwrap_or(true) {
+            // let mut redis = input.redis;
+            if input.limiter.exceeded(input.redis).await.unwrap_or(true) {
                 Self::handler_close(input).await;
             }
 
             if input.device.structured_data {
-                let ttl = input.limiter.ttl(&mut redis).await.unwrap_or(60);
+                let ttl = input.limiter.ttl(input.redis).await.unwrap_or(60);
                 Self::send_self(input, wm::Error::RateLimit(ttl)).await;
             }
-            drop(redis);
             return Err(());
         }
         Ok(())
@@ -282,7 +282,8 @@ impl WsRouter {
                 Ok(body) => {
                     if let Some(cache) = body.cache {
                         if cache {
-                            MessageCache::new(&body).insert(input.redis, input.device.device_id);
+                            MessageCache::new(&body)
+                                .insert(&input.redis.clone(), input.device.device_id);
                         // Don't like this syntax?
                         } else if let Err(e) =
                             MessageCache::delete(input.redis, input.device.device_id).await
@@ -482,12 +483,14 @@ mod tests {
             user_level::UserLevel, RedisKey,
         },
         helpers::gen_random_hex,
-        servers::test_setup::{start_servers, token_base_url, ws_base_url, Response, TestSetup},
+        servers::test_setup::{
+            get_keys, start_servers, token_base_url, ws_base_url, Response, TestSetup,
+        },
         sleep,
         user_io::incoming_json::ij::DevicePost,
     };
+    use fred::interfaces::{HashesInterface, KeysInterface};
     use futures::{SinkExt, StreamExt};
-    use redis::AsyncCommands;
     use reqwest::{StatusCode, Url};
     use serde_json::Value;
     use std::collections::HashMap;
@@ -548,9 +551,7 @@ mod tests {
         let ratelimit_key = "ratelimit::ip::127.0.0.1";
         let ttl = test_setup
             .redis
-            .lock()
-            .await
-            .ttl::<&str, usize>(ratelimit_key)
+            .ttl::<usize, &str>(ratelimit_key)
             .await
             .unwrap();
         assert_eq!(ttl, 60);
@@ -567,9 +568,7 @@ mod tests {
 
         test_setup
             .redis
-            .lock()
-            .await
-            .set::<&str, i64, ()>(ratelimit_key, 90)
+            .set::<(), &str, i64>(ratelimit_key, 90, None, None, false)
             .await
             .unwrap();
 
@@ -582,9 +581,7 @@ mod tests {
 
         let ttl = test_setup
             .redis
-            .lock()
-            .await
-            .ttl::<&str, usize>(ratelimit_key)
+            .ttl::<usize, &str>(ratelimit_key)
             .await
             .unwrap();
 
@@ -594,9 +591,7 @@ mod tests {
         assert!(connect_async(&url).await.is_err());
         let ttl = test_setup
             .redis
-            .lock()
-            .await
-            .ttl::<&str, usize>(ratelimit_key)
+            .ttl::<usize, &str>(ratelimit_key)
             .await
             .unwrap();
         assert_eq!(ttl, 300);
@@ -623,8 +618,6 @@ mod tests {
 
         let access_token: Option<AccessToken> = test_setup
             .redis
-            .lock()
-            .await
             .hget(RedisKey::AccessToken(&ulid).to_string(), "data")
             .await
             .unwrap();
@@ -635,8 +628,6 @@ mod tests {
 
         let ttl: usize = test_setup
             .redis
-            .lock()
-            .await
             .ttl(RedisKey::AccessToken(&ulid).to_string())
             .await
             .unwrap();
@@ -984,7 +975,7 @@ mod tests {
         assert_eq!(result, &msg_text);
 
         let key = format!("ratelimit::ws_free::{}", test_setup.get_user_id().get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
 
         // have to sleep as bandwidth inserted on own thread
@@ -1028,7 +1019,7 @@ mod tests {
         assert_eq!(result, &msg_text);
 
         let key = format!("ratelimit::ws_free::{}", test_setup.get_user_id().get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
 
         // Need to wait as bandwidth inserted on own thread
@@ -1074,7 +1065,7 @@ mod tests {
         assert_eq!(result, &msg_text);
 
         let key = format!("ratelimit::ws_pro::{}", device.device_id.get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
 
         // have to sleep as bandwidth inserted on own thread
@@ -1120,7 +1111,7 @@ mod tests {
         assert_eq!(result, &msg_text);
 
         let key = format!("ratelimit::ws_pro::{}", device.device_id.get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
 
         // Need to wait as bandwidth inserted on own thread
@@ -1583,20 +1574,12 @@ mod tests {
 
         // Sleep as inserted on own thread
         sleep!();
-        let message_cache: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("cache::message::*")
-            .await
-            .unwrap();
+        let message_cache = get_keys(&test_setup.redis, "cache::message::*").await;
 
         assert_eq!(message_cache.len(), 1);
 
         let cache: String = test_setup
             .redis
-            .lock()
-            .await
             .hget(&message_cache[0], "data")
             .await
             .unwrap();
@@ -1669,24 +1652,18 @@ mod tests {
         };
 
         let key = format!("ratelimit::ws_free::{}", test_setup.get_user_id().get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 16);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup
-            .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&key)
-            .await
-            .unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
     }
 
@@ -1731,24 +1708,18 @@ mod tests {
         };
 
         let key = format!("ratelimit::ws_free::{}", test_setup.get_user_id().get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 16);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup
-            .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&key)
-            .await
-            .unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
     }
 
@@ -1978,24 +1949,18 @@ mod tests {
         };
 
         let key = format!("ratelimit::ws_pro::{}", device.device_id.get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 301);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup
-            .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&key)
-            .await
-            .unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
     }
 
@@ -2042,24 +2007,18 @@ mod tests {
         };
 
         let key = format!("ratelimit::ws_pro::{}", device.device_id.get());
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 301);
 
         // Delete rate limit, and assert a message can be sent/received again!
-        test_setup
-            .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&key)
-            .await
-            .unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
-        let rate_limit: usize = test_setup.redis.lock().await.get(&key).await.unwrap();
+        let rate_limit: usize = test_setup.redis.get(&key).await.unwrap();
         assert_eq!(rate_limit, 1);
     }
 
@@ -2102,13 +2061,7 @@ mod tests {
             "cache::monthly_bandwidth::{}",
             user.registered_user_id.get()
         );
-        test_setup
-            .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&key)
-            .await
-            .unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
 
         // This will now be from postgres
         let bandwidth = ModelMonthlyBandwidth::get(
@@ -2123,13 +2076,7 @@ mod tests {
         assert_eq!(bandwidth.size_in_bytes, 12 * 10);
 
         // Should also now be in redis
-        let model: ModelMonthlyBandwidth = test_setup
-            .redis
-            .lock()
-            .await
-            .hget(&key, "data")
-            .await
-            .unwrap();
+        let model: ModelMonthlyBandwidth = test_setup.redis.hget(&key, "data").await.unwrap();
         assert_eq!(model.size_in_bytes, 12 * 10);
     }
 
@@ -2168,13 +2115,7 @@ mod tests {
             "cache::monthly_bandwidth::{}",
             user.registered_user_id.get()
         );
-        test_setup
-            .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&key)
-            .await
-            .unwrap();
+        test_setup.redis.del::<(), &str>(&key).await.unwrap();
 
         // This will now be from postgres
         let bandwidth = ModelMonthlyBandwidth::get(
@@ -2189,13 +2130,7 @@ mod tests {
         assert_eq!(bandwidth.size_in_bytes, 12 * 10);
 
         // Should also now be in redis
-        let model: ModelMonthlyBandwidth = test_setup
-            .redis
-            .lock()
-            .await
-            .hget(&key, "data")
-            .await
-            .unwrap();
+        let model: ModelMonthlyBandwidth = test_setup.redis.hget(&key, "data").await.unwrap();
         assert_eq!(model.size_in_bytes, 12 * 10);
     }
 

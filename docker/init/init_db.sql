@@ -64,7 +64,7 @@ INSERT INTO
 		user_level_name
 	)
 VALUES
-(
+	(
 		false,
 		1,
 		10 * 1000,
@@ -87,7 +87,7 @@ INSERT INTO
 		user_level_name
 	)
 VALUES
-(
+	(
 		true,
 		20,
 		5 * 1000 * 1000,
@@ -110,7 +110,7 @@ INSERT INTO
 		user_level_name
 	)
 VALUES
-(
+	(
 		true,
 		20,
 		10 * 1000 * 1000,

@@ -18,7 +18,8 @@ use axum::{
     Router,
 };
 use axum_extra::extract::{cookie::Key, PrivateCookieJar};
-use redis::aio::Connection;
+
+use fred::clients::RedisPool;
 use sqlx::PgPool;
 use std::{
     fmt,
@@ -35,8 +36,6 @@ pub mod api;
 pub mod token;
 pub mod ws;
 
-pub type AMRedis = Arc<Mutex<Connection>>;
-
 pub trait ApiRouter {
     fn create_router(state: &ApplicationState) -> Router<ApplicationState>;
 }
@@ -45,7 +44,7 @@ pub struct ServeData {
     pub app_env: AppEnv,
     pub connections: AMConnections,
     pub postgres: PgPool,
-    pub redis: AMRedis,
+    pub redis: RedisPool,
     pub server_name: ServerName,
 }
 
@@ -59,9 +58,7 @@ impl ServeData {
             app_env: app_env.clone(),
             connections: Arc::clone(connections),
             postgres: database::db_postgres::db_pool(app_env).await?,
-            redis: Arc::new(Mutex::new(
-                database::DbRedis::get_connection(app_env).await?,
-            )),
+            redis: database::DbRedis::get_pool(app_env).await?,
             server_name,
         })
     }
@@ -100,6 +97,7 @@ impl ServerName {
 #[derive(Clone)]
 pub struct ApplicationState(Arc<InnerState>);
 
+// impl derfer mut
 // deref so you can still access the inner fields easily
 impl Deref for ApplicationState {
     type Target = InnerState;
@@ -121,7 +119,7 @@ pub struct InnerState {
     pub domain: String,
     pub email_env: EmailerEnv,
     pub postgres: PgPool,
-    pub redis: AMRedis,
+    pub redis: RedisPool,
     pub run_mode: RunMode,
     pub start_time: SystemTime,
     cookie_key: Key,
@@ -178,14 +176,14 @@ fn x_real_ip(headers: &HeaderMap) -> Option<IpAddr> {
 pub fn get_ip(headers: &HeaderMap, addr: ConnectInfo<SocketAddr>) -> IpAddr {
     x_forwarded_for(headers)
         .or_else(|| x_real_ip(headers))
-        .map_or(addr.0.ip(), |ip_addr| ip_addr)
+        .unwrap_or_else(|| addr.0.ip())
 }
 
 /// Check the current monthly bandwidth of user
 /// Should take into account the incoming message size?
 async fn check_monthly_bandwidth(
     postgres: &PgPool,
-    redis: &AMRedis,
+    redis: &RedisPool,
     device: &ModelWsDevice,
 ) -> Result<(), ApiError> {
     match ModelMonthlyBandwidth::get(postgres, redis, device.registered_user_id).await {
@@ -255,7 +253,6 @@ async fn rate_limiting(
     let addr = ConnectInfo::<SocketAddr>::from_request_parts(&mut parts, &state).await?;
     let ip = get_ip(&parts.headers, addr);
     let mut key = RateLimit::Ip(ip);
-
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
             if let Some(user) = RedisSession::exists(&state.redis, &ulid).await? {
@@ -302,7 +299,12 @@ async fn shutdown_signal(server_name: ServerName) {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod test_setup {
-    use redis::{aio::Connection, AsyncCommands};
+
+    use fred::clients::RedisPool;
+    use fred::interfaces::ServerInterface;
+    use fred::interfaces::SetsInterface;
+    use fred::types::Scanner;
+    use futures::TryStreamExt;
     use reqwest::Url;
 
     use serde::{Deserialize, Serialize};
@@ -388,7 +390,7 @@ pub mod test_setup {
         pub ws_handle: Option<JoinHandle<()>>,
         pub api_handle: Option<JoinHandle<()>>,
         pub app_env: AppEnv,
-        pub redis: Arc<Mutex<Connection>>,
+        pub redis: RedisPool,
         pub postgres: PgPool,
         pub model_user: Option<ModelUser>,
         pub anon_user: Option<ModelUser>,
@@ -432,10 +434,7 @@ pub mod test_setup {
 
         /// Delete all redis keys
         pub async fn flush_redis(&self) {
-            redis::cmd("FLUSHDB")
-                .query_async::<_, ()>(&mut *self.redis.lock().await)
-                .await
-                .unwrap();
+            self.redis.flushall::<()>(true).await.unwrap();
         }
 
         /// generate user ip address, user agent, normally done in middleware automatically by server
@@ -584,11 +583,9 @@ pub mod test_setup {
             ModelUser::get(&self.postgres, TEST_EMAIL).await.unwrap()
         }
 
-        pub async fn get_session(&self, user_id: UserId) -> Option<String> {
+        pub async fn get_session(&mut self, user_id: UserId) -> Option<String> {
             let sessions: Vec<String> = self
                 .redis
-                .lock()
-                .await
                 .smembers(format!("session_set::user::{}", user_id.get()))
                 .await
                 .unwrap();
@@ -1042,7 +1039,7 @@ pub mod test_setup {
     pub async fn setup() -> TestSetup {
         let app_env = parse_env::AppEnv::get_env();
         let postgres = db_postgres::db_pool(&app_env).await.unwrap();
-        let redis = Arc::new(Mutex::new(DbRedis::get_connection(&app_env).await.unwrap()));
+        let redis = DbRedis::get_pool(&app_env).await.unwrap();
         let mut test_setup = TestSetup {
             api_handle: None,
             token_handle: None,
@@ -1056,12 +1053,25 @@ pub mod test_setup {
         test_setup.clean_up().await;
         test_setup
     }
+    pub async fn get_keys(redis: &RedisPool, pattern: &str) -> Vec<String> {
+        let mut scanner = redis.next().scan(pattern, Some(100), None);
+        let mut output = vec![];
+        while let Some(mut page) = scanner.try_next().await.unwrap() {
+            if let Some(page) = page.take_results() {
+                for i in page {
+                    output.push(i.as_str().unwrap_or_default().to_owned());
+                }
+            }
+            let _ = page.next();
+        }
+        output
+    }
 
     /// start the api server on it's own thread
     pub async fn start_servers() -> TestSetup {
         let setup = setup().await;
         let app_env = setup.app_env.clone();
-        let redis = Arc::clone(&setup.redis);
+        // let redis = setup.redis.clone();
         let postgres = setup.postgres.clone();
         let connections = Arc::new(Mutex::new(Connections::default()));
 
@@ -1069,7 +1079,7 @@ pub mod test_setup {
             app_env: app_env.clone(),
             connections: Arc::clone(&connections),
             postgres: postgres.clone(),
-            redis: Arc::clone(&redis),
+            redis: setup.redis.clone(),
             server_name: ServerName::Api,
         };
 
@@ -1081,7 +1091,8 @@ pub mod test_setup {
             app_env: app_env.clone(),
             connections: Arc::clone(&connections),
             postgres: postgres.clone(),
-            redis: Arc::clone(&redis),
+            redis: setup.redis.clone(),
+
             server_name: ServerName::Token,
         };
 
@@ -1093,7 +1104,8 @@ pub mod test_setup {
             app_env: app_env.clone(),
             connections: Arc::clone(&connections),
             postgres: postgres.clone(),
-            redis: Arc::clone(&redis),
+            redis: setup.redis.clone(),
+
             server_name: ServerName::Ws,
         };
 

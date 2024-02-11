@@ -239,8 +239,7 @@ mod tests {
     async fn emailer_mod_send_to_disk() {
         let app_env = parse_env::AppEnv::get_env();
         let emailer = EmailerEnv::new(&app_env);
-        let test_setup = setup().await;
-        // test_setup.
+        let mut test_setup = setup().await;
 
         let req = ModelUserAgentIp::get(
             &test_setup.postgres,
@@ -287,7 +286,7 @@ mod tests {
     async fn emailer_mod_limit_exceeded() {
         let app_env = parse_env::AppEnv::get_env();
         let emailer = EmailerEnv::new(&app_env);
-        let test_setup = setup().await;
+        let mut test_setup = setup().await;
 
         let req = ModelUserAgentIp::get(
             &test_setup.postgres,

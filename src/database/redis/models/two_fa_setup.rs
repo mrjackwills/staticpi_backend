@@ -1,24 +1,23 @@
-use redis::{AsyncCommands, FromRedisValue, RedisResult, Value};
+use fred::{
+    clients::RedisPool,
+    interfaces::{HashesInterface, KeysInterface},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     api_error::ApiError,
     database::{
         new_types::UserId,
-        redis::{string_to_struct, RedisKey, HASH_FIELD},
+        redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
     },
-    servers::AMRedis,
+    hmap, redis_hash_to_struct,
 };
-
-impl FromRedisValue for RedisTwoFASetup {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        string_to_struct::<Self>(v)
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RedisTwoFASetup(String);
+
+redis_hash_to_struct!(RedisTwoFASetup);
 
 impl RedisTwoFASetup {
     pub fn value(&self) -> &str {
@@ -35,40 +34,30 @@ impl RedisTwoFASetup {
     }
 
     // Insert new twofa secret & set ttl od 2 minutes
-    pub async fn insert(&self, redis: &AMRedis, user: &ModelUser) -> Result<&Self, ApiError> {
+    pub async fn insert(&self, redis: &RedisPool, user: &ModelUser) -> Result<&Self, ApiError> {
         let key = Self::key(user.registered_user_id);
         let session = serde_json::to_string(&self)?;
-        {
-            redis.lock().await.hset(&key, HASH_FIELD, session).await?;
-            redis.lock().await.expire(&key, 120).await?;
-        }
+        redis.hset(&key, hmap!(session)).await?;
+        redis.expire(&key, 120).await?;
         Ok(self)
     }
 
     /// Delete twofa secret
-    pub async fn delete(redis: &AMRedis, user: &ModelUser) -> Result<(), ApiError> {
-        Ok(redis
-            .lock()
-            .await
-            .del::<String, ()>(Self::key(user.registered_user_id))
-            .await?)
+    pub async fn delete(redis: &RedisPool, user: &ModelUser) -> Result<(), ApiError> {
+        Ok(redis.del(Self::key(user.registered_user_id)).await?)
     }
 
     /// get twofa setup secret
-    pub async fn get(redis: &AMRedis, user: &ModelUser) -> Result<Option<Self>, ApiError> {
+    pub async fn get(redis: &RedisPool, user: &ModelUser) -> Result<Option<Self>, ApiError> {
         Ok(redis
-            .lock()
-            .await
-            .hget::<String, &str, Option<Self>>(Self::key(user.registered_user_id), HASH_FIELD)
+            .hget(Self::key(user.registered_user_id), HASH_FIELD)
             .await?)
     }
 
     /// Check twofa setup secret is in cache or not
-    pub async fn exists(redis: &AMRedis, user: &ModelUser) -> Result<bool, ApiError> {
+    pub async fn exists(redis: &RedisPool, user: &ModelUser) -> Result<bool, ApiError> {
         Ok(redis
-            .lock()
-            .await
-            .hexists::<String, &str, bool>(Self::key(user.registered_user_id), HASH_FIELD)
+            .hexists::<bool, String, &str>(Self::key(user.registered_user_id), HASH_FIELD)
             .await?)
     }
 }

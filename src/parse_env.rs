@@ -207,10 +207,9 @@ mod tests {
     #[test]
     fn env_missing_env() {
         let map = HashMap::from([("not_fish".to_owned(), "not_fish".to_owned())]);
-        // ACTION
+
         let result = AppEnv::parse_string("fish", &map);
 
-        // CHECK
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "missing env: 'fish'");
     }
@@ -249,148 +248,107 @@ mod tests {
 
     #[test]
     fn env_parse_string_valid() {
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_string("RANDOM_STRING", &map).unwrap();
 
-        // CHECK
         assert_eq!(result, "123");
 
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "hello_world".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_string("RANDOM_STRING", &map).unwrap();
 
-        // CHECK
         assert_eq!(result, "hello_world");
     }
 
     #[test]
     fn env_parse_log_valid() {
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::INFO);
 
-        // FIXTURES
         let map = HashMap::from([("LOG_DEBUG".to_owned(), "false".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::INFO);
 
-        // FIXTURES
         let map = HashMap::from([("LOG_TRACE".to_owned(), "false".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::INFO);
 
-        // FIXTURES
         let map = HashMap::from([
             ("LOG_DEBUG".to_owned(), "false".to_owned()),
             ("LOG_TRACE".to_owned(), "false".to_owned()),
         ]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::INFO);
 
-        // FIXTURES
         let map = HashMap::from([
             ("LOG_DEBUG".to_owned(), "true".to_owned()),
             ("LOG_TRACE".to_owned(), "false".to_owned()),
         ]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::DEBUG);
 
-        // FIXTURES
         let map = HashMap::from([
             ("LOG_DEBUG".to_owned(), "true".to_owned()),
             ("LOG_TRACE".to_owned(), "true".to_owned()),
         ]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::TRACE);
 
-        // FIXTURES
         let map = HashMap::from([
             ("LOG_DEBUG".to_owned(), "false".to_owned()),
             ("LOG_TRACE".to_owned(), "true".to_owned()),
         ]);
 
-        // ACTION
         let result = AppEnv::parse_log(&map);
 
-        // CHECK
         assert_eq!(result, tracing::Level::TRACE);
     }
 
     #[test]
     fn env_parse_run_mode_valid() {
-        // FIXTURES
         let map = HashMap::from([("PRODUCTION".to_owned(), "123".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_production(&map);
 
-        // CHECK
         assert!(!result.is_production());
 
-        // FIXTURES
         let map = HashMap::from([("PRODUCTION".to_owned(), "false".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_production(&map);
 
-        // CHECK
         assert!(!result.is_production());
 
-        // FIXTURES
         let map = HashMap::from([("PRODUCTION".to_owned(), "".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_production(&map);
 
-        // CHECK
         assert!(!result.is_production());
 
-        // FIXTURES
         let map = HashMap::from([("PRODUCTION".to_owned(), "true".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_production(&map);
 
-        // CHECK
         assert!(result.is_production());
     }
 
     #[test]
     fn env_parse_cookie_err() {
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_cookie_secret("RANDOM_STRING", &map);
 
         assert!(result.is_err());
@@ -402,13 +360,11 @@ mod tests {
 
     #[test]
     fn env_parse_cookie_ok() {
-        // FIXTURES
         let map = HashMap::from([(
             "RANDOM_STRING".to_owned(),
             "1234567890123456789012345678901234567890123456789012345678901234".to_owned(),
         )]);
 
-        // ACTION
         let result = AppEnv::parse_cookie_secret("RANDOM_STRING", &map);
 
         assert!(result.is_ok());
@@ -420,34 +376,25 @@ mod tests {
 
     #[test]
     fn env_parse_number_valid() {
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_number::<u8>("RANDOM_STRING", &map).unwrap();
 
-        // CHECK
         assert_eq!(result, 123);
 
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "123123456".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_number::<u32>("RANDOM_STRING", &map).unwrap();
 
-        // CHECK
         assert_eq!(result, 123_123_456);
     }
 
     #[test]
     fn env_parse_number_err() {
-        // FIXTURES
         let map = HashMap::from([("RANDOM_STRING".to_owned(), "123456".to_owned())]);
 
-        // ACTION
         let result = AppEnv::parse_number::<u8>("RANDOM_STRING", &map);
 
-        // CHECK
         assert!(result.is_err());
 
         assert_eq!(result.unwrap_err(), EnvError::IntParse("123456".into()));
@@ -455,19 +402,17 @@ mod tests {
 
     #[test]
     fn env_parse_boolean_ok() {
-        // FIXTURES
         let map = HashMap::from([
             ("valid_true".to_owned(), "true".to_owned()),
             ("valid_false".to_owned(), "false".to_owned()),
             ("invalid_but_false".to_owned(), "as".to_owned()),
         ]);
-        // ACTION
+
         let result01 = AppEnv::parse_boolean("valid_true", &map);
         let result02 = AppEnv::parse_boolean("valid_false", &map);
         let result03 = AppEnv::parse_boolean("invalid_but_false", &map);
         let result04 = AppEnv::parse_boolean("missing", &map);
 
-        // CHECK
         assert!(result01);
         assert!(!result02);
         assert!(!result03);

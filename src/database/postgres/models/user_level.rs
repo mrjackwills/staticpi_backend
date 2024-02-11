@@ -60,12 +60,19 @@ impl ModelUserLevel {
     pub async fn get(postgres: &PgPool, user_level: UserLevel) -> Result<Self, sqlx::Error> {
         let query = r"
 SELECT
-    ul.user_level_name AS user_level, ul.max_message_size_in_bytes, ul.max_number_of_devices, ul.structured_data, ul.device_password,
-    ul.max_clients_per_device, ul.max_monthly_bandwidth_in_bytes, ul.user_level_id, ul.custom_device_name
+	ul.user_level_name AS user_level,
+	ul.max_message_size_in_bytes,
+	ul.max_number_of_devices,
+	ul.structured_data,
+	ul.device_password,
+	ul.max_clients_per_device,
+	ul.max_monthly_bandwidth_in_bytes,
+	ul.user_level_id,
+	ul.custom_device_name
 FROM
-    user_level ul
+	user_level ul
 WHERE
-    ul.user_level_name = $1";
+	ul.user_level_name = $1";
         sqlx::query_as::<_, Self>(query)
             .bind(user_level.to_string())
             .fetch_one(postgres)

@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 
+use fred::clients::RedisPool;
 use ulid::Ulid;
 
 use crate::{
@@ -21,7 +22,7 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{check_monthly_bandwidth, AMRedis, ApiRouter, ApplicationState, StatusOJ},
+    servers::{check_monthly_bandwidth, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
 
@@ -60,7 +61,7 @@ impl TokenRouter {
 
     /// Insert an access token into redis
     async fn create_access_token(
-        redis: &AMRedis,
+        redis: &RedisPool,
         device_id: DeviceId,
         device_type: ConnectionType,
         req: &ModelUserAgentIp,
@@ -107,7 +108,7 @@ impl TokenRouter {
             if let Some(id) = password_id {
                 if let Some(device_hash) = ModelDevicePasswordHash::get(&state.postgres, id).await?
                 {
-                    if argon::verify_password(password.map_or("", |f| f), device_hash.password_hash)
+                    if argon::verify_password(password.unwrap_or(""), device_hash.password_hash)
                         .await?
                     {
                         output = Some(
@@ -189,11 +190,14 @@ mod tests {
         connections::ConnectionType,
         database::{access_token::AccessToken, user_level::UserLevel, RedisKey},
         helpers::gen_random_hex,
-        servers::test_setup::{start_servers, token_base_url, Response, TestSetup},
+        servers::test_setup::{get_keys, start_servers, token_base_url, Response, TestSetup},
         sleep,
         user_io::incoming_json::ij::DevicePost,
     };
-    use redis::AsyncCommands;
+    use fred::{
+        interfaces::{HashesInterface, KeysInterface},
+        types::Expiration,
+    };
     use reqwest::StatusCode;
     use std::collections::HashMap;
     use ulid::Ulid;
@@ -251,9 +255,7 @@ mod tests {
             reqwest::get(&url).await.unwrap();
             test_setup
                 .redis
-                .lock()
-                .await
-                .del::<&str, ()>("ratelimit::ip::*")
+                .del::<(), &str>("ratelimit::ip::*")
                 .await
                 .unwrap();
         }
@@ -344,8 +346,6 @@ mod tests {
 
         let access_token: Option<AccessToken> = test_setup
             .redis
-            .lock()
-            .await
             .hget(RedisKey::AccessToken(&ulid).to_string(), "data")
             .await
             .unwrap();
@@ -356,8 +356,6 @@ mod tests {
 
         let ttl: usize = test_setup
             .redis
-            .lock()
-            .await
             .ttl(RedisKey::AccessToken(&ulid).to_string())
             .await
             .unwrap();
@@ -385,8 +383,6 @@ mod tests {
 
         let access_token: Option<AccessToken> = test_setup
             .redis
-            .lock()
-            .await
             .hget(RedisKey::AccessToken(&ulid).to_string(), "data")
             .await
             .unwrap();
@@ -398,8 +394,6 @@ mod tests {
 
         let ttl: usize = test_setup
             .redis
-            .lock()
-            .await
             .ttl(RedisKey::AccessToken(&ulid).to_string())
             .await
             .unwrap();
@@ -433,13 +427,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -470,13 +458,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -511,13 +493,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -552,13 +528,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -589,13 +559,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -627,13 +591,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -666,13 +624,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -710,13 +662,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -730,22 +676,12 @@ mod tests {
 
         test_setup
             .redis
-            .lock()
-            .await
-            .set::<String, usize, ()>(
+            .set::<(), String, u8>(
                 format!("ratelimit::ws_free::{}", test_setup.get_user_id().get()),
                 30,
-            )
-            .await
-            .unwrap();
-
-        test_setup
-            .redis
-            .lock()
-            .await
-            .expire::<String, ()>(
-                format!("ratelimit::ws_free::{}", test_setup.get_user_id().get()),
-                60,
+                Some(Expiration::EX(60)),
+                None,
+                false,
             )
             .await
             .unwrap();
@@ -757,13 +693,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -777,22 +707,12 @@ mod tests {
 
         test_setup
             .redis
-            .lock()
-            .await
-            .set::<String, usize, ()>(
+            .set::<(), String, u8>(
                 format!("ratelimit::ws_free::{}", test_setup.get_user_id().get()),
                 30,
-            )
-            .await
-            .unwrap();
-
-        test_setup
-            .redis
-            .lock()
-            .await
-            .expire::<String, ()>(
-                format!("ratelimit::ws_free::{}", test_setup.get_user_id().get()),
-                60,
+                Some(Expiration::EX(60)),
+                None,
+                false,
             )
             .await
             .unwrap();
@@ -804,13 +724,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -825,20 +739,13 @@ mod tests {
 
         test_setup
             .redis
-            .lock()
-            .await
-            .set::<String, usize, ()>(
+            .set::<(), String, u16>(
                 format!("ratelimit::ws_pro::{}", device.device_id.get()),
                 300,
+                Some(Expiration::EX(60)),
+                None,
+                false,
             )
-            .await
-            .unwrap();
-
-        test_setup
-            .redis
-            .lock()
-            .await
-            .expire::<String, ()>(format!("ratelimit::ws_pro::{}", device.device_id.get()), 60)
             .await
             .unwrap();
 
@@ -849,13 +756,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 
@@ -870,20 +771,13 @@ mod tests {
 
         test_setup
             .redis
-            .lock()
-            .await
-            .set::<String, usize, ()>(
+            .set::<(), String, u16>(
                 format!("ratelimit::ws_pro::{}", device.device_id.get()),
                 300,
+                Some(Expiration::EX(60)),
+                None,
+                false,
             )
-            .await
-            .unwrap();
-
-        test_setup
-            .redis
-            .lock()
-            .await
-            .expire::<String, ()>(format!("ratelimit::ws_pro::{}", device.device_id.get()), 60)
             .await
             .unwrap();
 
@@ -894,13 +788,7 @@ mod tests {
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
 
-        let keys: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("access_token::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "access_token::*").await;
         assert!(keys.is_empty());
     }
 }

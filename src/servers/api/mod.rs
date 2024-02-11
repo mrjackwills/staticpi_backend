@@ -99,8 +99,8 @@ impl Serve for ApiServer {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod api_tests {
+    use fred::interfaces::KeysInterface;
     use rand::{distributions::Alphanumeric, Rng};
-    use redis::AsyncCommands;
     use reqwest::StatusCode;
 
     use crate::servers::test_setup::api_base_url;
@@ -149,15 +149,11 @@ pub mod api_tests {
 
         let count: u64 = test_setup
             .redis
-            .lock()
-            .await
             .get("ratelimit::ip::127.0.0.1")
             .await
             .unwrap();
         let ttl: u64 = test_setup
             .redis
-            .lock()
-            .await
             .ttl("ratelimit::ip::127.0.0.1")
             .await
             .unwrap();
@@ -210,8 +206,6 @@ pub mod api_tests {
 
         let points: u64 = test_setup
             .redis
-            .lock()
-            .await
             .get(format!(
                 "ratelimit::user::{}",
                 test_setup.get_user_id().get()
@@ -289,8 +283,6 @@ pub mod api_tests {
 
         let points: u64 = test_setup
             .redis
-            .lock()
-            .await
             .get(format!(
                 "ratelimit::user::{}",
                 test_setup.get_user_id().get()

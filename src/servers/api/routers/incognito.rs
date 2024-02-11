@@ -400,7 +400,6 @@ impl IncognitoRouter {
                     IncognitoResponse::VerifyInvalid.to_string(),
                 ));
             }
-
             if let Some(new_user) = RedisNewUser::get(&state.redis, &ulid).await? {
                 ModelUser::insert(&state.postgres, &new_user).await?;
                 RedisNewUser::delete(&new_user, &state.redis, &ulid).await?;
@@ -491,7 +490,6 @@ impl IncognitoRouter {
     ) -> Result<impl IntoResponse, ApiError> {
         // If front end and back end out of sync, and front end user has an api cookie, but not front-end authed, delete server cookie api session
         let ms = || rand::thread_rng().gen_range(100..500);
-
         // remove previous current session
         if let Some(data) = jar.get(&state.cookie_name) {
             if let Ok(ulid) = Ulid::from_string(data.value()) {
@@ -625,8 +623,7 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::*;
     use crate::sleep;
-
-    use redis::AsyncCommands;
+    use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
     use ulid::Ulid;
@@ -881,29 +878,11 @@ mod tests {
             .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=21600"));
 
         // Assert session in db
-        let session_vec: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("session::*")
-            .await
-            .unwrap();
+        let session_vec = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(session_vec.len(), 1);
         let session_name = session_vec.first().unwrap();
-        let session: RedisSession = test_setup
-            .redis
-            .lock()
-            .await
-            .hget(session_name, "data")
-            .await
-            .unwrap();
-        let session_ttl: usize = test_setup
-            .redis
-            .lock()
-            .await
-            .ttl(session_name)
-            .await
-            .unwrap();
+        let session: RedisSession = test_setup.redis.hget(session_name, "data").await.unwrap();
+        let session_ttl: usize = test_setup.redis.ttl(session_name).await.unwrap();
 
         assert!(session_ttl > 21598);
         assert!(session_ttl < 21601);
@@ -913,7 +892,7 @@ mod tests {
             "session_set::user::{}",
             test_setup.model_user.unwrap().registered_user_id.get()
         );
-        let redis_set: Vec<String> = test_setup.redis.lock().await.smembers(key).await.unwrap();
+        let redis_set: Vec<String> = test_setup.redis.smembers(key).await.unwrap();
         assert!(redis_set.len() == 1);
 
         assert_eq!(session.registered_user_id, user.registered_user_id);
@@ -946,29 +925,11 @@ mod tests {
             .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=14515200"));
 
         // Assert session in db
-        let session_vec: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("session::*")
-            .await
-            .unwrap();
+        let session_vec = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(session_vec.len(), 1);
         let session_name = session_vec.first().unwrap();
-        let session: RedisSession = test_setup
-            .redis
-            .lock()
-            .await
-            .hget(session_name, "data")
-            .await
-            .unwrap();
-        let session_ttl: usize = test_setup
-            .redis
-            .lock()
-            .await
-            .ttl(session_name)
-            .await
-            .unwrap();
+        let session: RedisSession = test_setup.redis.hget(session_name, "data").await.unwrap();
+        let session_ttl: usize = test_setup.redis.ttl(session_name).await.unwrap();
 
         assert!(session_ttl > 14_515_199);
         assert!(session_ttl < 14_515_201);
@@ -977,7 +938,7 @@ mod tests {
             "session_set::user::{}",
             test_setup.model_user.unwrap().registered_user_id.get()
         );
-        let redis_set: Vec<String> = test_setup.redis.lock().await.smembers(key).await.unwrap();
+        let redis_set: Vec<String> = test_setup.redis.smembers(key).await.unwrap();
         assert!(redis_set.len() == 1);
 
         assert_eq!(session.registered_user_id, user.registered_user_id);
@@ -998,7 +959,7 @@ mod tests {
             "session_set::user::{}",
             test_setup.model_user.unwrap().registered_user_id.get()
         );
-        let pre_set: Vec<String> = test_setup.redis.lock().await.smembers(&key).await.unwrap();
+        let pre_set: Vec<String> = test_setup.redis.smembers(&key).await.unwrap();
         assert!(pre_set.len() == 1);
 
         let result = client
@@ -1010,10 +971,90 @@ mod tests {
             .unwrap();
 
         assert_eq!(result.status(), StatusCode::OK);
-        let post_set: Vec<String> = test_setup.redis.lock().await.smembers(key).await.unwrap();
+        let post_set: Vec<String> = test_setup.redis.smembers(key).await.unwrap();
 
         assert_ne!(pre_set[0], post_set[0]);
         assert!(post_set.len() == 1);
+    }
+
+    #[tokio::test]
+    async fn api_router_incognito_signin_post_backup_token_invalid() {
+        let mut test_setup = start_servers().await;
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.insert_two_fa().await;
+
+        let client = reqwest::Client::new();
+        let url = format!(
+            "{}/authenticated/user/twofa/backup",
+            api_base_url(&test_setup.app_env)
+        );
+
+        let result = client
+            .post(&url)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(result.status(), StatusCode::OK);
+
+        let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
+
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 10);
+
+        // This can fail! Unlikely but not zero
+        let token = "519181150EEEAC92";
+
+        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let result = client.post(&url).json(&body).send().await.unwrap();
+        assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 10);
+    }
+
+    #[tokio::test]
+    async fn api_router_incognito_signin_post_backup_token_valid() {
+        let mut test_setup = start_servers().await;
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.insert_two_fa().await;
+
+        let client = reqwest::Client::new();
+        let url = format!(
+            "{}/authenticated/user/twofa/backup",
+            api_base_url(&test_setup.app_env)
+        );
+
+        let result = client
+            .post(&url)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(result.status(), StatusCode::OK);
+
+        let result = result.json::<Response>().await.unwrap().response;
+        let codes = result["backups"].as_array().unwrap();
+
+        let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
+
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 10);
+
+        let token = codes[4].as_str().unwrap();
+
+        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let result = client.post(&url).json(&body).send().await.unwrap();
+        assert_eq!(result.status(), StatusCode::OK);
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 9);
+
+        // Using the same backup code again fails
+        let result = client.post(&url).json(&body).send().await.unwrap();
+        assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
+        let user = test_setup.get_model_user().await.unwrap();
+        assert_eq!(user.two_fa_backup_count, 9);
     }
 
     // ****************
@@ -1442,13 +1483,7 @@ mod tests {
             1
         );
 
-        let first_secret: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("verify::secret::*")
-            .await
-            .unwrap();
+        let first_secret = get_keys(&test_setup.redis, "verify::secret::*").await;
 
         test_setup.delete_email_log().await;
         TestSetup::delete_emails();
@@ -1485,19 +1520,11 @@ mod tests {
         let result = std::fs::metadata("/dev/shm/email_body.txt");
         assert!(result.is_err());
 
-        let second_secret: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("verify::secret::*")
-            .await
-            .unwrap();
+        let second_secret = get_keys(&test_setup.redis, "verify::secret::*").await;
         assert_eq!(first_secret, second_secret);
 
         let register_rate_limit: i8 = test_setup
             .redis
-            .lock()
-            .await
             .get(format!("ratelimit::register::{TEST_EMAIL}"))
             .await
             .unwrap();
@@ -1505,8 +1532,6 @@ mod tests {
 
         let register_ttl: isize = test_setup
             .redis
-            .lock()
-            .await
             .ttl(format!("ratelimit::register::{TEST_EMAIL}"))
             .await
             .unwrap();
@@ -1608,13 +1633,7 @@ mod tests {
             true,
         );
         client.post(&url).json(&body).send().await.unwrap();
-        let secret: Vec<String> = test_setup
-            .redis
-            .lock()
-            .await
-            .keys("verify::secret::*")
-            .await
-            .unwrap();
+        let secret = get_keys(&test_setup.redis, "verify::secret::*").await;
         let secret = secret[0].replace("verify::secret::", "");
 
         let secret_as_ulid = Ulid::from_string(&secret);
@@ -2227,21 +2246,9 @@ mod tests {
         let reset_secret = test_setup.request_reset().await;
         let client = TestSetup::get_client();
 
-        let keys = test_setup
-            .redis
-            .lock()
-            .await
-            .keys::<&str, Vec<String>>("session::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(keys.len(), 1);
-        let keys = test_setup
-            .redis
-            .lock()
-            .await
-            .keys::<&str, Vec<String>>("session_set::user::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session_set::user::*").await;
         assert_eq!(keys.len(), 1);
 
         let url = format!(
@@ -2254,21 +2261,9 @@ mod tests {
 
         let result = client.patch(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::OK);
-        let keys = test_setup
-            .redis
-            .lock()
-            .await
-            .keys::<&str, Vec<String>>("session_set::user::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session_set::user::*").await;
         assert_eq!(keys.len(), 0);
-        let keys = test_setup
-            .redis
-            .lock()
-            .await
-            .keys::<&str, Vec<String>>("session::*")
-            .await
-            .unwrap();
+        let keys = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(keys.len(), 0);
     }
 
@@ -2497,9 +2492,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .get::<&str, usize>(contact_ip)
+                .get::<usize, &str>(contact_ip)
                 .await
                 .unwrap(),
             1
@@ -2507,9 +2500,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .ttl::<&str, isize>(contact_ip)
+                .ttl::<isize, &str>(contact_ip)
                 .await
                 .unwrap(),
             60
@@ -2518,9 +2509,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .get::<&str, usize>(&contact_email)
+                .get::<usize, &str>(&contact_email)
                 .await
                 .unwrap(),
             1
@@ -2528,9 +2517,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .ttl::<&str, isize>(&contact_email)
+                .ttl::<isize, &str>(&contact_email)
                 .await
                 .unwrap(),
             60
@@ -2577,9 +2564,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .get::<&str, usize>(contact_ip)
+                .get::<usize, &str>(contact_ip)
                 .await
                 .unwrap(),
             3
@@ -2587,9 +2572,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .ttl::<&str, isize>(contact_ip)
+                .ttl::<isize, &str>(contact_ip)
                 .await
                 .unwrap(),
             60
@@ -2598,9 +2581,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .get::<&str, usize>(&contact_email)
+                .get::<usize, &str>(&contact_email)
                 .await
                 .unwrap(),
             3
@@ -2608,9 +2589,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .ttl::<&str, isize>(&contact_email)
+                .ttl::<isize, &str>(&contact_email)
                 .await
                 .unwrap(),
             60
@@ -2655,9 +2634,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .get::<&str, usize>(contact_ip)
+                .get::<usize, &str>(contact_ip)
                 .await
                 .unwrap(),
             9
@@ -2665,9 +2642,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .ttl::<&str, isize>(contact_ip)
+                .ttl::<isize, &str>(contact_ip)
                 .await
                 .unwrap(),
             21600
@@ -2676,9 +2651,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .get::<&str, usize>(&contact_email)
+                .get::<usize, &str>(&contact_email)
                 .await
                 .unwrap(),
             9
@@ -2686,9 +2659,7 @@ mod tests {
         assert_eq!(
             test_setup
                 .redis
-                .lock()
-                .await
-                .ttl::<&str, isize>(&contact_email)
+                .ttl::<isize, &str>(&contact_email)
                 .await
                 .unwrap(),
             21600

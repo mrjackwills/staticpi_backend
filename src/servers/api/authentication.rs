@@ -4,9 +4,6 @@ use sqlx::PgPool;
 use totp_rs::{Algorithm, Secret, TOTP};
 use ulid::Ulid;
 
-// use std::time::SystemTime;
-// use totp_rs::{Algorithm, TOTP, Secret};
-
 use crate::{
     api_error::ApiError,
     argon::verify_password,
@@ -37,28 +34,20 @@ pub async fn check_token(
     two_fa_backup_count: i64,
 ) -> Result<bool, ApiError> {
     if let Some(token) = token {
-        // let auth = GoogleAuthenticator::new();
         match token {
             Token::Totp(token_text) => {
                 let totp = totp_from_secret(two_fa_secret)?;
                 return Ok(totp.check_current(&token_text)?);
             }
             Token::Backup(token_text) => {
-                // SHOULD USE A TRANSACTION!?
                 if two_fa_backup_count > 0 {
                     let backups = ModelTwoFABackup::get(postgres, registered_user_id).await?;
-
-                    let mut backup_token_id = None;
                     for backup_code in backups {
                         if verify_password(&token_text, backup_code.as_hash()).await? {
-                            backup_token_id = Some(backup_code.two_fa_backup_id);
+                            ModelTwoFABackup::delete_one(postgres, backup_code.two_fa_backup_id)
+                                .await?;
+                            return Ok(true);
                         }
-                    }
-                    // Delete backup code if it's valid
-                    if let Some(id) = backup_token_id {
-                        ModelTwoFABackup::delete_one(postgres, id).await?;
-                    } else {
-                        return Ok(false);
                     }
                 }
             }
@@ -79,20 +68,21 @@ pub async fn check_password_token(
     token: Option<Token>,
     postgres: &PgPool,
 ) -> Result<bool, ApiError> {
-    let valid_password = verify_password(password, user.get_password_hash()).await?;
-
-    if let Some(two_fa_secret) = &user.two_fa_secret {
-        let valid_token = check_token(
-            token,
-            postgres,
-            two_fa_secret,
-            user.registered_user_id,
-            user.two_fa_backup_count,
-        )
-        .await?;
-        return Ok(valid_password && valid_token);
+    if verify_password(password, user.get_password_hash()).await? {
+        if let Some(two_fa_secret) = &user.two_fa_secret {
+            let valid_token = check_token(
+                token,
+                postgres,
+                two_fa_secret,
+                user.registered_user_id,
+                user.two_fa_backup_count,
+            )
+            .await?;
+            return Ok(valid_token);
+        }
+        return Ok(true);
     }
-    Ok(valid_password)
+    Ok(false)
 }
 
 /// Check that a given password, and if two_fa_always required, will check against token as well
@@ -102,26 +92,27 @@ pub async fn check_password_op_token(
     token: Option<Token>,
     postgres: &PgPool,
 ) -> Result<bool, ApiError> {
-    let valid_password = verify_password(password, user.get_password_hash()).await?;
+    if verify_password(password, user.get_password_hash()).await? {
+        if let Some(two_fa_secret) = &user.two_fa_secret {
+            if user.two_fa_always_required {
+                if token.is_none() && user.two_fa_always_required {
+                    return Ok(false);
+                }
 
-    if let Some(two_fa_secret) = &user.two_fa_secret {
-        if user.two_fa_always_required {
-            if token.is_none() && user.two_fa_always_required {
-                return Ok(false);
+                let valid_token = check_token(
+                    token,
+                    postgres,
+                    two_fa_secret,
+                    user.registered_user_id,
+                    user.two_fa_backup_count,
+                )
+                .await?;
+                return Ok(valid_token);
             }
-
-            let valid_token = check_token(
-                token,
-                postgres,
-                two_fa_secret,
-                user.registered_user_id,
-                user.two_fa_backup_count,
-            )
-            .await?;
-            return Ok(valid_password && valid_token);
         }
+        return Ok(true);
     }
-    Ok(valid_password)
+    Ok(false)
 }
 
 /// Middleware for only allowing access to routes if no logged in sessions

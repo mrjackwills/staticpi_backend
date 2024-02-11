@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use axum_extra::extract::PrivateCookieJar;
-use redis::AsyncCommands;
+use fred::interfaces::KeysInterface;
 use std::time::SystemTime;
 use tracing::error;
 use ulid::Ulid;
@@ -155,7 +155,7 @@ impl AdminRouter {
         State(state): State<ApplicationState>,
         ij::IncomingJson(body): ij::IncomingJson<ij::Limit>,
     ) -> Result<StatusCode, ApiError> {
-        state.redis.lock().await.del(body.key.to_string()).await?;
+        state.redis.del(body.key.to_string()).await?;
         Ok(StatusCode::OK)
     }
 
@@ -498,8 +498,8 @@ mod tests {
     use crate::sleep;
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
 
+    use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
-    use redis::AsyncCommands;
     use reqwest::{Client, StatusCode, Url};
     use std::collections::HashMap;
     use time::OffsetDateTime;
@@ -704,7 +704,7 @@ mod tests {
 
         // Assume the app has been alive for 1..10 seconds, in reality should be 1 or 2
         assert!((1..=10).contains(&result["uptime_app"].as_u64().unwrap()));
-        // Assume the comptuer has been on for longer than 15 seconds
+        // Assume the computer has been on for longer than 15 seconds
         assert!(result["uptime"].as_u64().unwrap() > 15);
 
         assert!(result["virt"].as_u64().unwrap() > result["rss"].as_u64().unwrap());
@@ -1140,13 +1140,7 @@ mod tests {
             .as_str()
             .unwrap();
 
-        let exists_in_redis: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(ws_rate_limit_key)
-            .await
-            .unwrap();
+        let exists_in_redis: bool = test_setup.redis.exists(ws_rate_limit_key).await.unwrap();
         assert!(exists_in_redis);
 
         let body = HashMap::from([("key", ws_rate_limit_key)]);
@@ -1179,13 +1173,7 @@ mod tests {
                 .starts_with("ratelimit::ws_pro")
         });
         assert!(ws_pro_index.is_none());
-        let exists_in_redis: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(ws_rate_limit_key)
-            .await
-            .unwrap();
+        let exists_in_redis: bool = test_setup.redis.exists(ws_rate_limit_key).await.unwrap();
         assert!(!exists_in_redis);
     }
 
@@ -1943,18 +1931,10 @@ mod tests {
 
         let session_set: bool = test_setup
             .redis
-            .lock()
-            .await
             .exists(format!("session_set::user::{}", anon_id.get()))
             .await
             .unwrap();
-        let session: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(anon_session)
-            .await
-            .unwrap();
+        let session: bool = test_setup.redis.exists(anon_session).await.unwrap();
         assert!(!session_set);
         assert!(!session);
 
@@ -2219,18 +2199,10 @@ mod tests {
 
         let session_set: bool = test_setup
             .redis
-            .lock()
-            .await
             .exists(format!("session_set::user::{}", anon_id.get()))
             .await
             .unwrap();
-        let session: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(&anon_session)
-            .await
-            .unwrap();
+        let session: bool = test_setup.redis.exists(&anon_session).await.unwrap();
         assert!(session_set);
         assert!(session);
 
@@ -2245,18 +2217,10 @@ mod tests {
 
         let session_set: bool = test_setup
             .redis
-            .lock()
-            .await
             .exists(format!("session_set::user::{}", anon_id.get()))
             .await
             .unwrap();
-        let session: bool = test_setup
-            .redis
-            .lock()
-            .await
-            .exists(anon_session)
-            .await
-            .unwrap();
+        let session: bool = test_setup.redis.exists(anon_session).await.unwrap();
         assert!(!session_set);
         assert!(!session);
 
@@ -3321,16 +3285,12 @@ mod tests {
         // lazy rate limit removal!
         test_setup
             .redis
-            .lock()
-            .await
-            .del::<&str, ()>("ratelimit::contact_ip::127.0.0.1")
+            .del::<(), &str>("ratelimit::contact_ip::127.0.0.1")
             .await
             .unwrap();
         test_setup
             .redis
-            .lock()
-            .await
-            .del::<&str, ()>(&format!("ratelimit::contact_ip::{TEST_EMAIL}"))
+            .del::<(), String>(format!("ratelimit::contact_ip::{TEST_EMAIL}"))
             .await
             .unwrap();
 

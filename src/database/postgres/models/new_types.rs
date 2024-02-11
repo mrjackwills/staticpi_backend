@@ -1,9 +1,9 @@
+use fred::{error::RedisError, types::FromRedis};
 use once_cell::sync::Lazy;
-use redis::{FromRedisValue, RedisResult, Value};
 use regex::Regex;
 use serde::{Deserialize, Serialize, Serializer};
 
-use crate::{api_error::ApiError, database::string_to_struct, helpers::gen_random_hex};
+use crate::{api_error::ApiError, helpers::gen_random_hex};
 
 /// Api key, [A-F0-9]{128}
 #[derive(Debug, Clone, Eq, PartialEq, sqlx::Decode)]
@@ -105,6 +105,20 @@ macro_rules! generic_id {
             }
         }
 
+        impl FromRedis for $struct_name {
+            fn from_value(
+                value: fred::prelude::RedisValue,
+            ) -> Result<Self, fred::prelude::RedisError> {
+                value.as_i64().map_or(
+                    Err(RedisError::new(
+                        fred::error::RedisErrorKind::Parse,
+                        format!("FromRedis: {}", stringify!($struct_name)),
+                    )),
+                    |i| Ok(Self(i)),
+                )
+            }
+        }
+
         impl Serialize for $struct_name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
@@ -139,15 +153,3 @@ generic_id!(UserId);
 generic_id!(UserLevelId);
 generic_id!(UserAgentId);
 generic_id!(IpId);
-
-impl FromRedisValue for UserAgentId {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        string_to_struct::<Self>(v)
-    }
-}
-
-impl FromRedisValue for IpId {
-    fn from_redis_value(v: &Value) -> RedisResult<Self> {
-        string_to_struct::<Self>(v)
-    }
-}
