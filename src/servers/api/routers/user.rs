@@ -144,16 +144,15 @@ impl UserRouter {
         {
             return Err(ApiError::Authorization);
         }
-        let mut redis = state.redis();
         ModelDevice::delete_all_device_cache_connections(
             &state.postgres,
-            &mut redis,
+            &state.redis,
             &state.connections,
             &user,
         )
         .await?;
-        user.delete(&state.postgres, &mut redis).await?;
-        RedisSession::delete_all(&mut redis, user.registered_user_id).await?;
+        user.delete(&state.postgres, &state.redis).await?;
+        RedisSession::delete_all(&state.redis, user.registered_user_id).await?;
 
         Ok(StatusCode::OK)
     }
@@ -166,7 +165,7 @@ impl UserRouter {
     ) -> Result<impl IntoResponse, ApiError> {
         if let Some(cookie) = jar.get(&state.cookie_name) {
             if let Ok(ulid) = Ulid::from_string(cookie.value()) {
-                RedisSession::delete(&mut state.redis(), &ulid).await?;
+                RedisSession::delete(&state.redis, &ulid).await?;
             }
 
             Ok((
@@ -207,7 +206,7 @@ impl UserRouter {
         }
 
         if RateLimit::DownloadData(user.registered_user_id)
-            .check(&mut state.redis())
+            .check(&state.redis)
             .await
             .is_err()
         {
@@ -284,7 +283,7 @@ impl UserRouter {
         State(state): State<ApplicationState>,
         user: ModelUser,
     ) -> Result<StatusCode, ApiError> {
-        RedisTwoFASetup::delete(&mut state.redis(), &user).await?;
+        RedisTwoFASetup::delete(&state.redis, &user).await?;
         Ok(StatusCode::OK)
     }
 
@@ -293,15 +292,14 @@ impl UserRouter {
         State(state): State<ApplicationState>,
         user: ModelUser,
     ) -> Result<StatusOJ<oj::TwoFASetup>, ApiError> {
-        let mut redis = state.redis();
         // If setup process has already started, or user has two_fa already enabled, return conflict error
-        if RedisTwoFASetup::exists(&mut redis, &user).await? || user.two_fa_secret.is_some() {
+        if RedisTwoFASetup::exists(&state.redis, &user).await? || user.two_fa_secret.is_some() {
             return Err(ApiError::Conflict(UserResponse::SetupTwoFA.to_string()));
         }
         let secret = gen_random_hex(32);
         let totp = authentication::totp_from_secret(&secret)?;
         RedisTwoFASetup::new(&secret)
-            .insert(&mut redis, &user)
+            .insert(&state.redis, &user)
             .await?;
         Ok((
             StatusCode::OK,
@@ -320,15 +318,14 @@ impl UserRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::TwoFA>,
     ) -> Result<StatusCode, ApiError> {
         let err = || Err(ApiError::InvalidValue("invalid token".to_owned()));
-        let mut redis = state.redis();
-        if let Some(two_fa_setup) = RedisTwoFASetup::get(&mut redis, &user).await? {
+        if let Some(two_fa_setup) = RedisTwoFASetup::get(&state.redis, &user).await? {
             match body.token {
                 ij::Token::Totp(token) => {
                     let known_totp = authentication::totp_from_secret(two_fa_setup.value())?;
 
                     if let Ok(valid_token) = known_totp.check_current(&token) {
                         if valid_token {
-                            RedisTwoFASetup::delete(&mut redis, &user).await?;
+                            RedisTwoFASetup::delete(&state.redis, &user).await?;
                             ModelTwoFA::insert(&state.postgres, two_fa_setup, &useragent_ip, &user)
                                 .await?;
 
@@ -565,14 +562,14 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::api::authentication::totp_from_secret;
     use crate::servers::test_setup::{
-        api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
+        api_base_url, get_keys, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
     use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
 
+    use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use futures::{SinkExt, StreamExt};
-    use redis::AsyncCommands;
     use reqwest::StatusCode;
     use serde::Serialize;
     use serde_json::Value;
@@ -1318,7 +1315,7 @@ mod tests {
         assert_eq!(result.status(), StatusCode::OK);
 
         // assert redis has zero session keys in it
-        let session_vec: Vec<String> = test_setup.redis.keys("session::*").await.unwrap();
+        let session_vec = get_keys(&test_setup.redis, "session::*").await;
         assert_eq!(session_vec.len(), 0);
 
         let key = format!(
@@ -2053,7 +2050,7 @@ mod tests {
         // Check key has been removed from redis
         let key = format!("two_fa_setup::{}", test_setup.get_user_id().get());
 
-        let redis_secret: Option<RedisTwoFASetup> = test_setup.redis.get(&key).await.unwrap();
+        let redis_secret: Option<String> = test_setup.redis.get(&key).await.unwrap();
 
         assert!(redis_secret.is_none());
     }
@@ -3115,7 +3112,7 @@ mod tests {
             test_setup
                 .redis
                 .clone()
-                .del::<String, ()>(format!(
+                .del::<(), String>(format!(
                     "ratelimit::download_data::{}",
                     test_setup.get_user_id().get()
                 ))

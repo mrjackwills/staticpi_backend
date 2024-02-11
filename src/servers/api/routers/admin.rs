@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use axum_extra::extract::PrivateCookieJar;
-use redis::AsyncCommands;
+use fred::interfaces::KeysInterface;
 use std::time::SystemTime;
 use tracing::error;
 use ulid::Ulid;
@@ -155,10 +155,7 @@ impl AdminRouter {
         State(state): State<ApplicationState>,
         ij::IncomingJson(body): ij::IncomingJson<ij::Limit>,
     ) -> Result<StatusCode, ApiError> {
-        state
-            .redis()
-            .del(body.key.to_string())
-            .await?;
+        state.redis.del(body.key.to_string()).await?;
         Ok(StatusCode::OK)
     }
 
@@ -169,7 +166,7 @@ impl AdminRouter {
     ) -> Result<StatusOJ<Vec<oj::AdminLimit>>, ApiError> {
         Ok((
             StatusCode::OK,
-            oj::OutgoingJson::new(RateLimit::get_all(&mut state.redis(), &user).await?),
+            oj::OutgoingJson::new(RateLimit::get_all(&state.redis, &user).await?),
         ))
     }
 
@@ -215,9 +212,7 @@ impl AdminRouter {
     ) -> Result<StatusOJ<Vec<AdminUserAndSession>>, ApiError> {
         Ok((
             StatusCode::OK,
-            oj::OutgoingJson::new(
-                AdminModelUser::get_all(&state.postgres, &mut state.redis()).await?,
-            ),
+            oj::OutgoingJson::new(AdminModelUser::get_all(&state.postgres, &state.redis).await?),
         ))
     }
 
@@ -235,7 +230,7 @@ impl AdminRouter {
                     )));
                 }
             }
-            RedisSession::delete(&mut state.redis(), &session).await?;
+            RedisSession::delete(&state.redis, &session).await?;
         } else {
             error!("Unable to parse session_delete user session");
         }
@@ -264,8 +259,7 @@ impl AdminRouter {
                 Err(ApiError::InvalidValue("Can't de-activate self".to_owned()))
             } else {
                 if model_user.active {
-                    RedisSession::delete_all(&mut state.redis(), model_user.registered_user_id)
-                        .await?;
+                    RedisSession::delete_all(&state.redis, model_user.registered_user_id).await?;
                 }
                 model_user.admin_toggle_active(&state.postgres).await?;
                 Ok(StatusCode::OK)
@@ -340,7 +334,7 @@ impl AdminRouter {
                     .close_by_single_device_id(device_id)
                     .await;
 
-                MessageCache::delete(&mut state.redis(), device_id).await?;
+                MessageCache::delete(&state.redis, device_id).await?;
             }
             Ok(StatusCode::OK)
         } else {
@@ -410,9 +404,7 @@ impl AdminRouter {
                     "Admin users can't delete their own accounts",
                 )));
             }
-            model_user
-                .delete(&state.postgres, &mut state.redis())
-                .await?;
+            model_user.delete(&state.postgres, &state.redis).await?;
             Ok(StatusCode::OK)
         } else {
             Err(ApiError::InvalidValue(String::from("unknown user")))
@@ -506,8 +498,8 @@ mod tests {
     use crate::sleep;
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
 
+    use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
-    use redis::AsyncCommands;
     use reqwest::{Client, StatusCode, Url};
     use std::collections::HashMap;
     use time::OffsetDateTime;
@@ -3293,12 +3285,12 @@ mod tests {
         // lazy rate limit removal!
         test_setup
             .redis
-            .del::<&str, ()>("ratelimit::contact_ip::127.0.0.1")
+            .del::<(), &str>("ratelimit::contact_ip::127.0.0.1")
             .await
             .unwrap();
         test_setup
             .redis
-            .del::<&str, ()>(&format!("ratelimit::contact_ip::{TEST_EMAIL}"))
+            .del::<(), String>(format!("ratelimit::contact_ip::{TEST_EMAIL}"))
             .await
             .unwrap();
 

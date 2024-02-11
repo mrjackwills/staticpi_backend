@@ -1,6 +1,7 @@
 use std::{fmt, net::IpAddr};
 
-use redis::{aio::ConnectionManager, AsyncCommands};
+use fred::{clients::RedisPool, interfaces::KeysInterface, types::Scanner};
+use futures::TryStreamExt;
 
 use crate::{
     api_error::ApiError,
@@ -70,10 +71,7 @@ impl fmt::Display for RateLimit {
 }
 
 /// Return AdminLimit object for a given rate_limit
-async fn get_admin_limit(
-    rate_limit: RateLimit,
-    redis: &mut ConnectionManager,
-) -> Result<AdminLimit, ApiError> {
+async fn get_admin_limit(rate_limit: RateLimit, redis: &RedisPool) -> Result<AdminLimit, ApiError> {
     let blocked = rate_limit.exceeded(redis).await?;
     let ttl = rate_limit.ttl(redis).await?;
     let points = rate_limit.get_count(redis).await?.unwrap_or_default();
@@ -238,18 +236,26 @@ impl RateLimit {
 
     // Get all current rate limits - is either based on user_email or ip address
     // User as input, so that only admin user can access it?
-    pub async fn get_all(
-        redis: &mut ConnectionManager,
-        user: &ModelUser,
-    ) -> Result<Vec<AdminLimit>, ApiError> {
+    pub async fn get_all(redis: &RedisPool, user: &ModelUser) -> Result<Vec<AdminLimit>, ApiError> {
         match user.user_level {
             UserLevel::Admin => {
                 let mut output = vec![];
-                let all_keys: Vec<String> = redis.keys("ratelimit::*").await?;
-                for key in all_keys {
-                    let rate_limit = Self::try_from(key.as_str())?;
-                    output.push(get_admin_limit(rate_limit, redis).await?);
+                let mut scanner = redis.next().scan("ratelimit::*", Some(100), None);
+                while let Some(mut page) = scanner.try_next().await? {
+                    if let Some(page) = page.take_results() {
+                        for key in page {
+                            output.push(
+                                get_admin_limit(
+                                    Self::try_from(key.as_str().unwrap_or_default())?,
+                                    redis,
+                                )
+                                .await?,
+                            );
+                        }
+                    }
+                    let _ = page.next();
                 }
+
                 Ok(output)
             }
             _ => Err(ApiError::Authorization),
@@ -261,12 +267,12 @@ impl RateLimit {
     }
 
     /// Get the ttl for a given limiter, converts from the redis isize to usize
-    pub async fn ttl(&self, redis: &mut ConnectionManager) -> Result<i64, ApiError> {
-        Ok(redis.ttl::<String, i64>(self.key()).await?)
+    pub async fn ttl(&self, redis: &RedisPool) -> Result<i64, ApiError> {
+        Ok(redis.ttl::<i64, String>(self.key()).await?)
     }
 
     /// If currently rate limited, return ttl, else 0
-    pub async fn limited_ttl(&self, redis: &mut ConnectionManager) -> Result<i64, ApiError> {
+    pub async fn limited_ttl(&self, redis: &RedisPool) -> Result<i64, ApiError> {
         if let Some(count) = self.get_count(redis).await? {
             if count >= self.get_limit() {
                 return self.ttl(redis).await;
@@ -276,7 +282,7 @@ impl RateLimit {
     }
 
     /// Return true if rate limit is exceeded by factor of 4
-    pub async fn exceeded(&self, redis: &mut ConnectionManager) -> Result<bool, ApiError> {
+    pub async fn exceeded(&self, redis: &RedisPool) -> Result<bool, ApiError> {
         if let Some(i) = self.get_count(redis).await? {
             if i >= self.get_limit() * 4 {
                 return Ok(true);
@@ -285,17 +291,17 @@ impl RateLimit {
         Ok(false)
     }
 
-    async fn get_count(&self, redis: &mut ConnectionManager) -> Result<Option<u64>, ApiError> {
-        Ok(redis.get::<&str, Option<u64>>(&self.key()).await?)
+    async fn get_count(&self, redis: &RedisPool) -> Result<Option<u64>, ApiError> {
+        Ok(redis.get::<Option<u64>, String>(self.key()).await?)
     }
     /// Check if request has been rate limited, always increases the current value of the given rate limit
-    pub async fn check(&self, redis: &mut ConnectionManager) -> Result<(), ApiError> {
+    pub async fn check(&self, redis: &RedisPool) -> Result<(), ApiError> {
         let key = self.key();
         let limit = self.get_limit();
         let blocks = BlockTimes::new(self);
 
         if let Some(count) = self.get_count(redis).await? {
-            redis.incr(&key, 1).await?;
+            redis.incr(&key).await?;
             if count >= limit * 2 {
                 redis.expire(&key, blocks.big).await?;
             }
@@ -307,7 +313,7 @@ impl RateLimit {
                 return Err(ApiError::RateLimited(blocks.small));
             }
         } else {
-            redis.incr(&key, 1).await?;
+            redis.incr(&key).await?;
             redis.expire(&key, blocks.small).await?;
         }
         Ok(())

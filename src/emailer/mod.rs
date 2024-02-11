@@ -243,7 +243,7 @@ mod tests {
 
         let req = ModelUserAgentIp::get(
             &test_setup.postgres,
-            &mut test_setup.redis,
+            &test_setup.redis,
             &TestSetup::gen_req(),
         )
         .await
@@ -290,7 +290,7 @@ mod tests {
 
         let req = ModelUserAgentIp::get(
             &test_setup.postgres,
-            &mut test_setup.redis,
+            &test_setup.redis,
             &TestSetup::gen_req(),
         )
         .await

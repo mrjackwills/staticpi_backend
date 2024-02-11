@@ -2,7 +2,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use redis::RedisError;
+use fred::error::{RedisError, RedisErrorKind};
 use std::time::SystemTimeError;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -46,6 +46,16 @@ pub enum ApiError {
     TimeError(#[from] SystemTimeError),
 }
 
+/// Return the internal server error, with a basic { response: "$prefix" }
+macro_rules! internal {
+    ($prefix:expr) => {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Some(OutgoingJson::new($prefix)),
+        )
+    };
+}
+
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
@@ -61,26 +71,17 @@ impl IntoResponse for ApiError {
             Self::Authentication => (StatusCode::FORBIDDEN, Some(OutgoingJson::new(prefix))),
             Self::AxumExtension(e) => {
                 error!("{e:?}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
             Self::Conflict(conflict) => (StatusCode::CONFLICT, Some(OutgoingJson::new(conflict))),
             Self::Internal(e) => {
                 error!("{e:?}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
             Self::InvalidValue(value) => (StatusCode::BAD_REQUEST, Some(OutgoingJson::new(value))),
             Self::Io(e) => {
                 error!("{e:?}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
             Self::MissingKey(key) => (
                 StatusCode::BAD_REQUEST,
@@ -93,25 +94,16 @@ impl IntoResponse for ApiError {
             ),
             Self::RedisError(e) => {
                 error!("{e:?}");
-                if e.is_io_error() {
+                if e.kind() == &RedisErrorKind::IO {
                     exit();
-                };
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                }
+                internal!(prefix)
             }
             Self::Reqwest(e) => {
                 error!("{e:?}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
-            Self::SerdeJson(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Some(OutgoingJson::new(prefix)),
-            ),
+            Self::SerdeJson(_) => internal!(prefix),
             Self::SqlxError(e) => {
                 error!("{e:?}");
                 match e {
@@ -120,24 +112,15 @@ impl IntoResponse for ApiError {
                     }
                     _ => (),
                 };
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
             Self::ThreadError(e) => {
                 error!("{e:?}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
             Self::TimeError(e) => {
                 error!("{e:?}");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Some(OutgoingJson::new(prefix)),
-                )
+                internal!(prefix)
             }
         };
         op_body.map_or((status).into_response(), |body| {

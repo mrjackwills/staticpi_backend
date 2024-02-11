@@ -18,7 +18,8 @@ use axum::{
     Router,
 };
 use axum_extra::extract::{cookie::Key, PrivateCookieJar};
-use redis::aio::ConnectionManager;
+
+use fred::clients::RedisPool;
 use sqlx::PgPool;
 use std::{
     fmt,
@@ -43,7 +44,7 @@ pub struct ServeData {
     pub app_env: AppEnv,
     pub connections: AMConnections,
     pub postgres: PgPool,
-    pub redis: ConnectionManager,
+    pub redis: RedisPool,
     pub server_name: ServerName,
 }
 
@@ -57,7 +58,7 @@ impl ServeData {
             app_env: app_env.clone(),
             connections: Arc::clone(connections),
             postgres: database::db_postgres::db_pool(app_env).await?,
-            redis: database::DbRedis::get_connection(app_env).await?,
+            redis: database::DbRedis::get_pool(app_env).await?,
             server_name,
         })
     }
@@ -118,17 +119,14 @@ pub struct InnerState {
     pub domain: String,
     pub email_env: EmailerEnv,
     pub postgres: PgPool,
+    pub redis: RedisPool,
     pub run_mode: RunMode,
     pub start_time: SystemTime,
     cookie_key: Key,
     invite: String,
-    redis_connection: ConnectionManager,
 }
 
 impl InnerState {
-    pub fn redis(&self) -> ConnectionManager {
-        self.redis_connection.clone()
-    }
     pub fn new(serve_data: ServeData) -> Self {
         Self {
             connections: Arc::clone(&serve_data.connections),
@@ -138,7 +136,7 @@ impl InnerState {
             email_env: EmailerEnv::new(&serve_data.app_env),
             invite: serve_data.app_env.invite.clone(),
             postgres: serve_data.postgres,
-            redis_connection: serve_data.redis,
+            redis: serve_data.redis,
             run_mode: serve_data.app_env.run_mode,
             start_time: serve_data.app_env.start_time,
         }
@@ -185,7 +183,7 @@ pub fn get_ip(headers: &HeaderMap, addr: ConnectInfo<SocketAddr>) -> IpAddr {
 /// Should take into account the incoming message size?
 async fn check_monthly_bandwidth(
     postgres: &PgPool,
-    redis: &mut ConnectionManager,
+    redis: &RedisPool,
     device: &ModelWsDevice,
 ) -> Result<(), ApiError> {
     match ModelMonthlyBandwidth::get(postgres, redis, device.registered_user_id).await {
@@ -255,15 +253,14 @@ async fn rate_limiting(
     let addr = ConnectInfo::<SocketAddr>::from_request_parts(&mut parts, &state).await?;
     let ip = get_ip(&parts.headers, addr);
     let mut key = RateLimit::Ip(ip);
-    let mut redis: ConnectionManager = state.redis();
     if let Some(data) = jar.get(&state.cookie_name) {
         if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if let Some(user) = RedisSession::exists(&mut redis, &ulid).await? {
+            if let Some(user) = RedisSession::exists(&state.redis, &ulid).await? {
                 key = RateLimit::User(user.registered_user_id);
             }
         }
     }
-    key.check(&mut redis).await?;
+    key.check(&state.redis).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
 }
 
@@ -302,8 +299,12 @@ async fn shutdown_signal(server_name: ServerName) {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod test_setup {
-    use redis::aio::ConnectionManager;
-    use redis::AsyncCommands;
+
+    use fred::clients::RedisPool;
+    use fred::interfaces::ServerInterface;
+    use fred::interfaces::SetsInterface;
+    use fred::types::Scanner;
+    use futures::TryStreamExt;
     use reqwest::Url;
 
     use serde::{Deserialize, Serialize};
@@ -389,7 +390,7 @@ pub mod test_setup {
         pub ws_handle: Option<JoinHandle<()>>,
         pub api_handle: Option<JoinHandle<()>>,
         pub app_env: AppEnv,
-        pub redis: ConnectionManager,
+        pub redis: RedisPool,
         pub postgres: PgPool,
         pub model_user: Option<ModelUser>,
         pub anon_user: Option<ModelUser>,
@@ -433,10 +434,7 @@ pub mod test_setup {
 
         /// Delete all redis keys
         pub async fn flush_redis(&self) {
-            redis::cmd("FLUSHDB")
-                .query_async::<_, ()>(&mut self.redis.clone())
-                .await
-                .unwrap();
+            self.redis.flushall::<()>(true).await.unwrap();
         }
 
         /// generate user ip address, user agent, normally done in middleware automatically by server
@@ -606,7 +604,7 @@ pub mod test_setup {
         pub async fn insert_invite(&mut self) -> String {
             let user = self.model_user.as_ref().unwrap();
 
-            let req = ModelUserAgentIp::get(&self.postgres, &mut self.redis, &Self::gen_req())
+            let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
                 .unwrap();
             let invite = gen_random_hex(12);
@@ -618,7 +616,7 @@ pub mod test_setup {
 
         /// Somewhat diry way to insert a new user - uses server & json requests etc
         pub async fn insert_test_user(&mut self) {
-            let req = ModelUserAgentIp::get(&self.postgres, &mut self.redis, &Self::gen_req())
+            let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
                 .unwrap();
 
@@ -641,7 +639,7 @@ pub mod test_setup {
 
         /// Insert new anon user, also has twofa
         pub async fn insert_anon_user(&mut self) {
-            let req = ModelUserAgentIp::get(&self.postgres, &mut self.redis, &Self::gen_req())
+            let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
                 .unwrap();
 
@@ -664,7 +662,7 @@ pub mod test_setup {
 
             let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
-            let req = ModelUserAgentIp::get(&self.postgres, &mut self.redis, &Self::gen_req())
+            let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
                 .unwrap();
             ModelTwoFA::insert(
@@ -693,7 +691,7 @@ pub mod test_setup {
         pub async fn insert_two_fa(&mut self) {
             let secret = gen_random_hex(32);
             let two_fa_setup = RedisTwoFASetup::new(&secret);
-            let req = ModelUserAgentIp::get(&self.postgres, &mut self.redis, &Self::gen_req())
+            let req = ModelUserAgentIp::get(&self.postgres, &self.redis, &Self::gen_req())
                 .await
                 .unwrap();
             ModelTwoFA::insert(
@@ -1041,7 +1039,7 @@ pub mod test_setup {
     pub async fn setup() -> TestSetup {
         let app_env = parse_env::AppEnv::get_env();
         let postgres = db_postgres::db_pool(&app_env).await.unwrap();
-        let redis = DbRedis::get_connection(&app_env).await.unwrap();
+        let redis = DbRedis::get_pool(&app_env).await.unwrap();
         let mut test_setup = TestSetup {
             api_handle: None,
             token_handle: None,
@@ -1054,6 +1052,19 @@ pub mod test_setup {
         };
         test_setup.clean_up().await;
         test_setup
+    }
+    pub async fn get_keys(redis: &RedisPool, pattern: &str) -> Vec<String> {
+        let mut scanner = redis.next().scan(pattern, Some(100), None);
+        let mut output = vec![];
+        while let Some(mut page) = scanner.try_next().await.unwrap() {
+            if let Some(page) = page.take_results() {
+                for i in page {
+                    output.push(i.as_str().unwrap_or_default().to_owned());
+                }
+            }
+            let _ = page.next();
+        }
+        output
     }
 
     /// start the api server on it's own thread
