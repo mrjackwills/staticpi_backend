@@ -1,6 +1,9 @@
 // Only allow when debugging
 // #![allow(unused, clippy::todo)]
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 mod api_error;
 mod argon;
 mod connections;
