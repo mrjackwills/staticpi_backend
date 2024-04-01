@@ -8,6 +8,9 @@
 ### Features
 + use mimalloc, [0ce04c504e72f4cb4f5a10b7ef999baa30ea6895]
 
+### Fixes
++ docker-compose api memory limit reduction, [3bd58f3a554f3f2e66dc0fe4f9a17512166478a5]
+
 ### Refactors
 + redundant as ref clone, [485c8756b2c26c316e69a5fbe14be861dbbca5fd]
 + remove docker-compose version, [cb7bfe02a5f6f91fb53704c2915a58b9cfb4506f]
