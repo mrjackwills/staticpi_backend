@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# v0.2.0
+# run.sh v0.2.1
 
 APP_NAME='staticpi'
 
@@ -9,9 +9,33 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RESET='\033[0m'
 
+APP_DIR="${BASE_DIR}/${APP_NAME}"
+DOCKER_DIR="${APP_DIR}/docker"
+
+# Options
+PRO=production
+DEV=dev
+
+# Containers
+SERVER_API="${APP_NAME}_api"
+BASE_CONTAINERS=("${APP_NAME}_postgres" "${APP_NAME}_redis" "${APP_NAME}_backup")
+ALL=("${BASE_CONTAINERS[@]}" "${SERVER_API}")
+TO_RUN=("${BASE_CONTAINERS[@]}")
+
 error_close() {
 	echo -e "\n${RED}ERROR - EXITED: ${YELLOW}$1${RESET}\n"
 	exit 1
+}
+
+# $1 string - question to ask
+ask_yn () {
+	printf "%b%s? [y/N]:%b " "${GREEN}" "$1" "${RESET}"
+}
+
+# return user input
+user_input() {
+	read -r data
+	echo "$data"
 }
 
 if ! [ -x "$(command -v dialog)" ]; then
@@ -39,37 +63,6 @@ set_base_dir() {
 
 set_base_dir
 
-error_close() {
-	echo -e "\n${RED}ERROR - EXITED: ${YELLOW}$1${RESET}\n"
-	exit 1
-}
-
-# $1 string - question to ask
-ask_yn() {
-	printf "\n%b%s? [y/N]:%b " "${GREEN}" "$1" "${RESET}"
-	if [[ ! "$(user_input)" =~ ^y$ ]]; then
-		exit
-	fi
-}
-
-# return user input
-user_input() {
-	read -r data
-	echo "$data"
-}
-
-APP_DIR="${BASE_DIR}/${APP_NAME}"
-DOCKER_DIR="${APP_DIR}/docker"
-
-# Options
-PRO=production
-DEV=dev
-
-# Containers
-SERVER_API="${APP_NAME}_api"
-BASE_CONTAINERS=("${APP_NAME}_postgres" "${APP_NAME}_redis" "${APP_NAME}_backup")
-ALL=("${BASE_CONTAINERS[@]}" "${SERVER_API}")
-TO_RUN=("${BASE_CONTAINERS[@]}")
 
 make_db_data() {
 	cd "${BASE_DIR}" || error_close "${BASE_DIR} doesn't exist"
