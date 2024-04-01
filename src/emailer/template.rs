@@ -133,9 +133,7 @@ impl EmailTemplate {
             Self::PasswordResetRequested(_) => Some(
                 "If you did not request a password reset then please ignore this email".to_owned(),
             ),
-            Self::Custom(custom_email) => {
-                custom_email.line_two.as_ref().map(std::clone::Clone::clone)
-            }
+            Self::Custom(custom_email) => custom_email.line_two.clone(),
             Self::Verify(_) => None,
         }
     }

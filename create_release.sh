@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # rust create_release
-# v0.5.3
+# v0.5.4
 
 STAR_LINE='****************************************'
 CWD=$(pwd)
@@ -34,12 +34,22 @@ user_input() {
 	echo "$data"
 }
 
+# ask continue, or quit
+ask_continue() {
+	ask_yn "continue"
+	if [[ ! "$(user_input)" =~ ^y$ ]]; then
+		exit
+	fi
+}
+
+# semver major update
 update_major() {
 	local bumped_major
 	bumped_major=$((MAJOR + 1))
 	echo "${bumped_major}.0.0"
 }
 
+# semver minor update
 update_minor() {
 	local bumped_minor
 	bumped_minor=$((MINOR + 1))
@@ -47,6 +57,7 @@ update_minor() {
 	echo "${MAJOR}.${bumped_minor}.0"
 }
 
+# semver patch update
 update_patch() {
 	local bumped_patch
 	bumped_patch=$((PATCH + 1))
@@ -86,14 +97,6 @@ ask_changelog_update() {
 	if [[ "$(user_input)" =~ ^y$ ]]; then
 		update_release_body_and_changelog "$RELEASE_BODY_TEXT"
 	else
-		exit
-	fi
-}
-
-# ask continue, or quit
-ask_continue() {
-	ask_yn "continue"
-	if [[ ! "$(user_input)" =~ ^y$ ]]; then
 		exit
 	fi
 }
@@ -194,6 +197,7 @@ cargo_test() {
 	ask_continue
 }
 
+# Check to see if cross is installed - if not then install
 check_cross() {
 	if ! [ -x "$(command -v cross)" ]; then
 		echo -e "${YELLOW}cargo install cross${RESET}"
@@ -201,11 +205,14 @@ check_cross() {
 	fi
 }
 
+# Build for linux x86
 cargo_build_x86() {
+	check_cross
 	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
 	cross build --target x86_64-unknown-linux-gnu --release
 }
 
+# Build for arm64
 cargo_build_aarch64() {
 	check_cross
 	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-gnu --release${RESET}"
@@ -225,6 +232,7 @@ release_continue() {
 	ask_continue
 }
 
+# Check repository for typos
 check_typos() {
 	echo -e "\n${YELLOW}checking for typos${RESET}"
 	typos
@@ -236,9 +244,11 @@ check_allow_unused() {
 	matches_any=$(find . -type d \( -name .git -o -name target \) -prune -o -type f -exec grep -lE '^#!\[allow\(unused\)\]$' {} +)
 	matches_cargo=$(grep "^unused = \"allow\"" ./Cargo.toml)
 	if [ -n "$matches_any" ]; then
-		error_close "\"#[allow(unused)]\" in ${matches_any}"
+		echo "\"#[allow(unused)]\" in ${matches_any}"
+		ask_continue
 	elif [ -n "$matches_cargo" ]; then
-		error_close "\"unused = \"allow\"\" in Cargo.toml"
+		echo  "\"unused = \"allow\"\" in Cargo.toml"
+		ask_continue
 	fi
 }
 

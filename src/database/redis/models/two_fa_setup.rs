@@ -33,7 +33,7 @@ impl RedisTwoFASetup {
         RedisKey::TwoFASetup(registered_user_id).to_string()
     }
 
-    // Insert new twofa secret & set ttl od 2 minutes
+    // Insert new twofa secret & set ttl of 2 minutes
     pub async fn insert(&self, redis: &RedisPool, user: &ModelUser) -> Result<&Self, ApiError> {
         let key = Self::key(user.registered_user_id);
         let session = serde_json::to_string(&self)?;
