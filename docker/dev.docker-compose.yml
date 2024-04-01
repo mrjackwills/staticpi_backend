@@ -1,4 +1,4 @@
-version: "3.8"
+
 networks:
   staticpi-net:
     name: staticpi-net
