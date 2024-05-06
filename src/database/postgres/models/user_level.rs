@@ -21,9 +21,9 @@ impl sqlx::Type<sqlx::Postgres> for UserLevel {
     }
 }
 
-impl From<String> for UserLevel {
-    fn from(user_level: String) -> Self {
-        match user_level.as_str() {
+impl From<&str> for UserLevel {
+    fn from(user_level: &str) -> Self {
+        match user_level {
             "admin" => Self::Admin,
             "pro" => Self::Pro,
             _ => Self::Free,
