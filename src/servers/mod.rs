@@ -301,7 +301,7 @@ async fn shutdown_signal(server_name: ServerName) {
 pub mod test_setup {
 
     use fred::clients::RedisPool;
-    use fred::interfaces::ServerInterface;
+    use fred::interfaces::ClientLike;
     use fred::interfaces::SetsInterface;
     use fred::types::Scanner;
     use futures::TryStreamExt;
