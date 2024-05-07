@@ -63,8 +63,8 @@ async fn clear_postgres_connections(app_env: &AppEnv) -> Result<(), ApiError> {
 async fn main() -> Result<(), ApiError> {
     let app_env = parse_env::AppEnv::get_env();
     setup_tracing(&app_env)?;
-	tracing::info!("{} - {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-	
+    tracing::info!("{} - {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+
     clear_postgres_connections(&app_env).await?;
     let connections = Arc::new(Mutex::new(Connections::default()));
 

@@ -1,20 +1,19 @@
-### 2024-04-01
+### 2024-05-07
 
 ### Chores
-+ create_release v0.5.4, [d01c4aa77aab7f18e82e5ab19a281b16879e18a2]
-+ dependencies updated, [1cf6935ff56e6b599061735724e00832d12f8490]
-
-### Docs
-+ typo, [e9fa744ce7e8dfe37f59fe48fc76fe9d7a92eb3e]
++ dependencies updated, [d5b3cfabed95357f3bec23468a3abdc622b5df80], [026d3e3330d348364a3320c1ee0acba66caa74f5], [009188855c57da335c80279fb0946190060234f0]
 
 ### Features
-+ use mimalloc, [0ce04c504e72f4cb4f5a10b7ef999baa30ea6895]
++ show name & version at application start, [90c046b4e45f6553f0d8525da3a0a34def7077bc]
 
 ### Fixes
-+ docker-compose api memory limit reduction, [3bd58f3a554f3f2e66dc0fe4f9a17512166478a5]
++ use .d directories, [5f0cc02aa49c3d136837f265463596ae29d3f2f]
++ delete_ip() missing joins, [766220cc7ef57c30505115999dbccc3042867db]
 
 ### Refactors
-+ redundant as ref clone, [485c8756b2c26c316e69a5fbe14be861dbbca5fd]
-+ remove docker-compose version, [cb7bfe02a5f6f91fb53704c2915a58b9cfb4506f]
++ use &str instead of String, [f39364f3e15c9b69d959f85fc30b22029b992f31]
+
+### Tests
++ redis dependency import, [29fb209d82379d9e491d707895778883be104681]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
