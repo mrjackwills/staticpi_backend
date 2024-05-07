@@ -72,6 +72,8 @@ WHERE
 			LEFT JOIN api_key USING(ip_id)
 			LEFT JOIN connection USING(ip_id)
 			LEFT JOIN device USING(ip_id)
+			LEFT JOIN email_log USING(ip_id)
+			LEFT JOIN invite_code USING(ip_id)
 			LEFT JOIN login_history USING(ip_id)
 			LEFT JOIN password_reset USING(ip_id)
 			LEFT JOIN registered_user USING(ip_id)
@@ -81,6 +83,8 @@ WHERE
 			api_key.ip_id IS NULL
 			AND connection.ip_id IS NULL
 			AND device.ip_id IS NULL
+			AND email_log.ip_id IS NULL
+			AND invite_code.ip_id IS NULL
 			AND login_history.ip_id IS NULL
 			AND password_reset.ip_id IS NULL
 			AND registered_user.ip_id IS NULL
@@ -112,7 +116,10 @@ WHERE
 		FROM
 			user_agent
 			LEFT JOIN api_key USING(user_agent_id)
+			LEFT JOIN connection USING(user_agent_id)
 			LEFT JOIN device USING(user_agent_id)
+			LEFT JOIN email_log USING(user_agent_id)
+			LEFT JOIN invite_code USING(user_agent_id)
 			LEFT JOIN login_history USING(user_agent_id)
 			LEFT JOIN password_reset USING(user_agent_id)
 			LEFT JOIN registered_user USING(user_agent_id)
@@ -120,7 +127,10 @@ WHERE
 			LEFT JOIN two_fa_secret USING(user_agent_id)
 		WHERE
 			api_key.ip_id IS NULL
+			AND connection.user_agent_id IS NULL
 			AND device.user_agent_id IS NULL
+			AND email_log.user_agent_id IS NULL
+			AND invite_code.user_agent_id IS NULL
 			AND login_history.user_agent_id IS NULL
 			AND password_reset.user_agent_id IS NULL
 			AND registered_user.user_agent_id IS NULL

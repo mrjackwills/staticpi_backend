@@ -57,7 +57,7 @@ RUN chmod +x /healthcheck/health_api.sh
 COPY --from=BUILDER /usr/src/staticpi/target/release/staticpi /app/
 
 # Copy from host filesystem - used when debugging
-# COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} target/release/adsbdb /app
+# COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} target/release/staticpi /app
 
 USER ${DOCKER_APP_USER}
 

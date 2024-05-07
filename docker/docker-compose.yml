@@ -5,12 +5,12 @@ networks:
 services:
   staticpi_postgres:
     hostname: staticpi_postgres
-    image: staticpi_postgres:0.0.12
+    image: staticpi_postgres:0.0.13
     container_name: staticpi_postgres
     build:
-      context:  $HOME/staticpi
-      dockerfile: $HOME/staticpi/docker/dockerfile/postgres.Dockerfile
-    env_file: $HOME/staticpi/docker/env/.postgres.env
+      context:  $HOME/staticpi.d
+      dockerfile: $HOME/staticpi.d/docker/dockerfile/postgres.Dockerfile
+    env_file: $HOME/staticpi.d/docker/env/.postgres.env
     cap_drop:
       - all
     security_opt:
@@ -19,7 +19,7 @@ services:
     restart: always
     shm_size: 256MB
     volumes:
-      - $HOME/databases/staticpi/pg_data:/pg_data
+      - $HOME/databases.d/staticpi/pg_data:/pg_data
     networks:
       - staticpi-net
     healthcheck:
@@ -32,15 +32,15 @@ services:
         limits:
           memory: 512M
   staticpi_redis:
-    image: staticpi_redis:0.0.12
+    image: staticpi_redis:0.0.13
     container_name: staticpi_redis
     hostname: staticpi_redis
     build:
-      context:  $HOME/staticpi
-      dockerfile: $HOME/staticpi/docker/dockerfile/redis.Dockerfile
-    env_file: $HOME/staticpi/docker/env/.redis.env
+      context:  $HOME/staticpi.d
+      dockerfile: $HOME/staticpi.d/docker/dockerfile/redis.Dockerfile
+    env_file: $HOME/staticpi.d/docker/env/.redis.env
     volumes:
-      - $HOME/databases/staticpi/redis_data:/redis_data
+      - $HOME/databases.d/staticpi/redis_data:/redis_data
     cap_drop:
       - all
     security_opt:
@@ -59,21 +59,21 @@ services:
         limits:
           memory: 64M
   staticpi_backup:
-    image: staticpi_backup:0.0.12
+    image: staticpi_backup:0.0.13
     container_name: staticpi_backup
     build:
       context: .
-      dockerfile: $HOME/staticpi/docker/dockerfile/backup.Dockerfile
-    env_file: $HOME/staticpi/docker/env/.backup.env
+      dockerfile: $HOME/staticpi.d/docker/dockerfile/backup.Dockerfile
+    env_file: $HOME/staticpi.d/docker/env/.backup.env
     cap_drop:
       - all
     security_opt:
       - no-new-privileges
     ipc: private
     volumes:
-      - $HOME/databases/staticpi/backups:/backups
-      - $HOME/databases/staticpi/redis_data:/redis_data:ro
-      - $HOME/logs/staticpi:/logs:ro
+      - $HOME/databases.d/staticpi/backups:/backups
+      - $HOME/databases.d/staticpi/redis_data:/redis_data:ro
+      - $HOME/logs.d/staticpi:/logs:ro
     networks:
       - staticpi-net
     logging:
@@ -89,16 +89,16 @@ services:
         limits:
           memory: 64MB
   staticpi_api:
-    image: staticpi_api:0.0.12
+    image: staticpi_api:0.0.13
     container_name: staticpi_api
     hostname: staticpi_api
     build:
-      context: $HOME/staticpi
+      context: $HOME/staticpi.d
       dockerfile: docker/dockerfile/api.Dockerfile
     volumes:
       - $HOME/logs/staticpi:/logs
-      - $HOME/staticpi/docker/env/.api.env:/app_env/.api.env:ro
-      - $HOME/databases/staticpi/redis_data:/redis_data:ro
+      - $HOME/staticpi.d/docker/env/.api.env:/app_env/.api.env:ro
+      - $HOME/databases.d/staticpi/redis_data:/redis_data:ro
     ports:
       - "127.0.0.1:8008:8008"
       - "127.0.0.1:8009:8009"

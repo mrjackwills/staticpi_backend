@@ -71,7 +71,7 @@ impl<'r> FromRow<'r, PgRow> for ModelUser {
             max_monthly_bandwidth_in_bytes: row.try_get("max_monthly_bandwidth_in_bytes")?,
             timestamp: row.try_get("timestamp")?,
             user_level_id: row.try_get("user_level_id")?,
-            user_level: UserLevel::from(row.try_get::<'r, String, &str>("user_level_name")?),
+            user_level: UserLevel::from(row.try_get::<'r, &str, &str>("user_level_name")?),
             custom_device_name: row.try_get("custom_device_name")?,
             device_password: row.try_get("device_password")?,
             structured_data: row.try_get("structured_data")?,
@@ -284,6 +284,7 @@ WHERE
             .execute(&mut *transaction)
             .await?;
 
+        // These are wrong
         ModelUserAgentIp::delete_ip(&mut transaction, redis).await?;
         ModelUserAgentIp::delete_useragent(&mut transaction, redis).await?;
 
