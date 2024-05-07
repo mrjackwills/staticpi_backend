@@ -284,7 +284,7 @@ WHERE
             .execute(&mut *transaction)
             .await?;
 
-		// These are wrong
+        // These are wrong
         ModelUserAgentIp::delete_ip(&mut transaction, redis).await?;
         ModelUserAgentIp::delete_useragent(&mut transaction, redis).await?;
 
