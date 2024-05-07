@@ -9,9 +9,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RESET='\033[0m'
 
-APP_DIR="${BASE_DIR}/${APP_NAME}"
-DOCKER_DIR="${APP_DIR}/docker"
-
 # Options
 PRO=production
 DEV=dev
@@ -28,7 +25,7 @@ error_close() {
 }
 
 # $1 string - question to ask
-ask_yn () {
+ask_yn() {
 	printf "%b%s? [y/N]:%b " "${GREEN}" "$1" "${RESET}"
 }
 
@@ -63,6 +60,9 @@ set_base_dir() {
 
 set_base_dir
 
+# These have to be set AFTER set_base_dir is executed
+APP_DIR="${BASE_DIR}/${APP_NAME}.d"
+DOCKER_DIR="${APP_DIR}/docker"
 
 make_db_data() {
 	cd "${BASE_DIR}" || error_close "${BASE_DIR} doesn't exist"
