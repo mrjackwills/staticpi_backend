@@ -309,8 +309,7 @@ WHERE
 DELETE FROM
 	registered_user_audit
 WHERE
-	(old_values -> 'registered_user_id')::BIGINT = $1
-	OR (new_values -> 'registered_user_id')::BIGINT = $1";
+	$1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)";
         sqlx::query(user_audit_query)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
@@ -319,8 +318,7 @@ WHERE
 DELETE FROM
 	device_audit
 WHERE
-	(old_values -> 'registered_user_id')::BIGINT = $1
-	OR (new_values -> 'registered_user_id')::BIGINT = $1";
+	$1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)";
         sqlx::query(device_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
@@ -329,8 +327,7 @@ WHERE
 DELETE FROM
 	api_key_audit
 WHERE
-	(old_values -> 'registered_user_id')::BIGINT = $1
-	OR (new_values -> 'registered_user_id')::BIGINT = $1";
+	$1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)";
         sqlx::query(api_key_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
@@ -339,8 +336,7 @@ WHERE
 DELETE FROM
 	two_fa_secret_audit
 WHERE
-	(old_values -> 'registered_user_id')::BIGINT = $1
-	OR (new_values -> 'registered_user_id')::BIGINT = $1";
+	$1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)";
         sqlx::query(two_fa_secret_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)
@@ -349,8 +345,7 @@ WHERE
 DELETE FROM
 	two_fa_backup_audit
 WHERE
-	(old_values -> 'registered_user_id')::BIGINT = $1
-	OR (new_values -> 'registered_user_id')::BIGINT = $1";
+	$1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)";
         sqlx::query(two_fa_backup_audit)
             .bind(self.registered_user_id.get())
             .execute(&mut *transaction)

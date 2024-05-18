@@ -503,7 +503,7 @@ pub mod test_setup {
 
         /// Remove test user from postgres
         pub async fn delete_test_users(&self) {
-            let query = r"DELETE FROM registered_user WHERE full_name = $1 OR full_name = $2;";
+            let query = r"DELETE FROM registered_user WHERE full_name IN ($1, $2);";
             sqlx::query(query)
                 .bind(ANON_FULL_NAME)
                 .bind(TEST_FULL_NAME)
@@ -511,7 +511,7 @@ pub mod test_setup {
                 .await
                 .unwrap();
 
-            let query = r"DELETE FROM email_address WHERE email = $1 OR EMAIL = $2;";
+            let query = r"DELETE FROM email_address WHERE email IN ($1, $2);";
             sqlx::query(query)
                 .bind(TEST_EMAIL)
                 .bind(ANON_EMAIL)
