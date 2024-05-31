@@ -1,11 +1,5 @@
 mod models;
-use crate::api_error::ApiError;
 pub use models::*;
-
-pub trait FromModel<T> {
-    type Item;
-    fn from_model(t: T) -> Result<Self::Item, ApiError>;
-}
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Count {
