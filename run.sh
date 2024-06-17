@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# run.sh v0.2.1
+# 2024-06-04
+# run.sh v0.3.0
 
 APP_NAME='staticpi'
 
@@ -12,6 +13,9 @@ RESET='\033[0m'
 # Options
 PRO=production
 DEV=dev
+
+# Get the directory of the script
+APP_DIR=$(dirname "$(readlink -f "$0")")
 
 # Containers
 SERVER_API="${APP_NAME}_api"
@@ -60,31 +64,27 @@ set_base_dir() {
 
 set_base_dir
 
-# These have to be set AFTER set_base_dir is executed
-APP_DIR="${BASE_DIR}/${APP_NAME}.d"
 DOCKER_DIR="${APP_DIR}/docker"
 
 make_db_data() {
-	cd "${BASE_DIR}" || error_close "${BASE_DIR} doesn't exist"
 	local pg_data="${BASE_DIR}/databases.d/${APP_NAME}/pg_data"
 	local redis_data="${BASE_DIR}/databases.d/${APP_NAME}/redis_data"
 
 	for DIRECTORY in $pg_data $redis_data; do
 		if [[ ! -d "$DIRECTORY" ]]; then
+			echo -e "${GREEN}making directory:${RESET} \"$DIRECTORY\""
 			mkdir -p "$DIRECTORY"
 		fi
 	done
-	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-
 }
 
 make_logs_directories() {
 	cd "${BASE_DIR}" || error_close "${BASE_DIR} doesn't exist"
-	local logs_dir="${BASE_DIR}/logs/${APP_NAME}"
+	local logs_dir="${BASE_DIR}/logs.d/${APP_NAME}"
 	if [[ ! -d "$logs_dir" ]]; then
+		echo -e "${GREEN}making directory:${RESET} \"$DIRECTORY\""
 		mkdir -p "$logs_dir"
 	fi
-	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
 }
 
 make_all_directories() {
@@ -217,12 +217,10 @@ main() {
 			;;
 		6)
 			pull_branch
+			break;
 			;;
 		esac
 	done
 }
 
 main
-
-# ask if setup cron!
-# */30 * * * * docker restart staticpi_backup

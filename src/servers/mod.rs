@@ -503,7 +503,7 @@ pub mod test_setup {
 
         /// Remove test user from postgres
         pub async fn delete_test_users(&self) {
-            let query = r"DELETE FROM registered_user WHERE full_name = $1 OR full_name = $2;";
+            let query = r"DELETE FROM registered_user WHERE full_name IN ($1, $2);";
             sqlx::query(query)
                 .bind(ANON_FULL_NAME)
                 .bind(TEST_FULL_NAME)
@@ -511,7 +511,7 @@ pub mod test_setup {
                 .await
                 .unwrap();
 
-            let query = r"DELETE FROM email_address WHERE email = $1 OR EMAIL = $2;";
+            let query = r"DELETE FROM email_address WHERE email IN ($1, $2);";
             sqlx::query(query)
                 .bind(TEST_EMAIL)
                 .bind(ANON_EMAIL)
@@ -897,7 +897,7 @@ pub mod test_setup {
             result.as_str().unwrap().to_owned()
         }
 
-        pub async fn get_access_code(&self, device_type: ConnectionType, index: usize) -> Url {
+        pub async fn get_access_code(&self, device_type: ConnectionType, index: usize) -> String {
             let device = self.query_user_active_devices().await[index].clone();
             let url = format!("{}/{}", &token_base_url(&self.app_env), device_type);
             let body = HashMap::from([("key", device.api_key_string)]);
@@ -908,13 +908,13 @@ pub mod test_setup {
                 .await
                 .unwrap();
             let result = result.json::<Response>().await.unwrap().response;
-            Url::parse(&format!(
+
+            format!(
                 "{}/{}/{}",
                 ws_base_url(&self.app_env),
                 device_type,
                 result.as_str().unwrap()
-            ))
-            .unwrap()
+            )
         }
 
         pub async fn get_anon_access_code(&self, device_type: ConnectionType, index: usize) -> Url {

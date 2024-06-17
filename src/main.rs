@@ -62,7 +62,12 @@ async fn clear_postgres_connections(app_env: &AppEnv) -> Result<(), ApiError> {
 #[tokio::main]
 async fn main() -> Result<(), ApiError> {
     let app_env = parse_env::AppEnv::get_env();
-    setup_tracing(&app_env)?;
+
+    if let Err(e) = setup_tracing(&app_env) {
+        println!("tracing error: {e}");
+        std::process::exit(1);
+    }
+
     tracing::info!("{} - {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
 
     clear_postgres_connections(&app_env).await?;

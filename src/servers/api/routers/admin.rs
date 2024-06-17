@@ -500,7 +500,7 @@ mod tests {
 
     use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
-    use reqwest::{Client, StatusCode, Url};
+    use reqwest::{Client, StatusCode};
     use std::collections::HashMap;
     use time::OffsetDateTime;
     use tokio_tungstenite::connect_async;
@@ -820,10 +820,10 @@ mod tests {
 
         test_setup.insert_device(&authed_cookie, None).await;
         let ws_pi_url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let ws_pi = connect_async(&ws_pi_url).await;
+        let ws_pi = connect_async(ws_pi_url.as_str()).await;
         assert!(ws_pi.is_ok());
         let ws_client_url = test_setup.get_access_code(ConnectionType::Client, 0).await;
-        let ws_client = connect_async(&ws_client_url).await;
+        let ws_client = connect_async(ws_client_url.as_str()).await;
         assert!(ws_client.is_ok());
 
         let msg_text = "some_text";
@@ -832,9 +832,9 @@ mod tests {
         let ws_base_url = format!("ws://127.0.0.1:{}", test_setup.app_env.ws_port);
 
         let _ratelimit_key = "ratelimit::ip::127.0.0.1";
-        let ws_url = Url::parse(&format!("{ws_base_url}/online")).unwrap();
+        let ws_url = format!("{ws_base_url}/online");
         for _ in 1..=181 {
-            connect_async(&ws_url).await.ok();
+            connect_async(ws_url.as_str()).await.ok();
         }
 
         let client = TestSetup::get_client();
@@ -2352,12 +2352,12 @@ mod tests {
 
         let device_name = test_setup.insert_device(&anon_user_cookie, None).await;
         let ws_pi_url = test_setup.get_anon_access_code(ConnectionType::Pi, 0).await;
-        let ws_pi = connect_async(&ws_pi_url).await;
+        let ws_pi = connect_async(ws_pi_url.as_str()).await;
         assert!(ws_pi.is_ok());
         let ws_client_url = test_setup
             .get_anon_access_code(ConnectionType::Client, 0)
             .await;
-        let ws_client = connect_async(&ws_client_url).await;
+        let ws_client = connect_async(ws_client_url.as_str()).await;
         assert!(ws_client.is_ok());
 
         let url = format!(

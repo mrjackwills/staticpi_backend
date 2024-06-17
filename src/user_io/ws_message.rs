@@ -15,10 +15,6 @@ pub mod wm {
         MonthlyBandwidth,
     }
 
-    pub trait MsgString {
-        fn msg_string(&self) -> String;
-    }
-
     impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             write!(
@@ -42,8 +38,6 @@ pub mod wm {
         )]
         pub unique: Option<Ulid>,
     }
-
-    // redis_hash_to_struct!(PiBody);
 
     impl fmt::Display for PiBody {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -227,7 +227,7 @@ impl PiConnections {
     }
 
     fn is_alive(&self, device_id: DeviceId) -> bool {
-        self.0.get(&device_id).is_some()
+        self.0.contains_key(&device_id)
     }
 
     fn insert(&mut self, ws_sender: WsSender) {

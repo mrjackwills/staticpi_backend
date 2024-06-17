@@ -1,19 +1,22 @@
-### 2024-05-07
+### 2024-06-17
 
 ### Chores
-+ dependencies updated, [d5b3cfabed95357f3bec23468a3abdc622b5df80], [026d3e3330d348364a3320c1ee0acba66caa74f5], [009188855c57da335c80279fb0946190060234f0]
++ dependencies updated, [95d94b9299574fca5c43f5852b11677029f26d14], [f0cedb14a3eaaad39050b359c4b5591da51e0aa6]
++ Docker alpine version bump, [52f41024fb5359595f3455337143a776247fe056]
++ linting, [4481bdf46b9dbf2e0996686cf066218bac84cb77]
++ run.sh v0.3.0, [37d20bdf841b9b5860f925e84c6b9251a4a68b9c]
++ dependencies updated, [3b19f347bca60d48a152119c7d8dbc9a7a8e0337]
 
 ### Features
-+ show name & version at application start, [90c046b4e45f6553f0d8525da3a0a34def7077bc]
++ exit on tracing error, [861c835a90e40a6a9abcd7d80fb3387a52dc68d6]
 
 ### Fixes
-+ use .d directories, [5f0cc02aa49c3d136837f265463596ae29d3f2f]
-+ delete_ip() missing joins, [766220cc7ef57c30505115999dbccc3042867db]
++ connect_async tests, [9bc2a3e8b44b026d6bfeebf9044ac4cbba3bb360]
++ docker log mount location, [60c241edcd614eec6fb541552e2e25dd8fac6ff9]
++ init_db.sql error, [f44e12e7f509085b8bf9259c426b4bf2cb59105b]
 
 ### Refactors
-+ use &str instead of String, [f39364f3e15c9b69d959f85fc30b22029b992f31]
-
-### Tests
-+ redis dependency import, [29fb209d82379d9e491d707895778883be104681]
++ dead code removed, [2184c089b05d1b8de4e0125672d6e78b07900616]
++ replace OR with IN operator, [45c3b7dbb41492ef945740743ece2b50891498bb]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
