@@ -509,7 +509,7 @@ mod tests {
         let test_setup = start_servers().await;
         sleep!(1000);
         let url = Url::parse(&format!("{}/online", ws_base_url(&test_setup.app_env))).unwrap();
-        let (socket, _) = connect_async(url).await.unwrap();
+        let (socket, _) = connect_async(url.as_str()).await.unwrap();
         let (_, mut rx) = socket.split();
         let result: Value =
             serde_json::from_str(&rx.next().await.unwrap().unwrap().into_text().unwrap()).unwrap();
@@ -526,13 +526,13 @@ mod tests {
 
         let url = Url::parse(&format!("{}/online", ws_base_url(&test_setup.app_env))).unwrap();
         for _ in 1..=44 {
-            let (socket, _) = connect_async(&url).await.unwrap();
+            let (socket, _) = connect_async(url.as_str()).await.unwrap();
             let (_, mut rx) = socket.split();
             rx.next().await;
         }
 
         // 89 request is fine
-        let (socket, _) = connect_async(&url).await.unwrap();
+        let (socket, _) = connect_async(url.as_str()).await.unwrap();
         let (_, mut rx) = socket.split();
         let result: Value =
             serde_json::from_str(&rx.next().await.unwrap().unwrap().into_text().unwrap()).unwrap();
@@ -542,7 +542,7 @@ mod tests {
         assert!(closed);
 
         // 90+ request is rate limited
-        match connect_async(&url).await.unwrap_err() {
+        match connect_async(url.as_str()).await.unwrap_err() {
             Error::Http(response) => {
                 assert_eq!(response.status(), axum::http::StatusCode::TOO_MANY_REQUESTS)
             }
@@ -572,7 +572,7 @@ mod tests {
             .await
             .unwrap();
 
-        match connect_async(&url).await.unwrap_err() {
+        match connect_async(url.as_str()).await.unwrap_err() {
             Error::Http(response) => {
                 assert_eq!(response.status(), axum::http::StatusCode::TOO_MANY_REQUESTS)
             }
@@ -588,7 +588,7 @@ mod tests {
         assert_eq!(ttl, 300);
 
         sleep!(1000);
-        assert!(connect_async(&url).await.is_err());
+        assert!(connect_async(url.as_str()).await.is_err());
         let ttl = test_setup
             .redis
             .ttl::<usize, &str>(ratelimit_key)
