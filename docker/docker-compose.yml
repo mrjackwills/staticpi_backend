@@ -96,7 +96,7 @@ services:
       context: $HOME/staticpi.d
       dockerfile: docker/dockerfile/api.Dockerfile
     volumes:
-      - $HOME/logs/staticpi:/logs
+      - $HOME/logs.d/staticpi:/logs
       - $HOME/staticpi.d/docker/env/.api.env:/app_env/.api.env:ro
       - $HOME/databases.d/staticpi/redis_data:/redis_data:ro
     ports:
