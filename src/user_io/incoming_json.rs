@@ -305,31 +305,6 @@ pub mod ij {
 
     #[derive(Debug, Deserialize)]
     #[serde(deny_unknown_fields)]
-    #[cfg_attr(test, derive(Serialize))]
-    pub struct UserPatch {
-        pub active: Option<bool>,
-        pub attempt: Option<bool>,
-        #[serde(default, deserialize_with = "is::option_id")]
-        pub password_reset_id: Option<i64>,
-        pub reset: Option<bool>,
-        pub two_fa_secret: Option<bool>,
-    }
-
-    #[derive(Debug, Deserialize)]
-    #[serde(deny_unknown_fields)]
-    #[cfg_attr(test, derive(Serialize))]
-    pub struct EmailPost {
-        #[serde(deserialize_with = "is::vec_email")]
-        pub emails: Vec<String>,
-        pub title: String,
-        pub line_one: String,
-        pub line_two: Option<String>,
-        pub button_text: Option<String>,
-        pub link: Option<String>,
-    }
-
-    #[derive(Debug, Deserialize)]
-    #[serde(deny_unknown_fields)]
     pub struct AuthKeyPassword {
         pub key: String,
         pub password: Option<String>,

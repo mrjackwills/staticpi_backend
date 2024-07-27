@@ -468,7 +468,7 @@ WHERE
     }
 
     /// Toggle the devices paused state
-    pub async fn update_paused(&mut self, postgres: &PgPool, pause: bool) -> Result<(), ApiError> {
+    pub async fn update_paused(&self, postgres: &PgPool, pause: bool) -> Result<(), ApiError> {
         let query = "
 UPDATE
 	device
@@ -486,7 +486,7 @@ WHERE
 
     /// Update a devices devce/client password
     pub async fn update_password(
-        &mut self,
+        &self,
         postgres: &PgPool,
         set_password: ij::ClientDevicePassword,
     ) -> Result<(), ApiError> {
@@ -524,7 +524,7 @@ WHERE
     }
 
     /// Remove password from a device
-    pub async fn remove_password(&mut self, postgres: &PgPool) -> Result<(), ApiError> {
+    pub async fn remove_password(&self, postgres: &PgPool) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
 
         let query = "
@@ -553,7 +553,7 @@ WHERE
 
     /// Toggle a devices strucuted data setting
     pub async fn update_structured_data(
-        &mut self,
+        &self,
         postgres: &PgPool,
         structured_data: bool,
     ) -> Result<(), ApiError> {
@@ -574,7 +574,7 @@ WHERE
 
     /// Alter devices max_client setting
     pub async fn update_max_client(
-        &mut self,
+        &self,
         postgres: &PgPool,
         max_clients: i16,
     ) -> Result<(), ApiError> {
@@ -594,7 +594,7 @@ WHERE
     }
 
     /// Alter devices name
-    pub async fn update_name(&mut self, postgres: &PgPool, name: String) -> Result<(), ApiError> {
+    pub async fn update_name(&self, postgres: &PgPool, name: String) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
         let device_name = DeviceName::insert(&mut transaction, &name).await?;
         let query = "

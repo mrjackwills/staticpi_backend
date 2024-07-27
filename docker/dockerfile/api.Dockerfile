@@ -2,7 +2,7 @@
 ## Builder ##
 #############
 
-FROM rust:slim as BUILDER
+FROM rust:slim AS builder
 
 WORKDIR /usr/src
 
@@ -34,7 +34,7 @@ RUN cargo build --release
 # This can then be scratch
 
 # FROM debian:bullseye-slim AS RUNTIME
-FROM ubuntu:22.04 AS RUNTIME
+FROM ubuntu:22.04
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \
@@ -54,7 +54,7 @@ WORKDIR /app
 COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} ./docker/healthcheck/health_api.sh /healthcheck/
 RUN chmod +x /healthcheck/health_api.sh
 
-COPY --from=BUILDER /usr/src/staticpi/target/release/staticpi /app/
+COPY --from=builder /usr/src/staticpi/target/release/staticpi /app/
 
 # Copy from host filesystem - used when debugging
 # COPY --chown=${DOCKER_APP_USER}:${DOCKER_APP_GROUP} target/release/staticpi /app

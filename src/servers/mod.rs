@@ -315,7 +315,6 @@ pub mod test_setup {
     use std::net::Ipv4Addr;
     use std::sync::Arc;
     use tokio::sync::Mutex;
-    use tokio::task::JoinHandle;
 
     use crate::connections::ConnectionType;
     use crate::connections::Connections;
@@ -371,9 +370,6 @@ pub mod test_setup {
     #[derive(sqlx::FromRow, Debug, Clone)]
     pub struct DeviceQuery {
         pub device_id: DeviceId,
-        pub registered_user_id: UserId,
-        pub ip_id: IpId,
-        pub user_agent_id: UserAgentId,
         pub api_key_id: ApiKeyId,
         pub api_key_string: String,
         pub device_name_id: DeviceNameId,
@@ -382,13 +378,9 @@ pub mod test_setup {
         pub client_password_id: Option<DevicePasswordId>,
         pub device_password_id: Option<DevicePasswordId>,
         pub max_clients: i16,
-        pub active: bool,
     }
 
     pub struct TestSetup {
-        pub token_handle: Option<JoinHandle<()>>,
-        pub ws_handle: Option<JoinHandle<()>>,
-        pub api_handle: Option<JoinHandle<()>>,
         pub app_env: AppEnv,
         pub redis: RedisPool,
         pub postgres: PgPool,
@@ -1041,9 +1033,6 @@ pub mod test_setup {
         let postgres = db_postgres::db_pool(&app_env).await.unwrap();
         let redis = DbRedis::get_pool(&app_env).await.unwrap();
         let mut test_setup = TestSetup {
-            api_handle: None,
-            token_handle: None,
-            ws_handle: None,
             app_env,
             postgres,
             redis,
@@ -1083,7 +1072,7 @@ pub mod test_setup {
             server_name: ServerName::Api,
         };
 
-        let api_handle = tokio::spawn(async {
+        tokio::spawn(async {
             ApiServer::serve(api_data).await.unwrap();
         });
 
@@ -1096,7 +1085,7 @@ pub mod test_setup {
             server_name: ServerName::Token,
         };
 
-        let auth_handle = tokio::spawn(async {
+        tokio::spawn(async {
             TokenServer::serve(auth_data).await.unwrap();
         });
 
@@ -1109,7 +1098,7 @@ pub mod test_setup {
             server_name: ServerName::Ws,
         };
 
-        let ws_handle = tokio::spawn(async {
+        tokio::spawn(async {
             WsServer::serve(ws_data).await.unwrap();
         });
 
@@ -1117,9 +1106,6 @@ pub mod test_setup {
         sleep!(1);
 
         TestSetup {
-            api_handle: Some(api_handle),
-            token_handle: Some(auth_handle),
-            ws_handle: Some(ws_handle),
             app_env: setup.app_env,
             redis: setup.redis,
             postgres: setup.postgres,

@@ -12,7 +12,7 @@ pub mod db_postgres {
     use sqlx::{postgres::PgPoolOptions, ConnectOptions, PgPool};
 
     pub async fn db_pool(app_env: &AppEnv) -> Result<PgPool, ApiError> {
-        let mut options = sqlx::postgres::PgConnectOptions::new()
+        let mut options = sqlx::postgres::PgConnectOptions::new_without_pgpass()
             .host(&app_env.pg_host)
             .port(app_env.pg_port)
             .database(&app_env.pg_database)
