@@ -282,8 +282,7 @@ impl DeviceRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::DevicePause>,
     ) -> Result<StatusCode, ApiError> {
         // Get device, then operate on device::update etc!
-        if let Some(device) =
-            ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
+        if let Some(device) = ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
         {
             device.update_paused(&state.postgres, body.pause).await?;
             if body.pause {
