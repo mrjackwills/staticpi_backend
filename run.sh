@@ -106,6 +106,9 @@ dev_down() {
 
 production_up() {
 	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
+	if [[ "$(user_input)" =~ ^n$ ]]; then
+		exit
+	fi
 	make_all_directories
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
 	docker compose -f docker-compose.yml up -d
@@ -119,6 +122,9 @@ production_down() {
 
 production_rebuild() {
 	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
+	if [[ "$(user_input)" =~ ^n$ ]]; then
+		exit
+	fi
 	make_all_directories
 	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
 	docker compose -f docker-compose.yml up -d --build
