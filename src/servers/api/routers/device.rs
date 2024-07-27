@@ -282,7 +282,7 @@ impl DeviceRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::DevicePause>,
     ) -> Result<StatusCode, ApiError> {
         // Get device, then operate on device::update etc!
-        if let Some(mut device) =
+        if let Some(device) =
             ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
         {
             device.update_paused(&state.postgres, body.pause).await?;
@@ -309,7 +309,7 @@ impl DeviceRouter {
     ) -> Result<StatusCode, ApiError> {
         // Get device, then operate on device::update etc!
         if user.structured_data {
-            if let Some(mut device) =
+            if let Some(device) =
                 ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
             {
                 device
@@ -343,7 +343,7 @@ impl DeviceRouter {
     ) -> Result<StatusCode, ApiError> {
         if user.device_password {
             // Get device, then operate on device::update etc!
-            if let Some(mut device) =
+            if let Some(device) =
                 ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
             {
                 if authentication::check_password_op_token(
@@ -377,7 +377,7 @@ impl DeviceRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::ClientDevicePassword>,
     ) -> Result<StatusCode, ApiError> {
         if user.device_password {
-            if let Some(mut device) =
+            if let Some(device) =
                 ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
             {
                 device.update_password(&state.postgres, body).await?;
@@ -407,7 +407,7 @@ impl DeviceRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::DeviceRename>,
     ) -> Result<StatusCode, ApiError> {
         if user.custom_device_name {
-            if let Some(mut device) =
+            if let Some(device) =
                 ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
             {
                 if ModelDevice::get_by_name(&state.postgres, &user, &body.new_name)
@@ -437,7 +437,7 @@ impl DeviceRouter {
         // This isn't great
         if user.max_clients_per_device > 1 {
             if (1..=user.max_clients_per_device).contains(&body.max_clients) {
-                if let Some(mut device) =
+                if let Some(device) =
                     ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
                 {
                     device

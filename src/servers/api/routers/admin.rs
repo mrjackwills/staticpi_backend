@@ -360,7 +360,7 @@ impl AdminRouter {
             return Err(ApiError::Authorization);
         }
         if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
-            if let Some(mut device) =
+            if let Some(device) =
                 ModelDevice::get_by_name(&state.postgres, &model_user, &device_name).await?
             {
                 state
