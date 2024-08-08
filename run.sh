@@ -120,7 +120,6 @@ production_down() {
 	docker compose -f docker-compose.yml down
 }
 
-/ Fix this
 production_rebuild() {
 	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
 	if [[ "$(user_input)" =~ ^n$ ]]; then
