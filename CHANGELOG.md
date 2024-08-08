@@ -1,8 +1,11 @@
+# <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.16'>v0.0.16</a>
+### 2024-08-08
+
 ### Features
-+ implement user device cache management, [676d7038d042fb944cd573f42de03633b166cc8f]
++ implement user device cache management, [676d7038](https://github.com/mrjackwills/staticpi_backend/commit/676d7038d042fb944cd573f42de03633b166cc8f),
 
 ### Refactors
-+ replace OnceCell with std::sync::LazyLock, [c65938271430bebf776c1c7b46cf4e3958209e2f]
++ replace OnceCell with std::sync::LazyLock, [c6593827](https://github.com/mrjackwills/staticpi_backend/commit/c65938271430bebf776c1c7b46cf4e3958209e2f),
 
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.15'>v0.0.15</a>
 ### 2024-07-27
