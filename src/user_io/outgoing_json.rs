@@ -40,6 +40,11 @@ pub mod oj {
     }
 
     #[derive(Serialize)]
+    pub struct DeviceMessageCache {
+        pub cache: String,
+    }
+
+    #[derive(Serialize)]
     pub struct PasswordReset {
         pub two_fa_active: bool,
         pub two_fa_backup: bool,

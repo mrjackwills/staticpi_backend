@@ -1,9 +1,9 @@
-use std::sync::LazyLock;
 use regex::Regex;
 use serde::{
     de::{self, IntoDeserializer},
     Deserialize, Deserializer,
 };
+use std::sync::LazyLock;
 use ulid::Ulid;
 
 use crate::{

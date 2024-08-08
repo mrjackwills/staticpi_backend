@@ -96,7 +96,7 @@ mod tests {
 
     use rand::{distributions::Alphanumeric, Rng};
     use regex::Regex;
-	use std::sync::LazyLock;
+    use std::sync::LazyLock;
 
     use super::*;
     static ARGON_REGEX: LazyLock<Regex> = LazyLock::new(|| {
