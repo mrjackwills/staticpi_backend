@@ -16,6 +16,7 @@ use crate::{
         message_cache::MessageCache,
         rate_limit::RateLimit,
         user::ModelUser,
+        user_level::UserLevel,
     },
     define_routes,
     servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
@@ -35,19 +36,21 @@ define_routes! {
     NamedPassword => "/:name/password",
     NamedPause => "/:name/pause",
     NamedRename => "/:name/rename",
-    NamedStructured => "/:name/structured_data"
+    NamedStructured => "/:name/structured_data",
+    NamedCache => "/:name/cache"
 }
 
 // This is shared, should put elsewhere
 enum DeviceResponse {
     AtMax,
-    FreeName,
     FreeMaxClients,
+    FreeName,
     FreePassword,
     FreeStructured,
-    Unknown,
     MaxClients,
     NameInUse,
+    NotStructured,
+    Unknown,
 }
 
 impl fmt::Display for DeviceResponse {
@@ -61,6 +64,7 @@ impl fmt::Display for DeviceResponse {
             Self::MaxClients => "Max clients invalid",
             Self::NameInUse => "Device with given name already exists",
             Self::Unknown => "Unknown device",
+            Self::NotStructured => "Structured data is not enabled for this device",
         };
         write!(f, "{disp}")
     }
@@ -100,6 +104,10 @@ impl ApiRouter for DeviceRouter {
             .route(
                 &DeviceRoutes::NamedPassword.addr(),
                 delete(Self::named_password_delete).patch(Self::named_password_patch),
+            )
+            .route(
+                &DeviceRoutes::NamedCache.addr(),
+                delete(Self::named_cache_delete).get(Self::named_cache_get),
             )
             .route(
                 &DeviceRoutes::Named.addr(),
@@ -299,38 +307,97 @@ impl DeviceRouter {
         }
     }
 
-    /// Rename a device, only if none free user
+    /// Remove structure data from device
     async fn named_structured_patch(
         State(state): State<ApplicationState>,
         user: ModelUser,
         Path(device_name): Path<String>,
         ij::IncomingJson(body): ij::IncomingJson<ij::DeviceStructured>,
     ) -> Result<StatusCode, ApiError> {
-        // Get device, then operate on device::update etc!
-        if user.structured_data {
-            if let Some(device) =
-                ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-            {
-                device
-                    .update_structured_data(&state.postgres, body.structured_data)
-                    .await?;
-
-                // kill all connections
-                state
-                    .connections
-                    .lock()
-                    .await
-                    .close_by_single_device_id(device.device_id)
-                    .await;
-
-                MessageCache::delete(&state.redis, device.device_id).await?;
-                Ok(StatusCode::OK)
-            } else {
-                Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
-            }
+        if user.user_level == UserLevel::Free {
+            Err(ApiError::Authentication)
         } else {
-            Err(ApiError::InvalidValue(DeviceResponse::FreeName.to_string()))
+            // Get device, then operate on device::update etc!
+            if user.structured_data {
+                if let Some(device) =
+                    ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
+                {
+                    device
+                        .update_structured_data(&state.postgres, body.structured_data)
+                        .await?;
+
+                    // kill all connections
+                    state
+                        .connections
+                        .lock()
+                        .await
+                        .close_by_single_device_id(device.device_id)
+                        .await;
+
+                    MessageCache::delete(&state.redis, device.device_id).await?;
+                    Ok(StatusCode::OK)
+                } else {
+                    Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+                }
+            } else {
+                // this is the wrong response
+                Err(ApiError::InvalidValue(
+                    DeviceResponse::NotStructured.to_string(),
+                ))
+            }
         }
+    }
+
+    /// Remove a device cache
+    async fn named_cache_delete(
+        State(state): State<ApplicationState>,
+        user: ModelUser,
+        Path(device_name): Path<String>,
+        ij::IncomingJson(body): ij::IncomingJson<ij::PasswordToken>,
+    ) -> Result<StatusCode, ApiError> {
+        if user.user_level == UserLevel::Free {
+            return Err(ApiError::Authentication);
+        }
+        if let Some(device) = ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
+        {
+            if !authentication::check_password_op_token(
+                &user,
+                &body.password,
+                body.token,
+                &state.postgres,
+            )
+            .await?
+            {
+                return Err(ApiError::Authorization);
+            }
+            MessageCache::delete(&state.redis, device.device_id).await?;
+            return Ok(StatusCode::OK);
+        }
+
+        Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+    }
+
+    /// Retrieve a device cache
+    async fn named_cache_get(
+        State(state): State<ApplicationState>,
+        user: ModelUser,
+        Path(device_name): Path<String>,
+    ) -> Result<StatusOJ<oj::DeviceMessageCache>, ApiError> {
+        if user.user_level == UserLevel::Free {
+            return Err(ApiError::Authentication);
+        }
+        if let Some(device) = ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
+        {
+            let cache = MessageCache::get(&state.redis, device.device_id)
+                .await?
+                .map_or_else(String::new, |i| i.data.to_string());
+
+            return Ok((
+                StatusCode::OK,
+                oj::OutgoingJson::new(oj::DeviceMessageCache { cache }),
+            ));
+        }
+        Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
     }
 
     /// Remove a device password
@@ -375,6 +442,7 @@ impl DeviceRouter {
         Path(device_name): Path<String>,
         ij::IncomingJson(body): ij::IncomingJson<ij::ClientDevicePassword>,
     ) -> Result<StatusCode, ApiError> {
+        // user level here, instead of password
         if user.device_password {
             if let Some(device) =
                 ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
@@ -1486,7 +1554,6 @@ mod tests {
             .unwrap();
         assert_eq!(result.status(), StatusCode::BAD_REQUEST);
         let result = result.json::<Response>().await.unwrap().response;
-        // let result = result.text().await.unwrap();
         assert_eq!(result, "missing password");
 
         // Invalid password sent
@@ -2597,6 +2664,375 @@ mod tests {
     }
 
     // ******************
+    // * GET - cache *
+    // ******************
+
+    #[tokio::test]
+    // Unauthenticated user unable to access [GET] /device/:some_name/cache route
+    async fn device_router_user_get_user_get_cache_unauthenticated() {
+        let test_setup = start_servers().await;
+        let random_name = gen_random_hex(12);
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            random_name
+        );
+
+        let client = TestSetup::get_client();
+
+        let resp = client.get(url).send().await.unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        let result = resp.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Invalid Authentication");
+    }
+
+    #[tokio::test]
+    /// Free user unable to access route
+    async fn device_router_user_named_device_get_cache_free_user_invalid() {
+        let mut test_setup = start_servers().await;
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        let device_name = test_setup.insert_device(&authed_cookie, None).await;
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            device_name
+        );
+
+        let resp = client
+            .get(&url)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        let result = resp.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Invalid Authentication");
+    }
+
+    #[tokio::test]
+    // Return 400 if device not known
+    async fn device_router_user_named_device_get_cache_unknown_device() {
+        let mut test_setup = start_servers().await;
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.insert_device(&authed_cookie, None).await;
+        test_setup.change_user_level(UserLevel::Pro).await;
+
+        let random_name = gen_random_hex(12);
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            random_name
+        );
+
+        let resp = client
+            .get(&url)
+            .header("cookie", authed_cookie)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let result = resp.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Unknown device");
+    }
+
+    #[tokio::test]
+    /// Anon user can't get the cache of the device of another user
+    async fn device_router_user_named_device_get_cache_key_anon_invalid() {
+        let mut test_setup = start_servers().await;
+
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.change_user_level(UserLevel::Pro).await;
+        let device_name = test_setup
+            .insert_device(
+                &authed_cookie,
+                Some(DevicePost {
+                    max_clients: 2,
+                    client_password: None,
+                    device_password: None,
+                    structured_data: true,
+                    name: None,
+                }),
+            )
+            .await;
+        test_setup.insert_anon_user().await;
+        let anon_user_cookie = test_setup.anon_user_cookie().await;
+        test_setup.change_anon_user_level(UserLevel::Pro).await;
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            device_name
+        );
+
+        let result = client
+            .get(&url)
+            .header("cookie", &anon_user_cookie.unwrap())
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(result.status(), StatusCode::BAD_REQUEST);
+        let result = result.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Unknown device");
+    }
+
+    #[tokio::test]
+    /// Delete message cache valid
+    async fn device_router_user_named_device_get_cache_valid() {
+        let mut test_setup = start_servers().await;
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.change_user_level(UserLevel::Pro).await;
+        let device_name = test_setup
+            .insert_device(
+                &authed_cookie,
+                Some(DevicePost {
+                    max_clients: 2,
+                    client_password: None,
+                    device_password: None,
+                    structured_data: true,
+                    name: None,
+                }),
+            )
+            .await;
+
+        let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
+        let (mut ws_pi, _) = connect_async(&url).await.unwrap();
+        let msg_text = r#"{"data":"ws_pi_01", "cache": true}"#;
+        let msg = Message::from(msg_text);
+        ws_pi.send(msg).await.unwrap();
+
+        // Sleep as inserted on own thread
+        sleep!(1000);
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
+
+        assert_eq!(message_caches.len(), 1);
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            device_name
+        );
+
+        let resp = client
+            .get(&url)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let result = resp.json::<Response>().await.unwrap().response;
+
+        let result = result
+            .as_object()
+            .unwrap()
+            .get("cache")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        assert_eq!(result, "\"ws_pi_01\"")
+    }
+
+    // ******************
+    // * DELETE - cache *
+    // ******************
+
+    #[tokio::test]
+    // Unauthenticated user unable to access [DELETE] /device/:some_name/cache route
+    async fn device_router_user_get_user_delete_cache_unauthenticated() {
+        let test_setup = start_servers().await;
+        let random_name = gen_random_hex(12);
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            random_name
+        );
+
+        let client = TestSetup::get_client();
+
+        let resp = client.delete(url).send().await.unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        let result = resp.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Invalid Authentication");
+    }
+
+    #[tokio::test]
+    /// Free user unable to access route
+    async fn device_router_user_named_device_delete_cache_free_user_invalid() {
+        let mut test_setup = start_servers().await;
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        let device_name = test_setup.insert_device(&authed_cookie, None).await;
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            device_name
+        );
+        let body = HashMap::from([("password", TEST_PASSWORD)]);
+
+        let resp = client
+            .delete(&url)
+            .json(&body)
+            .header("cookie", &authed_cookie)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+        let result = resp.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Invalid Authentication");
+    }
+
+    #[tokio::test]
+    // Return 400 if device not known
+    async fn device_router_user_named_device_delete_cache_unknown_device() {
+        let mut test_setup = start_servers().await;
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.insert_device(&authed_cookie, None).await;
+        test_setup.change_user_level(UserLevel::Pro).await;
+
+        let random_name = gen_random_hex(12);
+
+        let body = HashMap::from([("password", TEST_PASSWORD)]);
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            random_name
+        );
+
+        let resp = client
+            .delete(&url)
+            .header("cookie", authed_cookie)
+            .json(&body)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let result = resp.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Unknown device");
+    }
+
+    #[tokio::test]
+    /// Anon user can't delete the cache of the device of another user
+    async fn device_router_user_named_device_delete_cache_key_anon_invalid() {
+        let mut test_setup = start_servers().await;
+
+        let client = TestSetup::get_client();
+        test_setup.change_user_level(UserLevel::Pro).await;
+        let authed_cookie = test_setup.authed_user_cookie().await;
+
+        let device_name = test_setup
+            .insert_device(
+                &authed_cookie,
+                Some(DevicePost {
+                    max_clients: 2,
+                    client_password: None,
+                    device_password: None,
+                    structured_data: true,
+                    name: None,
+                }),
+            )
+            .await;
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            device_name
+        );
+
+        test_setup.insert_anon_user().await;
+
+        test_setup.change_anon_user_level(UserLevel::Pro).await;
+        let body = HashMap::from([("password", ANON_PASSWORD)]);
+        let anon_user_cookie = test_setup.anon_user_cookie().await;
+
+        let result = client
+            .delete(&url)
+            .json(&body)
+            .header("cookie", &anon_user_cookie.unwrap())
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(result.status(), StatusCode::BAD_REQUEST);
+        let result = result.json::<Response>().await.unwrap().response;
+        assert_eq!(result, "Unknown device");
+    }
+
+    #[tokio::test]
+    /// Delete message cache valid
+    async fn device_router_user_named_device_delete_cache_valid() {
+        let mut test_setup = start_servers().await;
+        let client = TestSetup::get_client();
+        let authed_cookie = test_setup.authed_user_cookie().await;
+        test_setup.change_user_level(UserLevel::Pro).await;
+        let device_name = test_setup
+            .insert_device(
+                &authed_cookie,
+                Some(DevicePost {
+                    max_clients: 2,
+                    client_password: None,
+                    device_password: None,
+                    structured_data: true,
+                    name: None,
+                }),
+            )
+            .await;
+
+        let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
+        let (mut ws_pi, _) = connect_async(&url).await.unwrap();
+        let msg_text = r#"{"data":"ws_pi_01", "cache": true}"#;
+        let msg = Message::from(msg_text);
+        ws_pi.send(msg).await.unwrap();
+
+        // Sleep as inserted on own thread
+        sleep!(1000);
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
+
+        assert_eq!(message_caches.len(), 1);
+
+        let body = HashMap::from([("password", TEST_PASSWORD)]);
+
+        let url = format!(
+            "{}/authenticated{}/{}/cache",
+            api_base_url(&test_setup.app_env),
+            DeviceRoutes::Base.addr(),
+            device_name
+        );
+
+        let resp = client
+            .delete(&url)
+            .header("cookie", &authed_cookie)
+            .json(&body)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let message_caches = get_keys(&test_setup.redis, "cache::message::*").await;
+
+        assert!(message_caches.is_empty());
+    }
+
+    // ******************
     // * PATCH - Rename *
     // ******************
 
@@ -2866,9 +3302,9 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
         let result = resp.json::<Response>().await.unwrap().response;
-        assert_eq!(result, "Free users are unable to set name");
+        assert_eq!(result, "Invalid Authentication");
     }
 
     #[tokio::test]
