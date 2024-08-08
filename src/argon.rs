@@ -2,15 +2,14 @@ use argon2::{
     password_hash::SaltString, Algorithm::Argon2id, Argon2, Params, ParamsBuilder, PasswordHash,
     Version::V0x13,
 };
-use once_cell::sync::Lazy;
-use std::fmt;
+use std::{fmt, sync::LazyLock};
 use tracing::error;
 
 use crate::api_error::ApiError;
 
 #[allow(clippy::unwrap_used)]
 #[cfg(debug_assertions)]
-static PARAMS: Lazy<Params> = Lazy::new(|| {
+static PARAMS: LazyLock<Params> = LazyLock::new(|| {
     ParamsBuilder::new()
         .m_cost(4096)
         .t_cost(1)
@@ -22,7 +21,7 @@ static PARAMS: Lazy<Params> = Lazy::new(|| {
 /// This takes 19 seconds when testing, hence the above `not-release` version
 #[cfg(not(debug_assertions))]
 #[allow(clippy::unwrap_used)]
-static PARAMS: Lazy<Params> = Lazy::new(|| {
+static PARAMS: LazyLock<Params> = LazyLock::new(|| {
     ParamsBuilder::new()
         .m_cost(24 * 1024)
         .t_cost(64)
@@ -97,10 +96,10 @@ mod tests {
 
     use rand::{distributions::Alphanumeric, Rng};
     use regex::Regex;
+    use std::sync::LazyLock;
 
     use super::*;
-    use once_cell::sync::Lazy;
-    static ARGON_REGEX: Lazy<Regex> = Lazy::new(|| {
+    static ARGON_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"^\$argon2id\$v=19\$m=4096,t=1,p=1\$[a-zA-Z0-9+/=]{22}\$[a-zA-Z0-9+/=]{43}")
             .unwrap()
     });

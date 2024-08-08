@@ -1,9 +1,9 @@
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{
     de::{self, IntoDeserializer},
     Deserialize, Deserializer,
 };
+use std::sync::LazyLock;
 use ulid::Ulid;
 
 use crate::{
@@ -19,7 +19,7 @@ use super::incoming_json::ij;
 pub struct IncomingDeserializer;
 
 #[allow(clippy::expect_used)]
-pub static REGEX_EMAIL: Lazy<Regex> = Lazy::new(|| {
+pub static REGEX_EMAIL: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"#).expect("email regex")
 });
 
@@ -106,23 +106,6 @@ impl IncomingDeserializer {
         let name = "email";
         let parsed = Self::parse_string(deserializer, name)?;
         Self::valid_email(&parsed).ok_or_else(|| de::Error::custom(name))
-    }
-    /// Check email isn't empty, lowercase it, contains an '@' sign, and matches a 99.9% email regex
-    pub fn vec_email<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let name = "vec_email";
-        let parsed: Vec<String> = Vec::deserialize(deserializer)?;
-
-        if !parsed.is_empty() && parsed.iter().all(|i| Self::valid_email(i).is_some()) {
-            Ok(parsed
-                .iter()
-                .map(|i| i.to_lowercase())
-                .collect::<Vec<String>>())
-        } else {
-            Err(de::Error::custom(name))
-        }
     }
 
     /// Check is a user_session, used when admin is deleting user sessions
@@ -343,19 +326,6 @@ impl IncomingDeserializer {
     }
 
     /// Allow only positive i64, due to sql id issues
-    pub fn id<'de, D>(deserializer: D) -> Result<i64, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let name = "id";
-        let parsed = Self::parse_i64(deserializer, name)?;
-        if parsed < 1 {
-            return Err(de::Error::custom(name));
-        }
-        Ok(parsed)
-    }
-
-    /// Allow only positive i64, due to sql id issues
     pub fn device_id<'de, D>(deserializer: D) -> Result<DeviceId, D::Error>
     where
         D: Deserializer<'de>,
@@ -397,17 +367,6 @@ impl IncomingDeserializer {
             Err(_) => Err(de::Error::custom(name)),
         }
     }
-
-    pub fn option_id<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        if let Some(x) = Option::<i64>::deserialize(deserializer)? {
-            Ok(Some(Self::id(x.into_deserializer())?))
-        } else {
-            Ok(None)
-        }
-    }
 }
 
 /// incoming_serializer
@@ -415,13 +374,12 @@ impl IncomingDeserializer {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 mod tests {
-    use serde::de::value::{Error as ValueError, SeqDeserializer, StringDeserializer};
+    use serde::de::value::{Error as ValueError, StringDeserializer};
     use serde::de::{value::I64Deserializer, IntoDeserializer};
 
     use rand::{distributions::Alphanumeric, Rng};
 
     use crate::helpers::gen_random_hex;
-    use crate::servers::test_setup::{ANON_EMAIL, TEST_EMAIL};
 
     use super::*;
 
@@ -604,34 +562,6 @@ mod tests {
     }
 
     #[test]
-    fn incoming_serializer_id_err() {
-        let test = |id: &str| {
-            let deserializer: StringDeserializer<ValueError> = id.to_owned().into_deserializer();
-            let result = IncomingDeserializer::id(deserializer);
-            assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "id");
-        };
-
-        test("0");
-        test("123");
-
-        let deserializer: I64Deserializer<ValueError> = 0i64.into_deserializer();
-        let result = IncomingDeserializer::id(deserializer);
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "id");
-    }
-
-    #[test]
-    fn incoming_serializer_id_ok() {
-        // add one, just to make sure 0 doesn't get used
-        let id = ran_n() + 1;
-        let deserializer: I64Deserializer<ValueError> = id.into_deserializer();
-        let result = IncomingDeserializer::id(deserializer);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), id);
-    }
-
-    #[test]
     fn incoming_serializer_token_ok() {
         // Should split tests, match as totp, or match as backup
         let test = |token: &str| {
@@ -757,52 +687,6 @@ mod tests {
         let result = IncomingDeserializer::email(deserializer);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().to_string(), "email");
-    }
-
-    #[test]
-    fn incoming_serializer_vec_email_ok() {
-        let test = |x: Vec<&str>| {
-            let deserializer: SeqDeserializer<std::vec::IntoIter<&str>, ValueError> =
-                x.clone().into_deserializer();
-            let result = IncomingDeserializer::vec_email(deserializer);
-            assert!(result.is_ok());
-            assert_eq!(result.as_ref().unwrap().len(), x.len());
-            assert_eq!(result.unwrap()[0], x[0].to_lowercase());
-        };
-
-        test(vec![
-            "email@email.com",
-            "email@abc.com",
-            ANON_EMAIL,
-            TEST_EMAIL,
-        ]);
-        test(vec![
-            "EMAIL@EMAIL.COM",
-            "email@abc.com",
-            ANON_EMAIL,
-            TEST_EMAIL,
-        ]);
-    }
-
-    #[test]
-    fn incoming_serializer_vec_email_err() {
-        let test = |x: Vec<&str>| {
-            let deserializer: SeqDeserializer<std::vec::IntoIter<&str>, ValueError> =
-                x.into_deserializer();
-            let result = IncomingDeserializer::vec_email(deserializer);
-            assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "vec_email");
-        };
-        test(vec![]);
-        test(vec![
-            "emailemail.com",
-            "email@abc.com",
-            ANON_EMAIL,
-            TEST_EMAIL,
-        ]);
-        test(vec!["email@email", "email@abc.com", ANON_EMAIL, TEST_EMAIL]);
-        test(vec!["email@.com", "email@abc.com", ANON_EMAIL, TEST_EMAIL]);
-        test(vec![&gen_random_hex(12)]);
     }
 
     #[test]
