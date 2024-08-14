@@ -341,6 +341,8 @@ pub mod test_setup {
     use crate::user_io::incoming_json::ij::DevicePost;
     use crate::ServeData;
 
+    use super::api::api_tests::EMAIL_BODY_LOCATION;
+    use super::api::api_tests::EMAIL_HEADERS_LOCATION;
     use super::api::ApiServer;
     use super::get_api_version;
     use super::token::TokenServer;
@@ -514,8 +516,8 @@ pub mod test_setup {
 
         /// Delete emails that were written to disk
         pub fn delete_emails() {
-            std::fs::remove_file("/dev/shm/email_headers.txt").ok();
-            std::fs::remove_file("/dev/shm/email_body.txt").ok();
+            std::fs::remove_file(EMAIL_HEADERS_LOCATION).ok();
+            std::fs::remove_file(EMAIL_BODY_LOCATION).ok();
         }
 
         // Insert bandwidth, same thread as caller, unlike the actual method

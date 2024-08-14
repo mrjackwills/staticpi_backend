@@ -114,6 +114,8 @@ impl Emailer {
     // Handle all errors in this function, just trace on any issues
     #[cfg(test)]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
+        use crate::servers::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
+
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
         if let (Ok(from), Ok(to)) = (emailer.env.get_from_mailbox(), to_box) {
             let subject = emailer.template.get_subject();
@@ -137,9 +139,9 @@ impl Emailer {
                     );
 
                 if let Ok(message) = message_builder {
-                    std::fs::write("/dev/shm/email_headers.txt", message.headers().to_string())
+                    std::fs::write(EMAIL_HEADERS_LOCATION, message.headers().to_string())
                         .ok();
-                    std::fs::write("/dev/shm/email_body.txt", html_string).ok();
+                    std::fs::write(EMAIL_BODY_LOCATION, html_string).ok();
                     info!("Would be sending email if on production");
                 } else {
                     email_log.update_sent_false(&postgres).await;
@@ -205,9 +207,9 @@ impl Emailer {
                             }
                         }
                     } else {
-                        std::fs::write("/dev/shm/email_headers.txt", message.headers().to_string())
+                        std::fs::write("/ramdrive/staticpi/email_headers.txt", message.headers().to_string())
                             .ok();
-                        std::fs::write("/dev/shm/email_body.txt", html_string).ok();
+                        std::fs::write("/ramdrive/staticpi/email_body.txt", html_string).ok();
                         info!("Would be sending email if on production");
                     }
                 } else {
@@ -230,7 +232,7 @@ mod tests {
     use super::*;
     use crate::{
         parse_env,
-        servers::test_setup::{setup, TestSetup, TEST_EMAIL},
+        servers::{api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION}, test_setup::{setup, TestSetup, TEST_EMAIL}},
         sleep,
     };
 
@@ -268,17 +270,17 @@ mod tests {
             1
         );
 
-        let result = std::fs::read_to_string("/dev/shm/email_body.txt").unwrap();
+        let result = std::fs::read_to_string(EMAIL_BODY_LOCATION).unwrap();
         assert!(result.starts_with("<!doctype html><html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\"><head><title>"));
         assert!(result.contains("john smith"));
 
-        let result = std::fs::read_to_string("/dev/shm/email_headers.txt").unwrap();
+        let result = std::fs::read_to_string(EMAIL_HEADERS_LOCATION).unwrap();
         assert!(result.contains("From: staticPi <noreply@staticpi.com>"));
         assert!(result.contains("To: \"john smith\" <email@example.com>"));
         assert!(result.contains("Subject: Password Changed"));
 
-        std::fs::remove_file("/dev/shm/email_headers.txt").unwrap();
-        std::fs::remove_file("/dev/shm/email_body.txt").unwrap();
+        std::fs::remove_file(EMAIL_HEADERS_LOCATION).unwrap();
+        std::fs::remove_file(EMAIL_BODY_LOCATION).unwrap();
     }
 
     /// Emails not send if more than 275 have been sent in the previous hour
@@ -320,7 +322,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(pre_count.count, post_count.count);
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt").is_err());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt").is_err());
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION).is_err());
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION).is_err());
     }
 }

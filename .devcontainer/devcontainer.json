@@ -11,11 +11,11 @@
 		"seccomp=unconfined"
 	],
 	"mounts": [
-		"source=/run/shm,target=/dev/shm,type=bind",
+		"source=/ramdrive,target=/ramdrive,type=bind",
 		"source=/etc/localtime,target=/etc/localtime,type=bind,readonly"
 	],
 	"postCreateCommand": "cargo install cargo-watch cross typos-cli",
-	"postStartCommand": "sudo mkdir -p /dev/shm/staticpi/backups /dev/shm/staticpi/pg_data /dev/shm/staticpi/redis_data /dev/shm/staticpi/logs /dev/shm/staticpi/target && sudo chown -R vscode:vscode /dev/shm/staticpi",
+	"postStartCommand": "sudo mkdir -p /ramdrive/staticpi/backups /ramdrive/staticpi/pg_data /ramdrive/staticpi/redis_data /ramdrive/staticpi/logs /ramdrive/staticpi/target && sudo chown -R vscode:vscode /ramdrive/staticpi",
 	"customizations": {
 		"vscode": {
 			// Add the IDs of extensions you want installed when the container is created.

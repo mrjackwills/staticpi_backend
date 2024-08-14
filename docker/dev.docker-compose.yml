@@ -19,7 +19,7 @@ services:
     restart: always
     shm_size: 256MB
     volumes:
-      - /dev/shm/staticpi/pg_data:/pg_data
+      - /ramdrive/staticpi/pg_data:/pg_data
     ports:
       - 127.0.0.1:5432:5432
     networks:
@@ -45,7 +45,7 @@ services:
       dockerfile: ./docker/dockerfile/redis.Dockerfile
     env_file: ./env/.redis.env
     volumes:
-      - /dev/shm/staticpi/redis_data:/redis_data
+      - /ramdrive/staticpi/redis_data:/redis_data
     cap_drop:
       - all
     security_opt:
@@ -81,9 +81,9 @@ services:
       - no-new-privileges
     ipc: private
     volumes:
-      - /dev/shm/staticpi/backups:/backups
-      - /dev/shm/staticpi/redis_data:/redis_data:ro
-      - /dev/shm/staticpi/logs:/logs:ro
+      - /ramdrive/staticpi/backups:/backups
+      - /ramdrive/staticpi/redis_data:/redis_data:ro
+      - /ramdrive/staticpi/logs:/logs:ro
     networks:
       - staticpi-net
     logging:
@@ -106,7 +106,7 @@ services:
       context: /workspaces/staticpi
       dockerfile: docker/dockerfile/api.Dockerfile
     volumes:
-      - /dev/shm:/logs
+      - /ramdrive/staticpi/:/logs
       - /workspaces/staticpi/.env:/app_env/.api.env:ro
     ports:
       - "127.0.0.1:8008:8008"
