@@ -139,8 +139,7 @@ impl Emailer {
                     );
 
                 if let Ok(message) = message_builder {
-                    std::fs::write(EMAIL_HEADERS_LOCATION, message.headers().to_string())
-                        .ok();
+                    std::fs::write(EMAIL_HEADERS_LOCATION, message.headers().to_string()).ok();
                     std::fs::write(EMAIL_BODY_LOCATION, html_string).ok();
                     info!("Would be sending email if on production");
                 } else {
@@ -207,8 +206,11 @@ impl Emailer {
                             }
                         }
                     } else {
-                        std::fs::write("/ramdrive/staticpi/email_headers.txt", message.headers().to_string())
-                            .ok();
+                        std::fs::write(
+                            "/ramdrive/staticpi/email_headers.txt",
+                            message.headers().to_string(),
+                        )
+                        .ok();
                         std::fs::write("/ramdrive/staticpi/email_body.txt", html_string).ok();
                         info!("Would be sending email if on production");
                     }
@@ -232,7 +234,10 @@ mod tests {
     use super::*;
     use crate::{
         parse_env,
-        servers::{api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION}, test_setup::{setup, TestSetup, TEST_EMAIL}},
+        servers::{
+            api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION},
+            test_setup::{setup, TestSetup, TEST_EMAIL},
+        },
         sleep,
     };
 
