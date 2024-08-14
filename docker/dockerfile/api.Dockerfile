@@ -42,7 +42,7 @@ ARG DOCKER_GUID=1000 \
 	DOCKER_APP_GROUP=app_group
 
 RUN apt-get update \
-	&& apt-get install -y ca-certificates wget \
+	&& apt-get install -y ca-certificates curl \
 	&& update-ca-certificates \
 	&& groupadd --gid ${DOCKER_GUID} ${DOCKER_APP_GROUP} \
 	&& useradd --create-home --no-log-init --uid ${DOCKER_UID} --gid ${DOCKER_GUID} ${DOCKER_APP_USER} \
