@@ -1,9 +1,12 @@
-### 2024-08-08
+### 2024-08-14
+
+### Chores
++ dependencies updated, [6cb671e37854f5da3ff25b2d5650281e97fabd9d]
 
 ### Features
-+ implement user device cache management, [676d7038d042fb944cd573f42de03633b166cc8f]
++ improve healthcheck, should now be *correct*, [e89e39a241f29cf51b68e16e7d280556859673b5]
 
 ### Refactors
-+ replace OnceCell with std::sync::LazyLock, [c65938271430bebf776c1c7b46cf4e3958209e2f]
++ switch from `/dev/shm` to `/ramdrive`, [24160e54da206261606c898368ba5ff796be557c]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details

@@ -108,8 +108,8 @@ pub mod api_tests {
     use crate::servers::test_setup::TestSetup;
     use crate::servers::{get_api_version, test_setup::start_servers};
 
-	pub const EMAIL_BODY_LOCATION: &str = "/ramdrive/staticpi/email_body.txt";
-	pub const EMAIL_HEADERS_LOCATION: &str = "/ramdrive/staticpi/email_headers.txt";
+    pub const EMAIL_BODY_LOCATION: &str = "/ramdrive/staticpi/email_body.txt";
+    pub const EMAIL_HEADERS_LOCATION: &str = "/ramdrive/staticpi/email_headers.txt";
 
     #[test]
     fn http_mod_get_api_version() {

@@ -612,8 +612,6 @@ impl IncognitoRouter {
 mod tests {
 
     use super::IncognitoRoutes;
-    use crate::servers::api::api_tests::EMAIL_BODY_LOCATION;
-    use crate::{database::contact_message::ModelContactMessage, servers::api::api_tests::EMAIL_HEADERS_LOCATION};
     use crate::database::email_address::ModelEmailAddress;
     use crate::database::email_log::ModelEmailLog;
     use crate::database::invite::ModelInvite;
@@ -622,8 +620,13 @@ mod tests {
     use crate::database::password_reset::ModelPasswordReset;
     use crate::database::session::RedisSession;
     use crate::helpers::gen_random_hex;
+    use crate::servers::api::api_tests::EMAIL_BODY_LOCATION;
     use crate::servers::test_setup::*;
     use crate::sleep;
+    use crate::{
+        database::contact_message::ModelContactMessage,
+        servers::api::api_tests::EMAIL_HEADERS_LOCATION,
+    };
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
