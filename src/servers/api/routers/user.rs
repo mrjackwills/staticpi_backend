@@ -560,6 +560,7 @@ mod tests {
     use crate::database::user::ModelUser;
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
+    use crate::servers::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
     use crate::servers::api::authentication::totp_from_secret;
     use crate::servers::test_setup::{
         api_base_url, get_keys, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
@@ -1772,15 +1773,15 @@ mod tests {
         );
 
         // email sent - written to disk when testing & inserted into db
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains("The password for your staticPi account has been changed"));
 
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt")
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
             .unwrap()
             .contains("Password Changed"));
 
@@ -1869,15 +1870,15 @@ mod tests {
             1
         );
         // email sent - written to disk when testing & inserted into db
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains("The password for your staticPi account has been changed"));
 
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt")
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
             .unwrap()
             .contains("Password Changed"));
     }
@@ -2150,15 +2151,15 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
         let link = format!(
             "href=\"https://www.{}/user/settings/",
             test_setup.app_env.domain
         );
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains(&link));
     }
@@ -2501,15 +2502,15 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains("You have disabled Two-Factor Authentication for your staticPi account"));
 
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt")
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
             .unwrap()
             .contains("Two-Factor Disabled"));
     }
@@ -2699,15 +2700,15 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
                 .unwrap()
                 .contains("You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure"));
 
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt")
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
             .unwrap()
             .contains("Two-Factor Backup Enabled"));
     }
@@ -2761,9 +2762,9 @@ mod tests {
             0
         );
         // email not sent
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
 
         let invalid_token = test_setup.get_invalid_token();
@@ -2786,9 +2787,9 @@ mod tests {
             0
         );
         // email not sent
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
     }
 
@@ -2885,15 +2886,15 @@ mod tests {
             1
         );
 
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
                 .unwrap()
                 .contains("You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure."));
 
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt")
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
             .unwrap()
             .contains("Two-Factor Backups re-generated"));
     }
@@ -2975,9 +2976,9 @@ mod tests {
                 .count,
             0
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
 
         let invalid_token = test_setup.get_invalid_token();
@@ -3002,9 +3003,9 @@ mod tests {
                 .count,
             0
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
     }
 
@@ -3057,15 +3058,15 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
                 .unwrap()
                 .contains("You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page."));
 
-        assert!(std::fs::read_to_string("/dev/shm/email_headers.txt")
+        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
             .unwrap()
             .contains("Two-Factor Backup Disabled"));
     }

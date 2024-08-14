@@ -612,7 +612,6 @@ impl IncognitoRouter {
 mod tests {
 
     use super::IncognitoRoutes;
-    use crate::database::contact_message::ModelContactMessage;
     use crate::database::email_address::ModelEmailAddress;
     use crate::database::email_log::ModelEmailLog;
     use crate::database::invite::ModelInvite;
@@ -621,8 +620,13 @@ mod tests {
     use crate::database::password_reset::ModelPasswordReset;
     use crate::database::session::RedisSession;
     use crate::helpers::gen_random_hex;
+    use crate::servers::api::api_tests::EMAIL_BODY_LOCATION;
     use crate::servers::test_setup::*;
     use crate::sleep;
+    use crate::{
+        database::contact_message::ModelContactMessage,
+        servers::api::api_tests::EMAIL_HEADERS_LOCATION,
+    };
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
@@ -718,10 +722,10 @@ mod tests {
             client.post(&url).json(&body).send().await.unwrap();
         }
 
-        let result = std::fs::read_to_string("/dev/shm/email_headers.txt");
+        let result = std::fs::read_to_string(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
         assert!(result.unwrap().contains("Subject: Security Alert"));
-        let result = std::fs::read_to_string("/dev/shm/email_body.txt");
+        let result = std::fs::read_to_string(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
         assert!(result
             .unwrap()
@@ -1345,9 +1349,9 @@ mod tests {
         let result = RedisNewUser::exists(&test_setup.redis, "email@mrjackwills.com").await;
         assert!(result.is_ok());
         assert!(!result.unwrap());
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)
@@ -1415,9 +1419,9 @@ mod tests {
         assert!(result.unwrap());
 
         // check email sent - well written to disk & inserted into db
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
         let link = format!(
             "href=\"https://www.{}/user/verify/",
@@ -1430,7 +1434,7 @@ mod tests {
                 .count,
             1
         );
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains(&link));
     }
@@ -1464,15 +1468,15 @@ mod tests {
         assert!(result.unwrap());
 
         // check email sent - well written to disk & inserted into db
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
         let link = format!(
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
         );
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains(&link));
         assert_eq!(
@@ -1515,9 +1519,9 @@ mod tests {
                 .count,
             0
         );
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
 
         let second_secret = get_keys(&test_setup.redis, "verify::secret::*").await;
@@ -1569,15 +1573,15 @@ mod tests {
         assert!(result.unwrap());
 
         // check email sent - well written to disk & inserted into db
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
         let link = format!(
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
         );
-        assert!(std::fs::read_to_string("/dev/shm/email_body.txt")
+        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains(&link));
 
@@ -1741,9 +1745,9 @@ mod tests {
             0
         );
         // check email NOT sent - well written to disk
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
     }
 
@@ -1777,7 +1781,7 @@ mod tests {
         let password_reset = password_reset.unwrap();
 
         // check email has been sent - well written to disk, and contain secret & correct subject
-        let result = std::fs::read_to_string("/dev/shm/email_headers.txt");
+        let result = std::fs::read_to_string(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
         assert!(result
             .unwrap()
@@ -1791,7 +1795,7 @@ mod tests {
             1
         );
 
-        let result = std::fs::read_to_string("/dev/shm/email_body.txt");
+        let result = std::fs::read_to_string(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
         assert!(result.unwrap().contains(&password_reset.reset_string));
     }
@@ -1848,9 +1852,9 @@ mod tests {
             0
         );
 
-        let result = std::fs::metadata("/dev/shm/email_headers.txt");
+        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
         assert!(result.is_err());
-        let result = std::fs::metadata("/dev/shm/email_body.txt");
+        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
         assert!(result.is_err());
     }
 
