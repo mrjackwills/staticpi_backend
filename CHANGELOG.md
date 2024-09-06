@@ -1,15 +1,18 @@
+# <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.18'>v0.0.18</a>
+### 2024-09-06
+
 ### Chores
-+ switch from `allow(x)` to `expect(x), [0bcaedb488876261471dd5735455de24e28dae84]
-+ dependencies updated, [ba856c7131ec7f56996bab4e90e162481f476b6e]
++ switch from `allow(x)` to `expect(x), [0bcaedb4](https://github.com/mrjackwills/staticpi_backend/commit/0bcaedb488876261471dd5735455de24e28dae84),
++ dependencies updated, [ba856c71](https://github.com/mrjackwills/staticpi_backend/commit/ba856c7131ec7f56996bab4e90e162481f476b6e),
 
 ### Fixes
-+ fred.rs scanner .next(), [4610f2d7371c2823df41a8973f1df071b6386a4c]
-+ healthchecks updated, [00f3d34d72dcd04c3d4ea1f02a3fc77e91789700]
-+ fred.rs turbofish, [fefc55af18303a48c4a14defbabc28bf01b9ed49]
++ fred.rs scanner .next(), [4610f2d7](https://github.com/mrjackwills/staticpi_backend/commit/4610f2d7371c2823df41a8973f1df071b6386a4c),
++ healthchecks updated, [00f3d34d](https://github.com/mrjackwills/staticpi_backend/commit/00f3d34d72dcd04c3d4ea1f02a3fc77e91789700),
++ fred.rs turbofish, [fefc55af](https://github.com/mrjackwills/staticpi_backend/commit/fefc55af18303a48c4a14defbabc28bf01b9ed49),
 
 ### Refactors
-+ use fs::exists, [52ffcd26454cdfd4fa05ffb4da2aabcec6c60b51]
-+ log name, [83e7879b68ab80200e42939cc97b9b4dacfee042]
++ use fs::exists, [52ffcd26](https://github.com/mrjackwills/staticpi_backend/commit/52ffcd26454cdfd4fa05ffb4da2aabcec6c60b51),
++ log name, [83e7879b](https://github.com/mrjackwills/staticpi_backend/commit/83e7879b68ab80200e42939cc97b9b4dacfee042),
 
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.17'>v0.0.17</a>
 ### 2024-08-14

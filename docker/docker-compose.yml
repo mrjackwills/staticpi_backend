@@ -5,7 +5,7 @@ networks:
 services:
   staticpi_postgres:
     hostname: staticpi_postgres
-    image: staticpi_postgres:0.0.17
+    image: staticpi_postgres:0.0.18
     container_name: staticpi_postgres
     build:
       context:  $HOME/staticpi.d
@@ -32,7 +32,7 @@ services:
         limits:
           memory: 512M
   staticpi_redis:
-    image: staticpi_redis:0.0.17
+    image: staticpi_redis:0.0.18
     container_name: staticpi_redis
     hostname: staticpi_redis
     build:
@@ -59,7 +59,7 @@ services:
         limits:
           memory: 64M
   staticpi_backup:
-    image: staticpi_backup:0.0.17
+    image: staticpi_backup:0.0.18
     container_name: staticpi_backup
     build:
       context: .
@@ -89,7 +89,7 @@ services:
         limits:
           memory: 64MB
   staticpi_api:
-    image: staticpi_api:0.0.17
+    image: staticpi_api:0.0.18
     container_name: staticpi_api
     hostname: staticpi_api
     build:
