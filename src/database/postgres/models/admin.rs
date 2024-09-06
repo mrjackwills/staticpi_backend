@@ -60,7 +60,7 @@ pub struct AdminModelUser {
 impl AdminModelUser {
     /// Get vec of all registered users
     /// This is a brutal query, need to simplify
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     pub async fn get_all(
         postgres: &PgPool,
         redis: &RedisPool,

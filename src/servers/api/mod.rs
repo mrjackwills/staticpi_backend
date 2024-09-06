@@ -29,7 +29,7 @@ impl Serve for ApiServer {
             RunMode::Production => format!("https://www.{}", serve_data.app_env.domain),
         };
 
-        #[allow(clippy::unwrap_used)]
+        #[expect(clippy::unwrap_used)]
         let cors = CorsLayer::new()
             .allow_methods([
                 axum::http::Method::DELETE,
@@ -97,7 +97,7 @@ impl Serve for ApiServer {
 // http tests - ran via actual requests to a (local) server
 // cargo watch -q -c -w src/ -x 'test http_mod -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 pub mod api_tests {
     use fred::interfaces::KeysInterface;
     use rand::{distributions::Alphanumeric, Rng};

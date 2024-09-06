@@ -83,8 +83,10 @@ impl RedisSession {
 
         let ttl = ttl.whole_seconds();
 
-        redis.hset::<(),_,_>(&key_session, hmap!(session)).await?;
-        redis.sadd::<(),_,_>(&key_session_set, &key_session).await?;
+        redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
+        redis
+            .sadd::<(), _, _>(&key_session_set, &key_session)
+            .await?;
         // This won't work as expected, should set TTL to the max at all times
         // redis.expire(&key_session_set, ttl).await?;
         Ok(redis.expire(&key_session, ttl).await?)
@@ -106,7 +108,9 @@ impl RedisSession {
             .await?
         {
             let key_session_set = Self::key_session_set(session.registered_user_id);
-            redis.srem::<(),_,_>(&key_session_set, &key_session).await?;
+            redis
+                .srem::<(), _, _>(&key_session_set, &key_session)
+                .await?;
 
             // Need to test this!
             if redis
@@ -114,7 +118,7 @@ impl RedisSession {
                 .await?
                 .is_empty()
             {
-                redis.del::<(),_>(&key_session_set).await?;
+                redis.del::<(), _>(&key_session_set).await?;
             }
         }
         Ok(redis.del(&key_session).await?)
@@ -126,7 +130,7 @@ impl RedisSession {
 
         let session_set: Vec<String> = redis.smembers(&key_session_set).await?;
         for key in session_set {
-            redis.del::<(),_>(key).await?;
+            redis.del::<(), _>(key).await?;
         }
         Ok(redis.del(&key_session_set).await?)
     }

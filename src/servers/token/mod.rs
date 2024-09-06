@@ -17,7 +17,6 @@ mod token_router;
 
 pub struct TokenServer;
 
-#[allow(clippy::unused_async)]
 async fn token_fallback() -> Result<(), ApiError> {
     Err(ApiError::AccessToken)
 }

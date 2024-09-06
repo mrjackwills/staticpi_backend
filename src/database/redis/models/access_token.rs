@@ -50,7 +50,7 @@ impl AccessToken {
     pub async fn insert(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
         let key = Self::key(ulid);
         redis
-            .hset::<(),_,_>(&key, hmap!(serde_json::to_string(&self)?))
+            .hset::<(), _, _>(&key, hmap!(serde_json::to_string(&self)?))
             .await?;
         Ok(redis.expire(key, Self::TTL_AS_SEC.into()).await?)
     }

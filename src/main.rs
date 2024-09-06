@@ -1,5 +1,5 @@
 // Only allow when debugging
-// #![allow(unused, clippy::todo)]
+// #![expect(unused, clippy::todo)]
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
@@ -29,7 +29,10 @@ use tracing::error;
 use tracing_subscriber::{fmt, prelude::__tracing_subscriber_SubscriberExt};
 
 fn setup_tracing(app_env: &AppEnv) -> Result<(), ApiError> {
-	let logfile = tracing_appender::rolling::never(&app_env.location_logs, format!("{}.log", env!("CARGO_PKG_NAME")));
+    let logfile = tracing_appender::rolling::never(
+        &app_env.location_logs,
+        format!("{}.log", env!("CARGO_PKG_NAME")),
+    );
 
     let log_fmt = fmt::Layer::default()
         .json()

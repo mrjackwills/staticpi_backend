@@ -23,7 +23,7 @@ use super::{
     user_level::{ModelUserLevel, UserLevel},
 };
 
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelUser {
     // skip serializng?
@@ -225,7 +225,7 @@ WHERE
 
     /// This is a hard delete, and also checks to see if any IP address, UserAgents, and DeviceNames can also be deleted
     /// take in admin user, and match user id?
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     pub async fn delete(&self, postgres: &PgPool, redis: &RedisPool) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
 

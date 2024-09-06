@@ -1,4 +1,4 @@
-#![allow(unused)]
+#![expect(unused)]
 mod template;
 
 use crate::{
@@ -228,7 +228,7 @@ impl Emailer {
 
 /// cargo watch -q -c -w src/ -x 'test emailer_mod -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
     use super::*;

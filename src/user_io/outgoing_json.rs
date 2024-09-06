@@ -157,7 +157,6 @@ pub mod oj {
         pub total: i64,
     }
 
-    #[allow(clippy::struct_excessive_bools)]
     #[derive(Serialize, Debug)]
     pub struct AdminConnection {
         pub device_type: ConnectionType,

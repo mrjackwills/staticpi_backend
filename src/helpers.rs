@@ -1,11 +1,7 @@
 use crate::api_error::ApiError;
 use rand::{prelude::SliceRandom, Rng};
 use sha1::{Digest, Sha1};
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-    time::SystemTime,
-};
+use std::time::SystemTime;
 use tracing::error;
 
 const HEX_CHARS: &[u8; 16] = b"ABCDEF0123456789";
@@ -98,7 +94,7 @@ pub fn gen_random_hex(output_len: u8) -> String {
 }
 
 /// Generate a device name, will be `{description}-{cheese}`
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used)]
 pub fn gen_random_device_name() -> String {
     // Unwrap as we know that the slices to choose from are not empty
     let prefix = DESC.choose(&mut rand::thread_rng()).unwrap();
@@ -117,19 +113,17 @@ pub fn xor(input_1: &[u8], input_2: &[u8]) -> bool {
         == 0
 }
 
-/// Check if two byte arrays match, rather than ==, by hashing, then comparing both inputs
-#[allow(unused)]
-pub fn xor_hash(s1: &[u8], s2: &[u8]) -> bool {
-    calculate_hash(s1) == calculate_hash(s2)
-}
+// /// Check if two byte arrays match, rather than ==, by hashing, then comparing both inputs
+// pub fn xor_hash(s1: &[u8], s2: &[u8]) -> bool {
+//     calculate_hash(s1) == calculate_hash(s2)
+// }
 
-/// Create a hash, in order to compare to another hash, instead of using "abc" === "abc", etc
-#[allow(unused)]
-fn calculate_hash<T: Hash>(x: T) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    x.hash(&mut hasher);
-    hasher.finish()
-}
+// /// Create a hash, in order to compare to another hash, instead of using "abc" === "abc", etc
+// fn calculate_hash<T: Hash>(x: T) -> u64 {
+//     let mut hasher = DefaultHasher::new();
+//     x.hash(&mut hasher);
+//     hasher.finish()
+// }
 
 pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
     let mut sha_digest = Sha1::default();
@@ -163,7 +157,7 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
 
 /// cargo watch -q -c -w src/ -x 'test helpers_ -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used)]
 mod tests {
     use crate::servers::test_setup::UNSAFE_PASSWORD;
 
@@ -220,26 +214,26 @@ mod tests {
         assert!(!result);
     }
 
-    #[test]
-    fn helpers_xor_hash() {
-        let s1 = gen_random_hex(16);
-        let result = xor_hash(s1.as_bytes(), s1.as_bytes());
-        assert!(result);
+    // #[test]
+    // fn helpers_xor_hash() {
+    //     let s1 = gen_random_hex(16);
+    //     let result = xor_hash(s1.as_bytes(), s1.as_bytes());
+    //     assert!(result);
 
-        let s1 = gen_random_hex(16);
-        let s2 = gen_random_hex(17);
-        let result = xor_hash(s1.as_bytes(), s2.as_bytes());
-        assert!(!result);
+    //     let s1 = gen_random_hex(16);
+    //     let s2 = gen_random_hex(17);
+    //     let result = xor_hash(s1.as_bytes(), s2.as_bytes());
+    //     assert!(!result);
 
-        let s1 = gen_random_hex(16);
-        let result = xor_hash(s1.as_bytes(), s1.to_lowercase().as_bytes());
-        assert!(!result);
+    //     let s1 = gen_random_hex(16);
+    //     let result = xor_hash(s1.as_bytes(), s1.to_lowercase().as_bytes());
+    //     assert!(!result);
 
-        let s1 = gen_random_hex(16);
-        let s2 = gen_random_hex(16);
-        let result = xor_hash(s1.as_bytes(), s2.as_bytes());
-        assert!(!result);
-    }
+    //     let s1 = gen_random_hex(16);
+    //     let s2 = gen_random_hex(16);
+    //     let result = xor_hash(s1.as_bytes(), s2.as_bytes());
+    //     assert!(!result);
+    // }
 
     #[test]
     fn helpers_gen_random_device_name() {

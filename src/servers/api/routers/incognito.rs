@@ -124,7 +124,7 @@ impl IncognitoRouter {
         ))
     }
 
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     /// Return a simple online status response
     async fn get_online(State(state): State<ApplicationState>) -> StatusOJ<oj::Online> {
         (
@@ -481,7 +481,6 @@ impl IncognitoRouter {
 
     // this is where one needs to check password, token, create session, create cookie,
     // Redirect to /user, so can get user object?
-    #[allow(clippy::too_many_lines)]
     async fn signin_post(
         State(state): State<ApplicationState>,
         useragent_ip: ModelUserAgentIp,
@@ -608,7 +607,7 @@ impl IncognitoRouter {
 // Use reqwest to test against real server
 // cargo watch -q -c -w src/ -x 'test api_router_incognito -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used)]
 mod tests {
 
     use super::IncognitoRoutes;

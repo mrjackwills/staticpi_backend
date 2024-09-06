@@ -42,7 +42,6 @@ impl fmt::Display for UserLevel {
     }
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, sqlx::FromRow)]
 pub struct ModelUserLevel {
     pub user_level_id: UserLevelId,

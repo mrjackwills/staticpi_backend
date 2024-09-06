@@ -370,7 +370,7 @@ impl WsRouter {
     }
 
     /// Send an api_version & uptime response, then close socket
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn online_get(
         State(state): State<ApplicationState>,
         ws: WebSocketUpgrade,
@@ -474,7 +474,7 @@ impl WsRouter {
 
 /// cargo watch -q -c -w src/ -x 'test ws_server -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
     use crate::{
         connections::ConnectionType,

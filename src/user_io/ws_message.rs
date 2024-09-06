@@ -46,7 +46,6 @@ pub mod wm {
     }
 
     impl PiBody {
-        #[allow(clippy::missing_const_for_fn)]
         pub fn from_client(body: ClientBody, unique: Option<Ulid>) -> Self {
             Self {
                 cache: None,
@@ -77,7 +76,6 @@ pub mod wm {
     }
 
     impl ClientBody {
-        #[allow(clippy::missing_const_for_fn)]
         pub fn from_pi(body: PiBody) -> Self {
             Self {
                 cache: None,

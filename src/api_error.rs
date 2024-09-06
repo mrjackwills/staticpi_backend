@@ -56,7 +56,7 @@ macro_rules! internal {
     };
 }
 
-#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
+#[expect(clippy::cognitive_complexity)]
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let exit = || {

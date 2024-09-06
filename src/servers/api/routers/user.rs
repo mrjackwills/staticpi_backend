@@ -118,7 +118,7 @@ async fn gen_backup_codes() -> Result<(Vec<String>, Vec<ArgonHash>), ApiError> {
 
 impl UserRouter {
     /// Return a user object
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn user_get(user: ModelUser) -> StatusOJ<oj::AuthenticatedUser> {
         (
             StatusCode::OK,
@@ -548,7 +548,7 @@ impl UserRouter {
 /// Use reqwest to test against real server
 // cargo watch -q -c -w src/ -x 'test api_router_user -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
     use super::UserRoutes;

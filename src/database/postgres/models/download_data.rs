@@ -7,7 +7,6 @@ use crate::api_error::ApiError;
 
 use super::user::ModelUser;
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct TimeStampIpUserAgent {
     timestamp: String,
@@ -15,10 +14,9 @@ struct TimeStampIpUserAgent {
     user_agent_string: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Device {
-    #[allow(clippy::struct_field_names)]
+    #[expect(clippy::struct_field_names)]
     name_of_device: String,
     timestamp: String,
     active: String,
@@ -26,7 +24,6 @@ struct Device {
     user_agent_string: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct LoginHistory {
     timestamp: String,
@@ -35,7 +32,6 @@ struct LoginHistory {
     user_agent_string: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct ContactMessages {
     timestamp: String,
@@ -44,21 +40,19 @@ struct ContactMessages {
     message: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct User {
     full_name: String,
     timestamp: String,
     email: String,
     ip: IpAddr,
-    #[allow(clippy::struct_field_names)]
+    #[expect(clippy::struct_field_names)]
     user_agent_string: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Api {
-    #[allow(clippy::struct_field_names)]
+    #[expect(clippy::struct_field_names)]
     api_key_string: String,
     timestamp: String,
     active: String,
@@ -66,7 +60,6 @@ struct Api {
     user_agent_string: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Connection {
     timestamp_online: String,
@@ -77,7 +70,6 @@ struct Connection {
     is_pi: bool,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Bandwidth {
     timestamp: String,
@@ -87,7 +79,6 @@ struct Bandwidth {
     is_counted: String,
 }
 
-#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 struct Emails {
     timestamp: String,
@@ -112,7 +103,7 @@ pub struct ModelDownloadData {
 }
 
 impl ModelDownloadData {
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     pub async fn get(postgres: &PgPool, registered_user: &ModelUser) -> Result<String, ApiError> {
         let id = registered_user.registered_user_id.get();
 
