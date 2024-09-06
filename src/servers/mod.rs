@@ -1053,7 +1053,7 @@ pub mod test_setup {
                     output.push(i.as_str().unwrap_or_default().to_owned());
                 }
             }
-            let _ = page.next();
+            page.next().unwrap_or_default();
         }
         output
     }

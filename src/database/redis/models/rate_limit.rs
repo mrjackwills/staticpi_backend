@@ -253,7 +253,7 @@ impl RateLimit {
                             );
                         }
                     }
-                    let _ = page.next();
+                    page.next()?;
                 }
 
                 Ok(output)
