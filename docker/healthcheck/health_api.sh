@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 # Check the api server /online endpoint
 api_check() {
@@ -48,7 +49,7 @@ token_check() {
 	esac
 }
 
-# Check the token server /online endpoint
+# Check the wss server /online endpoint
 wss_check() {
 	port=$(grep "WS_PORT" /app_env/.api.env | cut -c 9-12)
 	url="http://staticpi_api:${port}/online"
