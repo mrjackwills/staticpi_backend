@@ -1348,10 +1348,9 @@ mod tests {
         let result = RedisNewUser::exists(&test_setup.redis, "email@mrjackwills.com").await;
         assert!(result.is_ok());
         assert!(!result.unwrap());
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)
                 .await
@@ -1418,10 +1417,8 @@ mod tests {
         assert!(result.unwrap());
 
         // check email sent - well written to disk & inserted into db
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         let link = format!(
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
@@ -1467,10 +1464,8 @@ mod tests {
         assert!(result.unwrap());
 
         // check email sent - well written to disk & inserted into db
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         let link = format!(
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
@@ -1518,10 +1513,8 @@ mod tests {
                 .count,
             0
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
 
         let second_secret = get_keys(&test_setup.redis, "verify::secret::*").await;
         assert_eq!(first_secret, second_secret);
@@ -1572,10 +1565,8 @@ mod tests {
         assert!(result.unwrap());
 
         // check email sent - well written to disk & inserted into db
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         let link = format!(
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
@@ -1744,10 +1735,8 @@ mod tests {
             0
         );
         // check email NOT sent - well written to disk
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
     }
 
     #[tokio::test]
@@ -1851,10 +1840,8 @@ mod tests {
             0
         );
 
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
     }
 
     #[tokio::test]
