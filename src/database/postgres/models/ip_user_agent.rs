@@ -96,7 +96,7 @@ WHERE
             .await?;
 
         for i in ips {
-            redis.del(RedisKey::CacheIp(i.ip).to_string()).await?;
+            redis.del::<(),_>(RedisKey::CacheIp(i.ip).to_string()).await?;
         }
         Ok(())
     }
@@ -142,7 +142,7 @@ WHERE
             .await?;
         for i in user_agents {
             redis
-                .del(RedisKey::CacheUseragent(&i.user_agent).to_string())
+                .del::<(),_>(RedisKey::CacheUseragent(&i.user_agent).to_string())
                 .await?;
         }
         Ok(())
@@ -152,7 +152,7 @@ WHERE
         let ip_key = RedisKey::CacheIp(self.ip).to_string();
         let user_agent_key = RedisKey::CacheUseragent(&self.user_agent).to_string();
 
-        redis.hset(ip_key, hmap!(self.ip_id.get())).await?;
+        redis.hset::<(),_,_>(ip_key, hmap!(self.ip_id.get())).await?;
         Ok(redis
             .hset(user_agent_key, hmap!(self.user_agent_id.get()))
             .await?)

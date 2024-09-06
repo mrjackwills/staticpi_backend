@@ -209,7 +209,7 @@ mod tests {
         let client = TestSetup::get_client();
         sleep!(1000);
         let result = client
-            .get(&format!("{}/online", token_base_url(&test_setup.app_env)))
+            .get(format!("{}/online", token_base_url(&test_setup.app_env)))
             .send()
             .await
             .unwrap();

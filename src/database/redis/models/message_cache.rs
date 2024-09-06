@@ -61,7 +61,7 @@ impl MessageCache {
         device_ids: &[ModelDeviceId],
     ) -> Result<(), ApiError> {
         for device in device_ids {
-            redis.del(Self::key(device.device_id)).await?;
+            redis.del::<(),_>(Self::key(device.device_id)).await?;
         }
         Ok(())
     }

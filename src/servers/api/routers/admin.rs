@@ -155,7 +155,7 @@ impl AdminRouter {
         State(state): State<ApplicationState>,
         ij::IncomingJson(body): ij::IncomingJson<ij::Limit>,
     ) -> Result<StatusCode, ApiError> {
-        state.redis.del(body.key.to_string()).await?;
+        state.redis.del::<(),_>(body.key.to_string()).await?;
         Ok(StatusCode::OK)
     }
 

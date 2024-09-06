@@ -301,20 +301,20 @@ impl RateLimit {
         let blocks = BlockTimes::new(self);
 
         if let Some(count) = self.get_count(redis).await? {
-            redis.incr(&key).await?;
+            redis.incr::<(),_>(&key).await?;
             if count >= limit * 2 {
-                redis.expire(&key, blocks.big).await?;
+                redis.expire::<(),_>(&key, blocks.big).await?;
             }
             if count > limit {
                 return Err(ApiError::RateLimited(self.ttl(redis).await?));
             }
             if count == limit {
-                redis.expire(&key, blocks.small).await?;
+                redis.expire::<(),_>(&key, blocks.small).await?;
                 return Err(ApiError::RateLimited(blocks.small));
             }
         } else {
-            redis.incr(&key).await?;
-            redis.expire(&key, blocks.small).await?;
+            redis.incr::<(),_>(&key).await?;
+            redis.expire::<(),_>(&key, blocks.small).await?;
         }
         Ok(())
     }
