@@ -76,9 +76,10 @@ pub struct AppEnv {
 impl AppEnv {
     /// Check a given file actually exists on the file system
     fn check_file_exists(filename: String) -> Result<String, EnvError> {
-        match fs::metadata(&filename) {
-            Ok(_) => Ok(filename),
-            Err(_) => Err(EnvError::FileNotFound(filename)),
+        if fs::exists(&filename).unwrap_or_default() {
+            Ok(filename)
+        } else {
+            Err(EnvError::FileNotFound(filename))
         }
     }
 
@@ -175,9 +176,9 @@ impl AppEnv {
     /// Load up .env from file, instead of using environmental variables
     /// On docker, mount /`app_env`/ as a readonly share
     pub fn get_env() -> Self {
-        let env_path = if std::fs::metadata(DOCKER_ENV).is_ok() {
+        let env_path = if std::fs::exists(DOCKER_ENV).unwrap_or_default() {
             DOCKER_ENV
-        } else if std::fs::metadata(LOCAL_ENV).is_ok() {
+        } else if std::fs::exists(LOCAL_ENV).unwrap_or_default() {
             LOCAL_ENV
         } else {
             println!("\n\x1b[31munable to load env file\x1b[0m\n");
@@ -200,7 +201,7 @@ impl AppEnv {
 ///
 /// cargo watch -q -c -w src/ -x 'test env_ -- --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
     use super::*;
 

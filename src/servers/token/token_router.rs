@@ -46,7 +46,7 @@ impl ApiRouter for TokenRouter {
 }
 
 impl TokenRouter {
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn online_get(
         State(state): State<ApplicationState>,
     ) -> Result<StatusOJ<oj::Online>, ApiError> {
@@ -184,7 +184,7 @@ impl TokenRouter {
 /// Use reqwest to test against real server
 // cargo watch -q -c -w src/ -x 'test token_server -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used)]
 mod tests {
     use crate::{
         connections::ConnectionType,
@@ -209,7 +209,7 @@ mod tests {
         let client = TestSetup::get_client();
         sleep!(1000);
         let result = client
-            .get(&format!("{}/online", token_base_url(&test_setup.app_env)))
+            .get(format!("{}/online", token_base_url(&test_setup.app_env)))
             .send()
             .await
             .unwrap();

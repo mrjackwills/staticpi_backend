@@ -145,7 +145,7 @@ impl ApiRouter for AdminRouter {
 
 impl AdminRouter {
     /// Return a user object
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn base_get() -> StatusCode {
         StatusCode::OK
     }
@@ -155,7 +155,7 @@ impl AdminRouter {
         State(state): State<ApplicationState>,
         ij::IncomingJson(body): ij::IncomingJson<ij::Limit>,
     ) -> Result<StatusCode, ApiError> {
-        state.redis.del(body.key.to_string()).await?;
+        state.redis.del::<(), _>(body.key.to_string()).await?;
         Ok(StatusCode::OK)
     }
 
@@ -190,7 +190,6 @@ impl AdminRouter {
     }
 
     /// Get server info, uptime, app uptime, virt mem, and rss memory
-    #[allow(clippy::unused_async)]
     async fn memory_get(
         State(state): State<ApplicationState>,
     ) -> Result<StatusOJ<oj::AdminMemory>, ApiError> {
@@ -484,7 +483,7 @@ impl AdminRouter {
 /// Use reqwest to test against real server
 // cargo watch -q -c -w src/ -x 'test admin_router -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
     use super::AdminRoutes;

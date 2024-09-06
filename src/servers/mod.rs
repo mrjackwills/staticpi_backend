@@ -234,7 +234,6 @@ fn get_api_version() -> String {
 }
 
 /// return a unknown endpoint response
-#[allow(clippy::unused_async)]
 pub async fn fallback(OriginalUri(original_uri): OriginalUri) -> (StatusCode, AsJsonRes<String>) {
     (
         StatusCode::NOT_FOUND,
@@ -264,7 +263,7 @@ async fn rate_limiting(
     Ok(next.run(Request::from_parts(parts, body)).await)
 }
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 async fn shutdown_signal(server_name: ServerName) {
     let ctrl_c = async {
         signal::ctrl_c()
@@ -297,7 +296,7 @@ async fn shutdown_signal(server_name: ServerName) {
 /// http tests - ran via actual requests to a (local) server
 /// cargo watch -q -c -w src/ -x 'test http_mod -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod test_setup {
 
     use fred::clients::RedisPool;
@@ -1053,7 +1052,7 @@ pub mod test_setup {
                     output.push(i.as_str().unwrap_or_default().to_owned());
                 }
             }
-            let _ = page.next();
+            page.next().unwrap_or_default();
         }
         output
     }
@@ -1062,7 +1061,6 @@ pub mod test_setup {
     pub async fn start_servers() -> TestSetup {
         let setup = setup().await;
         let app_env = setup.app_env.clone();
-        // let redis = setup.redis.clone();
         let postgres = setup.postgres.clone();
         let connections = Arc::new(Mutex::new(Connections::default()));
 

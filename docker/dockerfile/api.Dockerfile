@@ -31,9 +31,6 @@ RUN cargo build --release
 ## Runtime ##
 #############
 
-# This can then be scratch
-
-# FROM debian:bullseye-slim AS RUNTIME
 FROM ubuntu:22.04
 
 ARG DOCKER_GUID=1000 \

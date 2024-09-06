@@ -118,7 +118,7 @@ async fn gen_backup_codes() -> Result<(Vec<String>, Vec<ArgonHash>), ApiError> {
 
 impl UserRouter {
     /// Return a user object
-    #[allow(clippy::unused_async)]
+    #[expect(clippy::unused_async)]
     async fn user_get(user: ModelUser) -> StatusOJ<oj::AuthenticatedUser> {
         (
             StatusCode::OK,
@@ -548,7 +548,7 @@ impl UserRouter {
 /// Use reqwest to test against real server
 // cargo watch -q -c -w src/ -x 'test api_router_user -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
     use super::UserRoutes;
@@ -1773,10 +1773,8 @@ mod tests {
         );
 
         // email sent - written to disk when testing & inserted into db
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains("The password for your staticPi account has been changed"));
@@ -1870,10 +1868,8 @@ mod tests {
             1
         );
         // email sent - written to disk when testing & inserted into db
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains("The password for your staticPi account has been changed"));
@@ -2151,10 +2147,8 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         let link = format!(
             "href=\"https://www.{}/user/settings/",
             test_setup.app_env.domain
@@ -2502,10 +2496,8 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
             .unwrap()
             .contains("You have disabled Two-Factor Authentication for your staticPi account"));
@@ -2700,10 +2692,8 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
                 .unwrap()
                 .contains("You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure"));
@@ -2762,10 +2752,8 @@ mod tests {
             0
         );
         // email not sent
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
 
         let invalid_token = test_setup.get_invalid_token();
         let body = HashMap::from([("password", TEST_PASSWORD), ("token", &invalid_token)]);
@@ -2787,10 +2775,8 @@ mod tests {
             0
         );
         // email not sent
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
     }
 
     #[tokio::test]
@@ -2886,10 +2872,8 @@ mod tests {
             1
         );
 
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
                 .unwrap()
                 .contains("You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure."));
@@ -2976,10 +2960,8 @@ mod tests {
                 .count,
             0
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
 
         let invalid_token = test_setup.get_invalid_token();
         let body = HashMap::from([("password", TEST_PASSWORD), ("token", &invalid_token)]);
@@ -3003,10 +2985,8 @@ mod tests {
                 .count,
             0
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_err());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_err());
+        assert!(!std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(!std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
     }
 
     #[tokio::test]
@@ -3058,10 +3038,8 @@ mod tests {
                 .count,
             1
         );
-        let result = std::fs::metadata(EMAIL_HEADERS_LOCATION);
-        assert!(result.is_ok());
-        let result = std::fs::metadata(EMAIL_BODY_LOCATION);
-        assert!(result.is_ok());
+        assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
+        assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
         assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
                 .unwrap()
                 .contains("You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page."));

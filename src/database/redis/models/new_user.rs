@@ -66,15 +66,21 @@ impl RedisNewUser {
 
         let new_user_as_string = serde_json::to_string(&self)?;
 
-        redis.hset(&key_email, hmap!(ulid.to_string())).await?;
-        redis.expire(key_email, Self::TTL_AS_SEC.into()).await?;
-        redis.hset(&key_secret, hmap!(new_user_as_string)).await?;
+        redis
+            .hset::<(), _, _>(&key_email, hmap!(ulid.to_string()))
+            .await?;
+        redis
+            .expire::<(), _>(key_email, Self::TTL_AS_SEC.into())
+            .await?;
+        redis
+            .hset::<(), _, _>(&key_secret, hmap!(new_user_as_string))
+            .await?;
         Ok(redis.expire(key_secret, Self::TTL_AS_SEC.into()).await?)
     }
 
     /// Remove both verify keys from redis
     pub async fn delete(&self, redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
-        redis.del(Self::key_secret(ulid)).await?;
+        redis.del::<(), _>(Self::key_secret(ulid)).await?;
         Ok(redis.del(Self::key_email(&self.email)).await?)
     }
 

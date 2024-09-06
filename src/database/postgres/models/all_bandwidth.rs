@@ -16,7 +16,7 @@ pub struct ModelAllBandwidth {
 }
 
 impl ModelAllBandwidth {
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     pub async fn get(postgres: &PgPool) -> Result<Self, ApiError> {
         let query = r"
 SELECT

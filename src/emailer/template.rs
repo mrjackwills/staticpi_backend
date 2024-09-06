@@ -11,7 +11,6 @@ pub struct CustomEmail {
 }
 
 impl CustomEmail {
-    #[allow(clippy::missing_const_for_fn)]
     pub fn new(
         title: String,
         line_one: String,
@@ -235,7 +234,7 @@ fn create_template(input: &Emailer, domain: &str) -> String {
 
 /// Use a `EmailTemplate` to create a parsed mjml html string
 /// Is parsed on own thread
-#[allow(clippy::cognitive_complexity)]
+#[expect(clippy::cognitive_complexity)]
 pub fn create_html_string(input: &Emailer) -> Option<String> {
     let template = create_template(input, input.env.get_domain());
 
@@ -261,7 +260,7 @@ pub fn create_html_string(input: &Emailer) -> Option<String> {
 
 /// cargo watch -q -c -w src/ -x 'test emailer_template -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::pedantic, clippy::nursery)]
+#[expect(clippy::pedantic, clippy::nursery)]
 mod tests {
 
     use crate::{emailer::EmailerEnv, parse_env};

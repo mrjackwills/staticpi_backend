@@ -347,7 +347,7 @@ WHERE
     }
 }
 
-#[allow(clippy::struct_excessive_bools)]
+#[expect(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ModelDevice {
     #[serde(skip_serializing)]

@@ -7,7 +7,7 @@ use tracing::error;
 
 use crate::api_error::ApiError;
 
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 #[cfg(debug_assertions)]
 static PARAMS: LazyLock<Params> = LazyLock::new(|| {
     ParamsBuilder::new()
@@ -20,7 +20,7 @@ static PARAMS: LazyLock<Params> = LazyLock::new(|| {
 
 /// This takes 19 seconds when testing, hence the above `not-release` version
 #[cfg(not(debug_assertions))]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 static PARAMS: LazyLock<Params> = LazyLock::new(|| {
     ParamsBuilder::new()
         .m_cost(24 * 1024)
@@ -91,7 +91,7 @@ pub async fn verify_password(password: &str, argon_hash: ArgonHash) -> Result<bo
 /// http tests - ran via actual requests to a (local) server
 /// cargo watch -q -c -w src/ -x 'test argon_mod -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
     use rand::{distributions::Alphanumeric, Rng};

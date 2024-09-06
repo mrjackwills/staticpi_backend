@@ -38,7 +38,7 @@ impl ModelMonthlyBandwidth {
     async fn insert_cache(&self, redis: &RedisPool) -> Result<(), ApiError> {
         let key = RedisKey::CacheMonthlyBandwidth(self.registered_user_id).to_string();
         redis
-            .hset(&key, hmap!(serde_json::to_string(&self)?))
+            .hset::<(), _, _>(&key, hmap!(serde_json::to_string(&self)?))
             .await?;
 
         Ok(redis.expire(&key, 30).await?)
