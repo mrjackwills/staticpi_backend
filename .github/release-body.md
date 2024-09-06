@@ -1,12 +1,16 @@
-### 2024-08-14
+### 2024-09-06
 
 ### Chores
-+ dependencies updated, [6cb671e37854f5da3ff25b2d5650281e97fabd9d]
++ switch from `allow(x)` to `expect(x), [0bcaedb488876261471dd5735455de24e28dae84]
++ dependencies updated, [ba856c7131ec7f56996bab4e90e162481f476b6e]
 
-### Features
-+ improve healthcheck, should now be *correct*, [e89e39a241f29cf51b68e16e7d280556859673b5]
+### Fixes
++ fred.rs scanner .next(), [4610f2d7371c2823df41a8973f1df071b6386a4c]
++ healthchecks updated, [00f3d34d72dcd04c3d4ea1f02a3fc77e91789700]
++ fred.rs turbofish, [fefc55af18303a48c4a14defbabc28bf01b9ed49]
 
 ### Refactors
-+ switch from `/dev/shm` to `/ramdrive`, [24160e54da206261606c898368ba5ff796be557c]
++ use fs::exists, [52ffcd26454cdfd4fa05ffb4da2aabcec6c60b51]
++ log name, [83e7879b68ab80200e42939cc97b9b4dacfee042]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
