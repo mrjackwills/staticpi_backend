@@ -46,12 +46,6 @@ ask_continue() {
 	fi
 }
 
-# return user input
-user_input() {
-	read -r data
-	echo "$data"
-}
-
 # semver major update
 update_major() {
 	local bumped_major

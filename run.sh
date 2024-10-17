@@ -29,14 +29,19 @@ error_close() {
 }
 
 # $1 string - question to ask
+# Ask a yes no question, only accepts `y` or `n` as a valid answer, returns 0 for yes, 1 for no
 ask_yn() {
-	printf "%b%s? [y/N]:%b " "${GREEN}" "$1" "${RESET}"
-}
-
-# return user input
-user_input() {
-	read -r data
-	echo "$data"
+	while true; do
+		printf "\n%b%s? [y/N]:%b " "${GREEN}" "$1" "${RESET}"
+		read -r answer
+		if [[ "$answer" == "y" ]]; then
+			return 0
+		elif [[ "$answer" == "n" ]]; then
+			return 1
+		else
+			echo -e "${RED}\nPlease enter 'y' or 'n'${RESET}"
+		fi
+	done
 }
 
 if ! [ -x "$(command -v dialog)" ]; then
@@ -105,13 +110,13 @@ dev_down() {
 }
 
 production_up() {
-	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
-	if [[ "$(user_input)" =~ ^n$ ]]; then
+	if ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""; then
+		make_all_directories
+		cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
+		docker compose -f docker-compose.yml up -d
+	else
 		exit
 	fi
-	make_all_directories
-	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-	docker compose -f docker-compose.yml up -d
 
 }
 
@@ -121,13 +126,13 @@ production_down() {
 }
 
 production_rebuild() {
-	ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""
-	if [[ "$(user_input)" =~ ^n$ ]]; then
+	if ask_yn "added crontab \"*/30 * * * *  docker restart ${APP_NAME}_backup\""; then
+		make_all_directories
+		cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
+		docker compose -f docker-compose.yml up -d --build
+	else
 		exit
 	fi
-	make_all_directories
-	cd "${DOCKER_DIR}" || error_close "${DOCKER_DIR} doesn't exist"
-	docker compose -f docker-compose.yml up -d --build
 }
 
 select_containers() {
@@ -170,8 +175,7 @@ pull_branch() {
 		printf "%s\n" "${GIT_CLEAN}"
 	fi
 	if [[ -n "$GIT_CLEAN" ]]; then
-		ask_yn "Happy to clear git state"
-		if [[ "$(user_input)" =~ ^n$ ]]; then
+		if ! ask_yn "Happy to clear git state";then 
 			exit
 		fi
 	fi
@@ -223,7 +227,7 @@ main() {
 			;;
 		6)
 			pull_branch
-			break;
+			break
 			;;
 		esac
 	done
