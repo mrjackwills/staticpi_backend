@@ -12,6 +12,7 @@ use crate::{
     },
     servers::{get_cookie_ulid, ApplicationState},
     user_io::incoming_json::ij::Token,
+    S,
 };
 
 /// Generate a secret to TOTP from a given secret
@@ -21,7 +22,7 @@ pub fn totp_from_secret(secret: &str) -> Result<TOTP, ApiError> {
             return Ok(totp);
         }
     }
-    Err(ApiError::Internal("TOTP ERROR".to_owned()))
+    Err(ApiError::Internal(S!("TOTP ERROR")))
 }
 
 /// Validate an 2fa token

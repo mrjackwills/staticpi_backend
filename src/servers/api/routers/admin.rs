@@ -31,6 +31,7 @@ use crate::{
         incoming_json::ij,
         outgoing_json::oj::{self, AdminEmailsCounts},
     },
+    S,
 };
 
 struct SysInfo {
@@ -221,25 +222,10 @@ impl AdminRouter {
     ) -> Result<StatusCode, ApiError> {
         if let Some(ulid) = get_cookie_ulid(&state, &jar) {
             if session == ulid {
-                return Err(ApiError::InvalidValue(String::from(
-                    "Can't delete current session",
-                )));
+                return Err(ApiError::InvalidValue(S!("Can't delete current session")));
             }
         }
         RedisSession::delete(&state.redis, &session).await?;
-        // }
-        // if let Some(data) = jar.get(&state.cookie_name) {
-        //     if let Ok(ulid) = Ulid::from_string(data.value()) {
-        //         if session == ulid {
-        //             return Err(ApiError::InvalidValue(String::from(
-        //                 "Can't delete current session",
-        //             )));
-        //         }
-        //     }
-        //     RedisSession::delete(&state.redis, &session).await?;
-        // } else {
-        //     error!("Unable to parse session_delete user session");
-        // }
         Ok(StatusCode::OK)
     }
 
@@ -262,7 +248,7 @@ impl AdminRouter {
     ) -> Result<StatusCode, ApiError> {
         if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
             if model_user.registered_user_id == user.registered_user_id {
-                Err(ApiError::InvalidValue("Can't de-activate self".to_owned()))
+                Err(ApiError::InvalidValue(S!("Can't de-activate self")))
             } else {
                 if model_user.active {
                     RedisSession::delete_all(&state.redis, model_user.registered_user_id).await?;
@@ -271,7 +257,7 @@ impl AdminRouter {
                 Ok(StatusCode::OK)
             }
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -344,7 +330,7 @@ impl AdminRouter {
             }
             Ok(StatusCode::OK)
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -380,10 +366,10 @@ impl AdminRouter {
                     .await?;
                 Ok(StatusCode::OK)
             } else {
-                Err(ApiError::InvalidValue(String::from("unknown device")))
+                Err(ApiError::InvalidValue(S!("unknown device")))
             }
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -406,14 +392,14 @@ impl AdminRouter {
         }
         if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
             if model_user == admin_user {
-                return Err(ApiError::InvalidValue(String::from(
-                    "Admin users can't delete their own accounts",
+                return Err(ApiError::InvalidValue(S!(
+                    "Admin users can't delete their own accounts"
                 )));
             }
             model_user.delete(&state.postgres, &state.redis).await?;
             Ok(StatusCode::OK)
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -440,7 +426,7 @@ impl AdminRouter {
             }
             Ok((StatusCode::OK, oj::OutgoingJson::new(output)))
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -501,8 +487,8 @@ mod tests {
         api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME, TEST_EMAIL,
         TEST_FULL_NAME, TEST_PASSWORD, TEST_USER_AGENT,
     };
-    use crate::sleep;
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
+    use crate::{sleep, S};
 
     use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
@@ -1396,7 +1382,7 @@ mod tests {
         );
 
         let body = TmpBody {
-            device_type: String::from("Client"),
+            device_type: S!("Client"),
             device_id: test_setup.query_user_active_devices().await[0]
                 .device_id
                 .get(),
@@ -1471,7 +1457,7 @@ mod tests {
         );
 
         let body = TmpBody {
-            device_type: String::from("Pi"),
+            device_type: S!("Pi"),
             device_id: test_setup.query_user_active_devices().await[0]
                 .device_id
                 .get(),

@@ -581,8 +581,8 @@ mod tests {
     use crate::servers::test_setup::{
         api_base_url, get_keys, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
     };
-    use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
+    use crate::{sleep, S};
 
     use futures::{SinkExt, StreamExt};
     use reqwest::StatusCode;
@@ -3866,8 +3866,8 @@ mod tests {
                 &authed_cookie,
                 Some(DevicePost {
                     max_clients: 1,
-                    client_password: Some("this_is_a_password".to_owned()),
-                    device_password: Some("This_is_another_password".to_owned()),
+                    client_password: Some(S!("this_is_a_password")),
+                    device_password: Some(S!("This_is_another_password")),
                     structured_data: false,
                     name: None,
                 }),

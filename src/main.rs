@@ -50,7 +50,7 @@ fn setup_tracing(app_env: &AppEnv) -> Result<(), ApiError> {
         Ok(()) => Ok(()),
         Err(e) => {
             println!("{e:?}");
-            Err(ApiError::Internal("Unable to start tracing".to_owned()))
+            Err(ApiError::Internal(S!("Unable to start tracing")))
         }
     }
 }

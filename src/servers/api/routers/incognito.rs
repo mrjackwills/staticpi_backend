@@ -41,6 +41,7 @@ use crate::{
     servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     sleep,
     user_io::{incoming_json::ij, outgoing_json::oj},
+    S,
 };
 
 define_routes! {
@@ -71,17 +72,17 @@ enum IncognitoResponse {
 impl fmt::Display for IncognitoResponse {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let disp = match self {
-            Self::AgeInvalid => "Please confirm that you aged 13 years or older".to_owned(),
-            Self::AgreeInvalid => "Please agree to the terms & conditions".to_owned(),
+            Self::AgeInvalid => S!("Please confirm that you aged 13 years or older"),
+            Self::AgreeInvalid => S!("Please agree to the terms & conditions"),
             Self::DomainBanned(domain) => format!("{domain} is a banned domain"),
-            Self::InviteInvalid => "invite invalid".to_owned(),
-            Self::UnsafePassword => "unsafe password".to_owned(),
-            Self::Verified => "Account verified, please sign in to continue".to_owned(),
-            Self::VerifyInvalid => "Incorrect verification data".to_owned(),
+            Self::InviteInvalid => S!("invite invalid"),
+            Self::UnsafePassword => S!("unsafe password"),
+            Self::Verified => S!("Account verified, please sign in to continue"),
+            Self::VerifyInvalid => S!("Incorrect verification data"),
             Self::Instructions => {
-                "Instructions have been sent to the email address provided".to_owned()
+                S!("Instructions have been sent to the email address provided")
             }
-            Self::ResetPatch => "Password reset complete - please sign in".to_owned(),
+            Self::ResetPatch => S!("Password reset complete - please sign in"),
         };
         write!(f, "{disp}")
     }
@@ -633,11 +634,11 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::api::api_tests::EMAIL_BODY_LOCATION;
     use crate::servers::test_setup::*;
-    use crate::sleep;
     use crate::{
         database::contact_message::ModelContactMessage,
         servers::api::api_tests::EMAIL_HEADERS_LOCATION,
     };
+    use crate::{sleep, S};
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
@@ -671,12 +672,8 @@ mod tests {
         test_setup.insert_test_user().await;
         let client = TestSetup::get_client();
         let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
-        let body = TestSetup::gen_signin_body(
-            None,
-            Some("thisistheincorrectpassword".to_owned()),
-            None,
-            None,
-        );
+        let body =
+            TestSetup::gen_signin_body(None, Some(S!("thisistheincorrectpassword")), None, None);
 
         let result = client.post(&url).json(&body).send().await.unwrap();
         let user = test_setup.get_model_user().await.unwrap();
@@ -722,12 +719,8 @@ mod tests {
 
         let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
 
-        let body = TestSetup::gen_signin_body(
-            None,
-            Some("thisistheincorrectpassword".to_owned()),
-            None,
-            None,
-        );
+        let body =
+            TestSetup::gen_signin_body(None, Some(S!("thisistheincorrectpassword")), None, None);
 
         for _ in 0..=19 {
             client.post(&url).json(&body).send().await.unwrap();
@@ -840,7 +833,7 @@ mod tests {
 
         let body = TestSetup::gen_signin_body(
             None,
-            Some("thisistheincorrectpassword".to_owned()),
+            Some(S!("thisistheincorrectpassword")),
             Some(valid_token.clone()),
             None,
         );
@@ -2336,7 +2329,7 @@ mod tests {
             IncognitoRoutes::Contact.addr()
         );
 
-        let message = (0..63).map(|_| "a".to_owned()).collect::<String>();
+        let message = (0..63).map(|_| S!("a")).collect::<String>();
 
         let body = HashMap::from([("email", TEST_EMAIL), ("message", &message)]);
 
@@ -2367,7 +2360,7 @@ mod tests {
             IncognitoRoutes::Contact.addr()
         );
 
-        let message = (0..=1024).map(|_| "a".to_owned()).collect::<String>();
+        let message = (0..=1024).map(|_| S!("a")).collect::<String>();
 
         let body = HashMap::from([("email", TEST_EMAIL), ("message", &message)]);
 

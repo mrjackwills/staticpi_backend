@@ -11,6 +11,7 @@ use crate::{
     api_error::ApiError,
     parse_env::RunMode,
     servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState},
+    S,
 };
 
 use super::{shutdown_signal, ApiRouter, Serve, ServeData};
@@ -25,7 +26,7 @@ impl Serve for ApiServer {
         let auth_prefix = format!("{prefix}/authenticated");
 
         let cors_url = match serve_data.app_env.run_mode {
-            RunMode::Development => String::from("http://127.0.0.1:8002"),
+            RunMode::Development => S!("http://127.0.0.1:8002"),
             RunMode::Production => format!("https://www.{}", serve_data.app_env.domain),
         };
 
@@ -92,7 +93,7 @@ impl Serve for ApiServer {
         .await
         {
             Ok(()) => Ok(()),
-            Err(_) => Err(ApiError::Internal("api_server".to_owned())),
+            Err(_) => Err(ApiError::Internal(S!("api_server"))),
         }
     }
 }
@@ -110,13 +111,14 @@ pub mod api_tests {
     use crate::servers::test_setup::Response;
     use crate::servers::test_setup::TestSetup;
     use crate::servers::{get_api_version, test_setup::start_servers};
+    use crate::S;
 
     pub const EMAIL_BODY_LOCATION: &str = "/ramdrive/staticpi/email_body.txt";
     pub const EMAIL_HEADERS_LOCATION: &str = "/ramdrive/staticpi/email_headers.txt";
 
     #[test]
     fn http_mod_get_api_version() {
-        assert_eq!(get_api_version(), "/v0".to_owned());
+        assert_eq!(get_api_version(), S!("/v0"));
     }
 
     #[tokio::test]

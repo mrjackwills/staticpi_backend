@@ -25,6 +25,7 @@ use crate::{
         outgoing_json::oj,
         ws_message::wm::{ClientBody, PiBody},
     },
+    S,
 };
 
 pub type AMConnections = Arc<Mutex<Connections>>;
@@ -116,7 +117,7 @@ impl TryFrom<String> for ConnectionType {
         match x.to_lowercase().as_str() {
             "pi" => Ok(Self::Pi),
             "client" => Ok(Self::Client),
-            _ => Err(ApiError::Internal("unknown device type".to_owned())),
+            _ => Err(ApiError::Internal(S!("unknown device type"))),
         }
     }
 }
@@ -136,7 +137,7 @@ impl TryFrom<Uri> for ConnectionType {
         {
             "pi" => Ok(Self::Pi),
             "client" => Ok(Self::Client),
-            _ => Err(ApiError::Internal("unknown device type".to_owned())),
+            _ => Err(ApiError::Internal(S!("unknown device type"))),
         }
     }
 }

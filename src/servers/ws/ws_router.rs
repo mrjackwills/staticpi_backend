@@ -488,6 +488,7 @@ mod tests {
         },
         sleep,
         user_io::incoming_json::ij::DevicePost,
+        S,
     };
     use fred::interfaces::{HashesInterface, KeysInterface};
     use futures::{SinkExt, StreamExt};
@@ -2398,7 +2399,7 @@ mod tests {
 
         let (_, mut rx) = ws_client.split();
 
-        let msg_text = (0..=10_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=10_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2439,7 +2440,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=10_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=10_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2480,7 +2481,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=3_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=3_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2522,7 +2523,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=3_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=3_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2564,7 +2565,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=5_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2606,7 +2607,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=5_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2653,7 +2654,7 @@ mod tests {
         assert!(ws_pi.is_ok());
         let (mut ws_pi, _) = ws_pi.unwrap();
 
-        let long_msg = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let long_msg = (0..=5_000_000).map(|_| S!("a")).collect::<String>();
 
         let msg_text = format!(r#"{{"data":{long_msg}}}"#);
 
@@ -2705,7 +2706,7 @@ mod tests {
         assert!(ws_client.is_ok());
         let (mut ws_client, _) = ws_client.unwrap();
 
-        let long_msg = (0..=5_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let long_msg = (0..=5_000_000).map(|_| S!("a")).collect::<String>();
 
         let msg_text = format!(r#"{{"data":{long_msg}}}"#);
 
@@ -2758,7 +2759,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=8_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=8_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2800,7 +2801,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=8_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=8_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 
@@ -2842,7 +2843,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_client.split();
-        let msg_text = (0..=10_000_000).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=10_000_000).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_pi.send(msg.clone()).await.unwrap();
 
@@ -2884,7 +2885,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let (_, mut rx) = ws_pi.split();
-        let msg_text = (0..=10_000_001).map(|_| "a".to_owned()).collect::<String>();
+        let msg_text = (0..=10_000_001).map(|_| S!("a")).collect::<String>();
         let msg = Message::from(msg_text.clone());
         ws_client.send(msg.clone()).await.unwrap();
 

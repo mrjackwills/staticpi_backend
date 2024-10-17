@@ -158,7 +158,7 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
         }
         Err(e) => {
             error!("{e:?}");
-            Err(ApiError::Internal(String::from("hibp request error")))
+            Err(ApiError::Internal(S!("hibp request error")))
         }
     }
 }

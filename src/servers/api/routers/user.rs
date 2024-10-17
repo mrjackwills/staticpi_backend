@@ -28,6 +28,7 @@ use crate::{
     helpers::{self, gen_random_hex},
     servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
+    S,
 };
 
 define_routes! {
@@ -53,10 +54,10 @@ enum UserResponse {
 impl fmt::Display for UserResponse {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let disp = match self {
-            Self::UnsafePassword => "unsafe password".to_owned(),
-            Self::SetupTwoFA => "Two FA setup already started or enabled".to_owned(),
-            Self::TwoFANotEnabled => "Two FA not enabled".to_owned(),
-            Self::TwoFABackupInPlace => "Two FA backups already in place".to_owned(),
+            Self::UnsafePassword => S!("unsafe password"),
+            Self::SetupTwoFA => S!("Two FA setup already started or enabled"),
+            Self::TwoFANotEnabled => S!("Two FA not enabled"),
+            Self::TwoFABackupInPlace => S!("Two FA backups already in place"),
         };
         write!(f, "{disp}")
     }
@@ -133,9 +134,9 @@ impl UserRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::PasswordToken>,
     ) -> Result<StatusCode, ApiError> {
         if user.user_level == UserLevel::Admin {
-            return Err(ApiError::InvalidValue(
-                "Admin users can't delete their own accounts".to_owned(),
-            ));
+            return Err(ApiError::InvalidValue(S!(
+                "Admin users can't delete their own accounts"
+            )));
         }
 
         if !authentication::check_password_token(&user, &body.password, body.token, &state.postgres)
@@ -220,9 +221,9 @@ impl UserRouter {
             .await
             .is_err()
         {
-            return Err(ApiError::InvalidValue(
-                "Limited to one download per 24-hours".to_owned(),
-            ));
+            return Err(ApiError::InvalidValue(S!(
+                "Limited to one download per 24-hours"
+            )));
         };
 
         // Email user download sent
@@ -327,7 +328,7 @@ impl UserRouter {
         useragent_ip: ModelUserAgentIp,
         ij::IncomingJson(body): ij::IncomingJson<ij::TwoFA>,
     ) -> Result<StatusCode, ApiError> {
-        let err = || Err(ApiError::InvalidValue("invalid token".to_owned()));
+        let err = || Err(ApiError::InvalidValue(S!("invalid token")));
         if let Some(two_fa_setup) = RedisTwoFASetup::get(&state.redis, &user).await? {
             match body.token {
                 ij::Token::Totp(token) => {
@@ -384,7 +385,7 @@ impl UserRouter {
                 ));
             }
             if body.password.is_none() || body.token.is_none() {
-                return Err(ApiError::InvalidValue("password or token".to_owned()));
+                return Err(ApiError::InvalidValue(S!("password or token")));
             }
             if !authentication::check_password_op_token(
                 &user,

@@ -8,6 +8,7 @@ use crate::{
     emailer::EmailerEnv,
     parse_env::{AppEnv, RunMode},
     user_io::outgoing_json::oj::{AsJsonRes, OutgoingJson},
+    S,
 };
 use axum::{
     async_trait,
@@ -189,7 +190,7 @@ async fn check_monthly_bandwidth(
     match ModelMonthlyBandwidth::get(postgres, redis, device.registered_user_id).await {
         Ok(Some(data)) => {
             if data.size_in_bytes >= device.max_monthly_bandwidth_in_bytes {
-                return Err(ApiError::Internal("max monthly bandwidth".to_owned()));
+                return Err(ApiError::Internal(S!("max monthly bandwidth")));
             }
             Ok(())
         }
@@ -355,6 +356,7 @@ pub mod test_setup {
     use crate::user_io::incoming_json::ij;
     use crate::user_io::incoming_json::ij::DevicePost;
     use crate::ServeData;
+    use crate::S;
 
     use super::api::api_tests::EMAIL_BODY_LOCATION;
     use super::api::api_tests::EMAIL_HEADERS_LOCATION;
@@ -449,7 +451,7 @@ pub mod test_setup {
         /// generate user ip address, user agent, normally done in middleware automatically by server
         pub fn gen_req() -> ReqUserAgentIp {
             ReqUserAgentIp {
-                user_agent: String::from(TEST_USER_AGENT),
+                user_agent: S!(TEST_USER_AGENT),
                 ip: IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
             }
         }
