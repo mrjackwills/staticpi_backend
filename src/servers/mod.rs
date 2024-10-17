@@ -12,7 +12,7 @@ use crate::{
 use axum::{
     async_trait,
     extract::{ConnectInfo, FromRef, FromRequestParts, OriginalUri, State},
-    http::{HeaderMap, Request, StatusCode},
+    http::{request::Parts, HeaderMap, Request, StatusCode},
     middleware::Next,
     response::Response,
     Router,
@@ -241,7 +241,22 @@ pub async fn fallback(OriginalUri(original_uri): OriginalUri) -> (StatusCode, As
     )
 }
 
-// Limit the users request based on ip address, using redis as mem store
+async fn get_ratelimiter(
+    state: &ApplicationState,
+    jar: PrivateCookieJar,
+    parts: &mut Parts,
+) -> Result<RateLimit, ApiError> {
+    if let Some(ulid) = get_cookie_ulid(state, &jar) {
+        if let Some(user) = RedisSession::exists(&state.redis, &ulid).await? {
+            return Ok(RateLimit::User(user.registered_user_id));
+        }
+    }
+    let addr = ConnectInfo::<SocketAddr>::from_request_parts(parts, &state).await?;
+    let ip = get_ip(&parts.headers, addr);
+    Ok(RateLimit::Ip(ip))
+}
+
+/// Limit the users request based on ip address, using redis as mem store
 async fn rate_limiting(
     State(state): State<ApplicationState>,
     jar: PrivateCookieJar,
@@ -249,18 +264,19 @@ async fn rate_limiting(
     next: Next,
 ) -> Result<Response, ApiError> {
     let (mut parts, body) = req.into_parts();
-    let addr = ConnectInfo::<SocketAddr>::from_request_parts(&mut parts, &state).await?;
-    let ip = get_ip(&parts.headers, addr);
-    let mut key = RateLimit::Ip(ip);
-    if let Some(data) = jar.get(&state.cookie_name) {
-        if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if let Some(user) = RedisSession::exists(&state.redis, &ulid).await? {
-                key = RateLimit::User(user.registered_user_id);
-            }
-        }
-    }
+    let key = get_ratelimiter(&state, jar, &mut parts).await?;
     key.check(&state.redis).await?;
     Ok(next.run(Request::from_parts(parts, body)).await)
+}
+
+/// Attempt to extract out a ULID from the cookie jar
+pub fn get_cookie_ulid(state: &ApplicationState, jar: &PrivateCookieJar) -> Option<Ulid> {
+    if let Some(data) = jar.get(&state.cookie_name) {
+        if let Ok(ulid) = Ulid::from_string(data.value()) {
+            return Some(ulid);
+        }
+    }
+    None
 }
 
 #[expect(clippy::expect_used)]

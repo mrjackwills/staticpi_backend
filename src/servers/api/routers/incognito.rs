@@ -38,7 +38,7 @@ use crate::{
     define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, calc_uptime},
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     sleep,
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
@@ -446,17 +446,25 @@ impl IncognitoRouter {
         ip_limit?;
         email_limit?;
 
-        let registered_user_id = if let Some(data) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(data.value()) {
-                RedisSession::get(&state.redis, &state.postgres, &ulid)
-                    .await?
-                    .map(|i| i.registered_user_id)
-            } else {
-                None
-            }
+        let registered_user_id = if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            RedisSession::get(&state.redis, &state.postgres, &ulid)
+                .await?
+                .map(|i| i.registered_user_id)
         } else {
             None
         };
+
+        // let registered_user_id = if let Some(data) = jar.get(&state.cookie_name) {
+        //     if let Ok(ulid) = Ulid::from_string(data.value()) {
+        //         RedisSession::get(&state.redis, &state.postgres, &ulid)
+        //             .await?
+        //             .map(|i| i.registered_user_id)
+        //     } else {
+        //         None
+        //     }
+        // } else {
+        //     None
+        // };
         let mut transaction = state.postgres.begin().await?;
         let email_address_id =
             if let Some(email) = ModelEmailAddress::get(&mut *transaction, &body.email).await? {
@@ -489,12 +497,16 @@ impl IncognitoRouter {
     ) -> Result<impl IntoResponse, ApiError> {
         // If front end and back end out of sync, and front end user has an api cookie, but not front-end authed, delete server cookie api session
         let ms = || rand::thread_rng().gen_range(100..500);
-        // remove previous current session
-        if let Some(data) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(data.value()) {
-                RedisSession::delete(&state.redis, &ulid).await?;
-            }
+
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            RedisSession::delete(&state.redis, &ulid).await?;
         }
+        // remove previous current session
+        // if let Some(data) = jar.get(&state.cookie_name) {
+        //     if let Ok(ulid) = Ulid::from_string(data.value()) {
+        //         RedisSession::delete(&state.redis, &ulid).await?;
+        //     }
+        // }
 
         if let Some(user) = ModelUser::get(&state.postgres, &body.email).await? {
             // Email user that account is blocked

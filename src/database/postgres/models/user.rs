@@ -8,13 +8,12 @@ use axum_extra::extract::{cookie::Key, PrivateCookieJar};
 use fred::clients::RedisPool;
 use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Row};
 use time::OffsetDateTime;
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::ApplicationState,
+    servers::{get_cookie_ulid, ApplicationState},
 };
 
 use super::{
@@ -419,16 +418,14 @@ where
 
     /// Check client is authenticated, and then return model_user object
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        if let Ok(jar) = PrivateCookieJar::<Key>::from_request_parts(parts, state).await {
-            let state = ApplicationState::from_ref(state);
-            if let Some(data) = jar.get(&state.cookie_name) {
-                if let Ok(ulid) = Ulid::from_string(data.value()) {
-                    if let Some(user) =
-                        RedisSession::get(&state.redis, &state.postgres, &ulid).await?
-                    {
-                        return Ok(user);
-                    }
-                }
+        let jar = PrivateCookieJar::<Key>::from_request_parts(parts, state)
+            .await
+            .map_err(|_| ApiError::Authentication)?;
+        let state = ApplicationState::from_ref(state);
+
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            if let Some(user) = RedisSession::get(&state.redis, &state.postgres, &ulid).await? {
+                return Ok(user);
             }
         }
         Err(ApiError::Authentication)

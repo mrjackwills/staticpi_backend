@@ -8,8 +8,6 @@ use axum::{
 use axum_extra::extract::PrivateCookieJar;
 use fred::interfaces::KeysInterface;
 use std::time::SystemTime;
-use tracing::error;
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
@@ -28,7 +26,7 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     user_io::{
         incoming_json::ij,
         outgoing_json::oj::{self, AdminEmailsCounts},
@@ -221,18 +219,27 @@ impl AdminRouter {
         jar: PrivateCookieJar,
         ij::Path(ij::UserSession { session }): ij::Path<ij::UserSession>,
     ) -> Result<StatusCode, ApiError> {
-        if let Some(data) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(data.value()) {
-                if session == ulid {
-                    return Err(ApiError::InvalidValue(String::from(
-                        "Can't delete current session",
-                    )));
-                }
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            if session == ulid {
+                return Err(ApiError::InvalidValue(String::from(
+                    "Can't delete current session",
+                )));
             }
-            RedisSession::delete(&state.redis, &session).await?;
-        } else {
-            error!("Unable to parse session_delete user session");
         }
+        RedisSession::delete(&state.redis, &session).await?;
+        // }
+        // if let Some(data) = jar.get(&state.cookie_name) {
+        //     if let Ok(ulid) = Ulid::from_string(data.value()) {
+        //         if session == ulid {
+        //             return Err(ApiError::InvalidValue(String::from(
+        //                 "Can't delete current session",
+        //             )));
+        //         }
+        //     }
+        //     RedisSession::delete(&state.redis, &session).await?;
+        // } else {
+        //     error!("Unable to parse session_delete user session");
+        // }
         Ok(StatusCode::OK)
     }
 
@@ -1112,6 +1119,7 @@ mod tests {
             .send()
             .await
             .unwrap();
+
         assert_eq!(result.status(), StatusCode::OK);
 
         let result = result.json::<Response>().await.unwrap().response;

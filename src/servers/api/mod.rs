@@ -48,7 +48,11 @@ impl Serve for ApiServer {
                 axum::http::header::CONTENT_LANGUAGE,
                 axum::http::header::CONTENT_TYPE,
             ])
-            .allow_origin(cors_url.parse::<HeaderValue>().map_err(|i|ApiError::Internal(i.to_string()))?);
+            .allow_origin(
+                cors_url
+                    .parse::<HeaderValue>()
+                    .map_err(|i| ApiError::Internal(i.to_string()))?,
+            );
 
         let addr = parse_addr(&serve_data.app_env.api_host, serve_data.app_env.api_port)?;
         let server_name = serve_data.server_name;

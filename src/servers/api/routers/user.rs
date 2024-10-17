@@ -8,7 +8,6 @@ use axum::{
 use axum_extra::extract::{cookie::Cookie, PrivateCookieJar};
 use futures::{stream::FuturesUnordered, StreamExt};
 use std::fmt;
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
@@ -27,7 +26,7 @@ use crate::{
     define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, gen_random_hex},
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
 };
 
@@ -163,15 +162,26 @@ impl UserRouter {
         State(state): State<ApplicationState>,
         jar: PrivateCookieJar,
     ) -> Result<impl IntoResponse, ApiError> {
-        if let Some(cookie) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(cookie.value()) {
-                RedisSession::delete(&state.redis, &ulid).await?;
-            }
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            // if let Ok(ulid) = Ulid::from_string(cookie.value()) {
+            RedisSession::delete(&state.redis, &ulid).await?;
+            // }
 
             Ok((
                 StatusCode::OK,
-                jar.remove(Cookie::from(cookie.name().to_owned())),
+                jar.remove(Cookie::from(state.cookie_name.clone())),
             ))
+        // }
+
+        // if let Some(cookie) = jar.get(&state.cookie_name) {
+        //     if let Ok(ulid) = Ulid::from_string(cookie.value()) {
+        //         RedisSession::delete(&state.redis, &ulid).await?;
+        //     }
+
+        //     Ok((
+        //         StatusCode::OK,
+        //         jar.remove(Cookie::from(cookie.name().to_owned())),
+        //     ))
         } else {
             Ok((StatusCode::OK, jar))
         }

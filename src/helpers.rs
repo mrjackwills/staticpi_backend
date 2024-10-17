@@ -113,6 +113,14 @@ pub fn xor(input_1: &[u8], input_2: &[u8]) -> bool {
         == 0
 }
 
+/// Simple macro to create a String from a &str, just gets rid of `.to_owned()` etc
+#[macro_export]
+macro_rules! S {
+    ($s:expr) => {
+        String::from($s)
+    };
+}
+
 // /// Check if two byte arrays match, rather than ==, by hashing, then comparing both inputs
 // pub fn xor_hash(s1: &[u8], s2: &[u8]) -> bool {
 //     calculate_hash(s1) == calculate_hash(s2)
