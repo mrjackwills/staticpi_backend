@@ -71,7 +71,7 @@ async fn main() -> Result<(), ApiError> {
         std::process::exit(1);
     }
 
-    tracing::info!("{} - {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    tracing::info!("{} - {} - {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"), app_env.run_mode);
 
     clear_postgres_connections(&app_env).await?;
     let connections = Arc::new(Mutex::new(Connections::default()));

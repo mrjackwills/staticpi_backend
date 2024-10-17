@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, fs, time::SystemTime};
+use std::{collections::HashMap, env, fmt, fs, time::SystemTime};
 use thiserror::Error;
 
 type EnvHashMap = HashMap<String, String>;
@@ -22,6 +22,16 @@ enum EnvError {
 pub enum RunMode {
     Production,
     Development,
+}
+
+impl fmt::Display for RunMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let x = match self{
+			Self::Development => "DEV",
+			Self::Production => "PROD"
+		};
+        write!(f, "{x}")
+    }
 }
 
 impl RunMode {
