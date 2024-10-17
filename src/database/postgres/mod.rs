@@ -24,15 +24,11 @@ pub mod db_postgres {
             _ => options = options.disable_statement_logging(),
         }
 
-        let acquire_timeout = std::time::Duration::from_secs(5);
-        let idle_timeout = std::time::Duration::from_secs(10);
 
         // Max connections on postgres is default 100, and no other application should be using it
         // Except the backup application!
         Ok(PgPoolOptions::new()
             .max_connections(75)
-            .idle_timeout(idle_timeout)
-            .acquire_timeout(acquire_timeout)
             .connect_with(options)
             .await?)
     }

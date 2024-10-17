@@ -823,7 +823,6 @@ mod tests {
         ws_pi.unwrap().0.send(msg).await.unwrap();
         let ws_base_url = format!("ws://127.0.0.1:{}", test_setup.app_env.ws_port);
 
-        let _ratelimit_key = "ratelimit::ip::127.0.0.1";
         let ws_url = format!("{ws_base_url}/online");
         for _ in 1..=181 {
             connect_async(ws_url.as_str()).await.ok();
@@ -1081,7 +1080,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Admin).await;
 
-        let _device_name = test_setup.insert_device(&authed_cookie, None).await;
+        test_setup.insert_device(&authed_cookie, None).await;
         let ws_pi_url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         let ws_pi = connect_async(&ws_pi_url).await;
         assert!(ws_pi.is_ok());
@@ -1122,7 +1121,6 @@ mod tests {
                 .starts_with("ratelimit::ws_pro")
         });
         assert!(ws_pro_index.is_some());
-        let _key = result.get(ws_pro_index.unwrap());
         let ws_rate_limit_key = result
             .get(ws_pro_index.unwrap())
             .unwrap()
