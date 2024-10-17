@@ -164,25 +164,11 @@ impl UserRouter {
         jar: PrivateCookieJar,
     ) -> Result<impl IntoResponse, ApiError> {
         if let Some(ulid) = get_cookie_ulid(&state, &jar) {
-            // if let Ok(ulid) = Ulid::from_string(cookie.value()) {
             RedisSession::delete(&state.redis, &ulid).await?;
-            // }
-
             Ok((
                 StatusCode::OK,
                 jar.remove(Cookie::from(state.cookie_name.clone())),
             ))
-        // }
-
-        // if let Some(cookie) = jar.get(&state.cookie_name) {
-        //     if let Ok(ulid) = Ulid::from_string(cookie.value()) {
-        //         RedisSession::delete(&state.redis, &ulid).await?;
-        //     }
-
-        //     Ok((
-        //         StatusCode::OK,
-        //         jar.remove(Cookie::from(cookie.name().to_owned())),
-        //     ))
         } else {
             Ok((StatusCode::OK, jar))
         }

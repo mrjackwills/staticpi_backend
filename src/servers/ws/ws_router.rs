@@ -160,7 +160,6 @@ impl WsRouter {
     /// If structured data, return error to sender
     async fn valid_rate_limit(input: &HandlerData<'_>, msg: &Message) -> Result<(), ()> {
         if !Self::rate_limit_ok(input, msg).await {
-            // let mut redis = input.redis;
             if input.limiter.exceeded(input.redis).await.unwrap_or(true) {
                 Self::handler_close(input).await;
             }
