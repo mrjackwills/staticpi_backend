@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 2024-06-04
-# run.sh v0.3.0
+# 2024-10-19
+# run.sh v0.2.0
 
 APP_NAME='staticpi'
 

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # rust create_release
-# v0.5.4
+# v0.6.0
+# 2024-10-19
 
 STAR_LINE='****************************************'
 CWD=$(pwd)
