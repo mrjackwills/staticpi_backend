@@ -15,7 +15,7 @@ use crate::{
         redis::{RedisKey, HASH_FIELD},
     },
     hmap, redis_hash_to_struct,
-    user_io::ws_message::wm,
+    user_io::ws_message::wm, C,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -30,14 +30,14 @@ impl MessageCache {
     }
 
     pub fn new(message: &wm::PiBody) -> Self {
-        Self(message.data.clone())
+        Self(C!(message.data))
     }
 
     /// Insert message into redis cache
     /// Is spawned onto own thread
     pub fn insert(&self, redis: &RedisPool, device_id: DeviceId) {
-        let spawn_self = self.clone();
-        let spawn_redis = redis.clone();
+        let spawn_self = C!(self);
+        let spawn_redis = C!(redis);
         tokio::spawn(async move {
             if let Ok(data) = serde_json::to_string(&spawn_self) {
                 if let Err(e) = spawn_redis

@@ -11,21 +11,17 @@ use tracing::error;
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError,
-    database::{
+    api_error::ApiError, database::{
         connection::ModelConnection,
         device::{ModelDeviceId, ModelWsDevice},
         hourly_bandwidth::ModelHourlyBandwidth,
         new_types::{ConnectionId, DeviceId},
         user::ModelUser,
         user_level::UserLevel,
-    },
-    servers::ws::HandlerData,
-    user_io::{
+    }, servers::ws::HandlerData, user_io::{
         outgoing_json::oj,
         ws_message::wm::{ClientBody, PiBody},
-    },
-    S,
+    }, C, S
 };
 
 pub type AMConnections = Arc<Mutex<Connections>>;
@@ -244,7 +240,7 @@ impl PiConnections {
         }
         for i in to_remove {
             self.close_and_remove(i.0).await;
-            let postgres = postgres.clone();
+            let postgres = C!(postgres);
             let connection_id = i.1;
             tokio::spawn(async move {
                 ModelConnection::update_offline(&postgres, connection_id)
@@ -336,7 +332,7 @@ impl ClientConnections {
 
         for i in to_remove {
             self.close_and_remove(i.0, i.1).await;
-            let postgres = postgres.clone();
+            let postgres = C!(postgres);
             let connection_id = i.2;
             tokio::spawn(async move {
                 ModelConnection::update_offline(&postgres, connection_id)
@@ -452,7 +448,7 @@ impl Connections {
                         input.redis,
                     );
                     for ws_sender in &mut map.values_mut() {
-                        ws_sender.socket.send(message.clone()).await.ok();
+                        ws_sender.socket.send(C!(message)).await.ok();
                     }
                 }
             }
@@ -662,7 +658,7 @@ impl Default for Connections {
 //             std::time::Instant::now() + std::time::Duration::from_secs(40);
 
 //         // if let Some(ws_sender) = ws_sender {
-//         //     let postgres = postgres.clone();
+//         //     let postgres = C!(postgres);
 //         //     ws_sender.auto_close = Some(tokio::spawn(async move {
 //         //         tokio::time::sleep(duration).await;
 //         //         if let Err(e) = ModelConnection::update_offline(&postgres, connection_id).await {

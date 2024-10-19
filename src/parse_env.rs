@@ -211,7 +211,7 @@ impl AppEnv {
 ///
 /// cargo watch -q -c -w src/ -x 'test env_ -- --nocapture'
 #[cfg(test)]
-#[expect(clippy::unwrap_used, clippy::pedantic)]
+#[expect(clippy::unwrap_used)]
 mod tests {
     use crate::S;
 
@@ -342,7 +342,7 @@ mod tests {
 
         assert!(!result.is_production());
 
-        let map = HashMap::from([(S!("PRODUCTION"), "".to_owned())]);
+        let map = HashMap::from([(S!("PRODUCTION"), S!())]);
 
         let result = AppEnv::parse_production(&map);
 
@@ -404,7 +404,7 @@ mod tests {
 
         assert!(result.is_err());
 
-        assert_eq!(result.unwrap_err(), EnvError::IntParse("123456".into()));
+        assert_eq!(result.unwrap_err(), EnvError::IntParse(S!("123456")));
     }
 
     #[test]
@@ -425,9 +425,4 @@ mod tests {
         assert!(!result03);
         assert!(!result04);
     }
-
-    // #[test]
-    // fn test_generate() {
-    // 	todo!("impl me");
-    // }
 }

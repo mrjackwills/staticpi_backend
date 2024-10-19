@@ -13,7 +13,7 @@ use crate::{
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::{get_cookie_ulid, ApplicationState},
+    servers::{get_cookie_ulid, ApplicationState}, C,
 };
 
 use super::{
@@ -80,7 +80,7 @@ impl<'r> FromRow<'r, PgRow> for ModelUser {
 
 impl ModelUser {
     pub fn get_password_hash(&self) -> ArgonHash {
-        self.password_hash.clone()
+        C!(self.password_hash)
     }
 
     /// Get vec of all registered users
@@ -169,9 +169,9 @@ INSERT INTO
 VALUES
 	($1, $2, $3, $4, $5, $6, $7)";
         sqlx::query(query)
-            .bind(user.full_name.clone())
+            .bind(C!(user.full_name))
             .bind(user.email_address_id.get())
-            .bind(user.password_hash.clone())
+            .bind(C!(user.password_hash))
             .bind(user.ip_id.get())
             .bind(user.user_agent_id.get())
             .bind(true)

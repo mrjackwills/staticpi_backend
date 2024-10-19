@@ -8,10 +8,7 @@ use axum::{async_trait, http::HeaderValue, middleware, Extension, Router};
 use std::net::SocketAddr;
 
 use crate::{
-    api_error::ApiError,
-    parse_env::RunMode,
-    servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState},
-    S,
+    api_error::ApiError, parse_env::RunMode, servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState}, C, S
 };
 
 use super::{shutdown_signal, ApiRouter, Serve, ServeData};
@@ -77,9 +74,9 @@ impl Serve for ApiServer {
             .layer(
                 ServiceBuilder::new()
                     .layer(cors)
-                    .layer(Extension(application_state.cookie_key.clone()))
+                    .layer(Extension(C!(application_state.cookie_key)))
                     .layer(middleware::from_fn_with_state(
-                        application_state.clone(),
+                        C!(application_state),
                         rate_limiting,
                     )),
             )

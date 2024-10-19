@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::connections::AMConnections;
+use crate::{connections::AMConnections, C};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 
@@ -37,7 +37,7 @@ impl Pinger {
             interval.tick().await;
 
             // think might need to spawn this into it's own thread
-            let postgres = postgres.clone();
+            let postgres = C!(postgres);
             let connections = Arc::clone(&connections);
             tokio::spawn(async move {
                 //  I don't like this?

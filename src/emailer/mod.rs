@@ -4,7 +4,7 @@ mod template;
 use crate::{
     api_error::ApiError,
     database::{email_log::ModelEmailLog, ip_user_agent::ModelUserAgentIp},
-    parse_env::{AppEnv, RunMode},
+    parse_env::{AppEnv, RunMode}, C,
 };
 
 use lettre::{
@@ -35,11 +35,11 @@ pub struct EmailerEnv {
 impl EmailerEnv {
     pub fn new(app_env: &AppEnv) -> Self {
         Self {
-            domain: app_env.domain.clone(),
-            from_address: app_env.email_from_address.clone(),
-            host: app_env.email_host.clone(),
-            name: app_env.email_name.clone(),
-            password: app_env.email_password.clone(),
+            domain: C!(app_env.domain),
+            from_address: C!(app_env.email_from_address),
+            host: C!(app_env.email_host),
+            name: C!(app_env.email_name),
+            password: C!(app_env.email_password),
             port: app_env.email_port,
             run_mode: app_env.run_mode,
         }
@@ -49,7 +49,7 @@ impl EmailerEnv {
     }
 
     fn get_credentials(&self) -> Credentials {
-        Credentials::new(self.from_address.clone(), self.password.clone())
+        Credentials::new(C!(self.from_address), C!(self.password))
     }
 
     fn get_mailer(&self) -> Result<AsyncSmtpTransportBuilder, lettre::transport::smtp::Error> {
@@ -88,7 +88,7 @@ impl Emailer {
             name: name.to_owned(),
             email_address: email_address.to_owned(),
             template,
-            env: email_env.clone(),
+            env: C!(email_env),
         }
     }
 
@@ -103,8 +103,8 @@ impl Emailer {
             let email_log =
                 ModelEmailLog::insert(postgres, &self.template, useragent_ip, &self.email_address)
                     .await?;
-            let postgres = postgres.clone();
-            tokio::spawn(Self::_send(self.clone(), postgres, email_log));
+            let postgres = C!(postgres);
+            tokio::spawn(Self::_send(C!(self), postgres, email_log));
         } else {
             error!("email limit hit");
         }
@@ -134,7 +134,7 @@ impl Emailer {
                             .singlepart(
                                 SinglePart::builder()
                                     .header(header::ContentType::TEXT_HTML)
-                                    .body(html_string.clone()),
+                                    .body(C!(html_string)),
                             ),
                     );
 
@@ -163,7 +163,7 @@ impl Emailer {
                 let message_builder = Message::builder()
                     .from(from)
                     .to(to)
-                    .subject(subject.clone())
+                    .subject(C!(subject))
                     .multipart(
                         MultiPart::alternative()
                             .singlepart(
@@ -174,7 +174,7 @@ impl Emailer {
                             .singlepart(
                                 SinglePart::builder()
                                     .header(header::ContentType::TEXT_HTML)
-                                    .body(html_string.clone()),
+                                    .body(C!(html_string)),
                             ),
                     );
 

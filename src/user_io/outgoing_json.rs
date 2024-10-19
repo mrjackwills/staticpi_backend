@@ -5,7 +5,7 @@ pub mod oj {
 
     use crate::{
         connections::ConnectionType,
-        database::{device::ModelDevice, user::ModelUser, user_level::UserLevel},
+        database::{device::ModelDevice, user::ModelUser, user_level::UserLevel}, C,
     };
 
     pub type AsJsonRes<T> = Json<OutgoingJson<T>>;
@@ -97,8 +97,8 @@ pub mod oj {
     impl From<&ModelUser> for AuthenticatedUser {
         fn from(user: &ModelUser) -> Self {
             Self {
-                full_name: user.full_name.clone(),
-                email: user.email.clone(),
+                full_name: C!(user.full_name),
+                email: C!(user.email),
                 two_fa_always_required: user.two_fa_always_required,
                 two_fa_active: user.two_fa_secret.is_some(),
                 two_fa_count: user.two_fa_backup_count,
@@ -106,7 +106,7 @@ pub mod oj {
                 max_clients: user.max_clients_per_device,
                 max_message_size: user.max_message_size_in_bytes,
                 max_devices: user.max_number_of_devices,
-                user_level: user.user_level.clone(),
+                user_level: C!(user.user_level),
                 timestamp: user.timestamp.to_string(),
             }
         }

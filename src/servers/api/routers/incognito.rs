@@ -18,9 +18,7 @@ use axum::{
 };
 
 use crate::{
-    api_error::ApiError,
-    argon::ArgonHash,
-    database::{
+    api_error::ApiError, argon::ArgonHash, database::{
         all_bandwidth::ModelAllBandwidth,
         banned_domain::ModelBannedEmail,
         contact_message::ModelContactMessage,
@@ -34,14 +32,7 @@ use crate::{
         rate_limit::{LimitContact, RateLimit},
         session::RedisSession,
         user::ModelUser,
-    },
-    define_routes,
-    emailer::{EmailTemplate, Emailer},
-    helpers::{self, calc_uptime},
-    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
-    sleep,
-    user_io::{incoming_json::ij, outgoing_json::oj},
-    S,
+    }, define_routes, emailer::{EmailTemplate, Emailer}, helpers::{self, calc_uptime}, servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ}, sleep, user_io::{incoming_json::ij, outgoing_json::oj}, C, S
 };
 
 define_routes! {
@@ -104,7 +95,7 @@ impl ApiRouter for IncognitoRouter {
                 get(Self::verify_param_get),
             )
             .layer(middleware::from_fn_with_state(
-                state.clone(),
+                C!(state),
                 authentication::not_authenticated,
             ))
             .route(&IncognitoRoutes::Contact.addr(), post(Self::contact_post))
@@ -184,7 +175,7 @@ impl IncognitoRouter {
             return Ok(response);
         }
 
-        if RateLimit::Register(body.email.clone())
+        if RateLimit::Register(C!(body.email))
             .check(&state.redis)
             .await
             .is_err()
@@ -200,7 +191,7 @@ impl IncognitoRouter {
             ));
         }
 
-        let password_hash = ArgonHash::new(body.password.clone()).await?;
+        let password_hash = ArgonHash::new(C!(body.password)).await?;
         let secret = Ulid::new();
 
         let email = if let Some(email) = postgres_email {
@@ -312,7 +303,7 @@ impl IncognitoRouter {
                     ));
                 }
 
-                let password_hash = ArgonHash::new(body.password.clone()).await?;
+                let password_hash = ArgonHash::new(C!(body.password)).await?;
 
                 tokio::try_join!(
                     ModelUser::update_password(
@@ -440,7 +431,7 @@ impl IncognitoRouter {
         let ip_limit = RateLimit::Contact(LimitContact::Ip(useragent_ip.ip))
             .check(&state.redis)
             .await;
-        let email_limit = RateLimit::Contact(LimitContact::Email(body.email.clone()))
+        let email_limit = RateLimit::Contact(LimitContact::Email(C!(body.email)))
             .check(&state.redis)
             .await;
 
@@ -597,8 +588,8 @@ impl IncognitoRouter {
                 Duration::hours(6)
             };
 
-            let mut cookie = Cookie::new(state.cookie_name.clone(), ulid.to_string());
-            cookie.set_domain(state.domain.clone());
+            let mut cookie = Cookie::new(C!(state.cookie_name), ulid.to_string());
+            cookie.set_domain(C!(state.domain));
             cookie.set_path("/");
             cookie.set_secure(state.run_mode.is_production());
             cookie.set_same_site(SameSite::Strict);
@@ -638,7 +629,7 @@ mod tests {
         database::contact_message::ModelContactMessage,
         servers::api::api_tests::EMAIL_HEADERS_LOCATION,
     };
-    use crate::{sleep, S};
+    use crate::{sleep, C, S};
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
@@ -834,7 +825,7 @@ mod tests {
         let body = TestSetup::gen_signin_body(
             None,
             Some(S!("thisistheincorrectpassword")),
-            Some(valid_token.clone()),
+            Some(C!(valid_token)),
             None,
         );
 

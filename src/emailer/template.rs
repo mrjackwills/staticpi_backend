@@ -1,4 +1,4 @@
-use crate::S;
+use crate::{C, S};
 
 use super::Emailer;
 use tracing::error;
@@ -66,7 +66,7 @@ impl EmailTemplate {
         match self {
             Self::DownloadData => S!("Download Data"),
             Self::AccountLocked => S!("Security Alert"),
-            Self::Custom(custom_email) => custom_email.title.clone(),
+            Self::Custom(custom_email) => C!(custom_email.title),
             Self::PasswordChanged => S!("Password Changed"),
             Self::PasswordResetRequested(_) => S!("Password Reset Requested"),
             Self::TwoFABackupDisabled => S!("Two-Factor Backup Disabled"),
@@ -93,8 +93,8 @@ impl EmailTemplate {
                 text: S!("GENERATE BACKUP CODES ⭐"),
             }),
             Self::Custom(custom_email) => custom_email.button.as_ref().map(|button| EmailButton {
-                link: button.link.clone(),
-                text: button.text.clone(),
+                link: C!(button.link),
+                text: C!(button.text),
             }),
             _ => None,
         }
@@ -102,7 +102,7 @@ impl EmailTemplate {
 
     pub fn get_line_one(&self) -> String {
         match self {
-            Self::Custom(custom_email) => custom_email.line_one.clone(),
+            Self::Custom(custom_email) => C!(custom_email.line_one),
             Self::DownloadData => S!("You have requested a copy of your user data"),
             Self::AccountLocked => S!("Due to multiple failed login attempts your account has been locked."),
             Self::PasswordChanged => S!("The password for your staticPi account has been changed."),
@@ -133,7 +133,7 @@ impl EmailTemplate {
             Self::PasswordResetRequested(_) => Some(S!(
                 "If you did not request a password reset then please ignore this email"
             )),
-            Self::Custom(custom_email) => custom_email.line_two.clone(),
+            Self::Custom(custom_email) => C!(custom_email.line_two),
             Self::Verify(_) => None,
         }
     }

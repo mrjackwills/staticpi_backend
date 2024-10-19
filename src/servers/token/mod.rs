@@ -7,7 +7,7 @@ use tower::ServiceBuilder;
 use crate::{
     api_error::ApiError,
     servers::{parse_addr, rate_limiting, ApplicationState},
-    ServeData,
+    ServeData, C,
 };
 
 use self::token_router::TokenRouter;
@@ -44,7 +44,7 @@ impl Serve for TokenServer {
                 ServiceBuilder::new()
                     .layer(cors)
                     .layer(middleware::from_fn_with_state(
-                        application_state.clone(),
+                        C!(application_state),
                         rate_limiting,
                     )),
             )

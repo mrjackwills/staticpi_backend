@@ -7,7 +7,7 @@ use tower::ServiceBuilder;
 use crate::{
     api_error::ApiError,
     servers::{fallback, parse_addr, rate_limiting, ApplicationState},
-    ServeData,
+    ServeData, C,
 };
 
 use self::ws_router::WsRouter;
@@ -41,7 +41,7 @@ impl Serve for WsServer {
                 ServiceBuilder::new()
                     .layer(cors)
                     .layer(middleware::from_fn_with_state(
-                        application_state.clone(),
+                        C!(application_state),
                         rate_limiting,
                     )),
             )

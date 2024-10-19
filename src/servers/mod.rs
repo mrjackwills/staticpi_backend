@@ -1,14 +1,8 @@
 use crate::{
-    api_error::ApiError,
-    connections::{AMConnections, Connections},
-    database::{
+    api_error::ApiError, connections::{AMConnections, Connections}, database::{
         self, device::ModelWsDevice, monthly_bandwidth::ModelMonthlyBandwidth,
         rate_limit::RateLimit, session::RedisSession,
-    },
-    emailer::EmailerEnv,
-    parse_env::{AppEnv, RunMode},
-    user_io::outgoing_json::oj::{AsJsonRes, OutgoingJson},
-    S,
+    }, emailer::EmailerEnv, parse_env::{AppEnv, RunMode}, user_io::outgoing_json::oj::{AsJsonRes, OutgoingJson}, C, S
 };
 use axum::{
     async_trait,
@@ -56,7 +50,7 @@ impl ServeData {
         server_name: ServerName,
     ) -> Result<Self, ApiError> {
         Ok(Self {
-            app_env: app_env.clone(),
+            app_env: C!(app_env),
             connections: Arc::clone(connections),
             postgres: database::db_postgres::db_pool(app_env).await?,
             redis: database::DbRedis::get_pool(app_env).await?,
@@ -132,10 +126,10 @@ impl InnerState {
         Self {
             connections: Arc::clone(&serve_data.connections),
             cookie_key: Key::from(&serve_data.app_env.cookie_secret),
-            cookie_name: serve_data.app_env.cookie_name.clone(),
-            domain: serve_data.app_env.domain.clone(),
+            cookie_name: C!(serve_data.app_env.cookie_name),
+            domain: C!(serve_data.app_env.domain),
             email_env: EmailerEnv::new(&serve_data.app_env),
-            invite: serve_data.app_env.invite.clone(),
+            invite: C!(serve_data.app_env.invite),
             postgres: serve_data.postgres,
             redis: serve_data.redis,
             run_mode: serve_data.app_env.run_mode,
@@ -146,7 +140,7 @@ impl InnerState {
 
 impl FromRef<ApplicationState> for Key {
     fn from_ref(state: &ApplicationState) -> Self {
-        state.0.cookie_key.clone()
+        C!(state.0.cookie_key)
     }
 }
 
@@ -215,7 +209,7 @@ fn parse_addr(host: &str, port: u16) -> Result<SocketAddr, ApiError> {
             let vec_i = i.take(1).collect::<Vec<SocketAddr>>();
             vec_i
                 .first()
-                .map_or(Err(ApiError::Internal("No addr".to_string())), |addr| {
+                .map_or(Err(ApiError::Internal(S!("No addr"))), |addr| {
                     Ok(*addr)
                 })
         }
@@ -356,6 +350,7 @@ pub mod test_setup {
     use crate::user_io::incoming_json::ij;
     use crate::user_io::incoming_json::ij::DevicePost;
     use crate::ServeData;
+    use crate::C;
     use crate::S;
 
     use super::api::api_tests::EMAIL_BODY_LOCATION;
@@ -909,7 +904,7 @@ pub mod test_setup {
         }
 
         pub async fn get_access_code(&self, device_type: ConnectionType, index: usize) -> String {
-            let device = self.query_user_active_devices().await[index].clone();
+            let device = C!(self.query_user_active_devices().await[index]);
             let url = format!("{}/{}", &token_base_url(&self.app_env), device_type);
             let body = HashMap::from([("key", device.api_key_string)]);
             let result = Self::get_client()
@@ -929,7 +924,7 @@ pub mod test_setup {
         }
 
         pub async fn get_anon_access_code(&self, device_type: ConnectionType, index: usize) -> Url {
-            let device = self.query_anon_user_active_devices().await[index].clone();
+            let device = C!(self.query_anon_user_active_devices().await[index]);
             let url = format!("{}/{}", &token_base_url(&self.app_env), device_type);
             let body = HashMap::from([("key", device.api_key_string)]);
             let result = Self::get_client()
@@ -1078,15 +1073,15 @@ pub mod test_setup {
     /// start the api server on it's own thread
     pub async fn start_servers() -> TestSetup {
         let setup = setup().await;
-        let app_env = setup.app_env.clone();
-        let postgres = setup.postgres.clone();
+        let app_env = C!(setup.app_env);
+        let postgres = C!(setup.postgres);
         let connections = Arc::new(Mutex::new(Connections::default()));
 
         let api_data = ServeData {
-            app_env: app_env.clone(),
+            app_env: C!(app_env),
             connections: Arc::clone(&connections),
-            postgres: postgres.clone(),
-            redis: setup.redis.clone(),
+            postgres: C!(postgres),
+            redis: C!(setup.redis),
             server_name: ServerName::Api,
         };
 
@@ -1095,10 +1090,10 @@ pub mod test_setup {
         });
 
         let auth_data = ServeData {
-            app_env: app_env.clone(),
+            app_env: C!(app_env),
             connections: Arc::clone(&connections),
-            postgres: postgres.clone(),
-            redis: setup.redis.clone(),
+            postgres: C!(postgres),
+            redis: C!(setup.redis),
 
             server_name: ServerName::Token,
         };
@@ -1108,10 +1103,10 @@ pub mod test_setup {
         });
 
         let ws_data = ServeData {
-            app_env: app_env.clone(),
+            app_env: C!(app_env),
             connections: Arc::clone(&connections),
-            postgres: postgres.clone(),
-            redis: setup.redis.clone(),
+            postgres: C!(postgres),
+            redis: C!(setup.redis),
 
             server_name: ServerName::Ws,
         };

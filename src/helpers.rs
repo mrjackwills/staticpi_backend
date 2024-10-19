@@ -77,6 +77,26 @@ const CHEESE: [&str; 32] = [
     "yarg",
 ];
 
+/// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
+#[macro_export]
+macro_rules! S {
+    () => {
+        String::new()
+    };
+    ($s:expr) => {
+        String::from($s)
+    };
+}
+
+/// Simple macro to call `.clone()` on whatever is passed in
+#[macro_export]
+macro_rules! C {
+    ($i:expr) => {
+        $i.clone()
+    };
+}
+
+
 /// use `app_env.start_time` to work out how long the application has been running for, in seconds
 pub fn calc_uptime(start_time: SystemTime) -> u64 {
     std::time::SystemTime::now()
@@ -113,13 +133,7 @@ pub fn xor(input_1: &[u8], input_2: &[u8]) -> bool {
         == 0
 }
 
-/// Simple macro to create a String from a &str, just gets rid of `.to_owned()` etc
-#[macro_export]
-macro_rules! S {
-    ($s:expr) => {
-        String::from($s)
-    };
-}
+
 
 // /// Check if two byte arrays match, rather than ==, by hashing, then comparing both inputs
 // pub fn xor_hash(s1: &[u8], s2: &[u8]) -> bool {

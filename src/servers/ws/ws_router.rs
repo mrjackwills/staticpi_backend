@@ -37,7 +37,7 @@ use crate::{
         incoming_json::ij,
         outgoing_json::oj,
         ws_message::wm::{self, ClientBody, PiBody},
-    },
+    }, C,
 };
 
 const DEFAULT_BUFFER: usize = 1024 * 1024;
@@ -282,7 +282,7 @@ impl WsRouter {
                     if let Some(cache) = body.cache {
                         if cache {
                             MessageCache::new(&body)
-                                .insert(&input.redis.clone(), input.device.device_id);
+                                .insert(&C!(input.redis), input.device.device_id);
                         // Don't like this syntax?
                         } else if let Err(e) =
                             MessageCache::delete(input.redis, input.device.device_id).await
@@ -476,18 +476,12 @@ impl WsRouter {
 #[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
     use crate::{
-        connections::ConnectionType,
-        database::{
+        connections::ConnectionType, database::{
             access_token::AccessToken, monthly_bandwidth::ModelMonthlyBandwidth,
             user_level::UserLevel, RedisKey,
-        },
-        helpers::gen_random_hex,
-        servers::test_setup::{
+        }, helpers::gen_random_hex, servers::test_setup::{
             get_keys, start_servers, token_base_url, ws_base_url, Response, TestSetup,
-        },
-        sleep,
-        user_io::incoming_json::ij::DevicePost,
-        S,
+        }, sleep, user_io::incoming_json::ij::DevicePost, C, S
     };
     use fred::interfaces::{HashesInterface, KeysInterface};
     use futures::{SinkExt, StreamExt};
@@ -605,7 +599,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -642,7 +636,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -814,7 +808,7 @@ mod tests {
         let (mut ws, _) = ws.unwrap();
         assert!(ws.send(msg).await.is_ok());
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
         let client = TestSetup::get_client();
         let url = format!(
             "{}/{}",
@@ -841,7 +835,7 @@ mod tests {
         let (mut ws, _) = ws.unwrap();
         assert!(ws.send(msg).await.is_ok());
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
         let client = TestSetup::get_client();
         let url = format!(
             "{}/{}",
@@ -871,7 +865,7 @@ mod tests {
 
         let msg = Message::from("hello world");
         let (mut pi_ws, _) = pi_ws.unwrap();
-        assert!(pi_ws.send(msg.clone()).await.is_ok());
+        assert!(pi_ws.send(C!(msg)).await.is_ok());
 
         let (mut client_ws, _) = client_ws.unwrap();
         assert!(client_ws.send(msg).await.is_ok());
@@ -903,7 +897,7 @@ mod tests {
 
         let msg = Message::from("hello world");
         let (mut ws_01, _) = ws_01.unwrap();
-        assert!(ws_01.send(msg.clone()).await.is_ok());
+        assert!(ws_01.send(C!(msg)).await.is_ok());
 
         let connections = test_setup
             .get_connections(ConnectionType::Client, &device_name)
@@ -939,7 +933,7 @@ mod tests {
         let msg = Message::from("hello world");
         let (mut ws_01, _) = ws_01.unwrap();
         let (mut ws_02, _) = ws_02.unwrap();
-        assert!(ws_01.send(msg.clone()).await.is_ok());
+        assert!(ws_01.send(C!(msg)).await.is_ok());
         assert!(ws_02.send(msg).await.is_ok());
 
         let connections = test_setup
@@ -966,7 +960,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
+        let msg = Message::from(C!(msg_text));
 
         ws_pi.send(msg).await.unwrap();
 
@@ -1010,7 +1004,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
+        let msg = Message::from(C!(msg_text));
 
         ws_client.send(msg).await.unwrap();
 
@@ -1044,7 +1038,7 @@ mod tests {
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let ws_pi = connect_async(&url).await;
         assert!(ws_pi.is_ok());
@@ -1056,7 +1050,7 @@ mod tests {
         let (ws_client, _) = ws_client.unwrap();
 
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
+        let msg = Message::from(C!(msg_text));
 
         ws_pi.send(msg).await.unwrap();
 
@@ -1090,7 +1084,7 @@ mod tests {
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let ws_pi = connect_async(&url).await;
         assert!(ws_pi.is_ok());
@@ -1102,7 +1096,7 @@ mod tests {
         let (mut ws_client, _) = ws_client.unwrap();
 
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
+        let msg = Message::from(C!(msg_text));
 
         ws_client.send(msg).await.unwrap();
 
@@ -1632,16 +1626,16 @@ mod tests {
         let (_, mut rx) = ws_client.split();
         for _ in 1..=15 {
             let msg_text = gen_random_hex(12);
-            let msg = Message::from(msg_text.clone());
-            ws_pi.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_pi.send(C!(msg)).await.unwrap();
 
             let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
             assert_eq!(result, &msg_text);
         }
 
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 1 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(1), &mut rx.next())
@@ -1658,8 +1652,8 @@ mod tests {
         // Delete rate limit, and assert a message can be sent/received again!
         test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
@@ -1688,16 +1682,16 @@ mod tests {
         // 15 message fine
         for _ in 1..=15 {
             let msg_text = gen_random_hex(12);
-            let msg = Message::from(msg_text.clone());
-            ws_client.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_client.send(C!(msg)).await.unwrap();
             let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
             assert_eq!(result, &msg_text);
         }
 
         // 16th message rate limited
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 1 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(1), &mut rx.next())
@@ -1714,8 +1708,8 @@ mod tests {
         // Delete rate limit, and assert a message can be sent/received again!
         test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
@@ -1750,11 +1744,11 @@ mod tests {
         let msg_text = r#"{"data":"some structured data"}"#;
         for _ in 0..300 {
             let msg = Message::from(msg_text);
-            ws_pi.send(msg.clone()).await.unwrap();
+            ws_pi.send(C!(msg)).await.unwrap();
         }
 
         let msg = Message::from(msg_text);
-        ws_pi.send(msg.clone()).await.unwrap();
+        ws_pi.send(C!(msg)).await.unwrap();
         let result = ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(
             result,
@@ -1789,11 +1783,11 @@ mod tests {
         let msg_text = r#"{"data":"some structured data"}"#;
         for _ in 0..300 {
             let msg = Message::from(msg_text);
-            ws_client.send(msg.clone()).await.unwrap();
+            ws_client.send(C!(msg)).await.unwrap();
         }
 
         let msg = Message::from(msg_text);
-        ws_client.send(msg.clone()).await.unwrap();
+        ws_client.send(C!(msg)).await.unwrap();
         let result = ws_client
             .next()
             .await
@@ -1821,12 +1815,12 @@ mod tests {
 
         let msg_text = gen_random_hex(12);
         for _ in 0..59 {
-            let msg = Message::from(msg_text.clone());
-            ws_pi.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_pi.send(C!(msg)).await.unwrap();
         }
 
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         assert!(ws_pi.next().await.unwrap().unwrap().is_close());
     }
@@ -1845,12 +1839,12 @@ mod tests {
 
         let msg_text = gen_random_hex(12);
         for _ in 0..59 {
-            let msg = Message::from(msg_text.clone());
-            ws_client.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_client.send(C!(msg)).await.unwrap();
         }
 
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         assert!(ws_client.next().await.unwrap().unwrap().is_close());
     }
@@ -1870,12 +1864,12 @@ mod tests {
 
         let msg_text = gen_random_hex(12);
         for _ in 0..1199 {
-            let msg = Message::from(msg_text.clone());
-            ws_pi.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_pi.send(C!(msg)).await.unwrap();
         }
 
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         assert!(ws_pi.next().await.unwrap().unwrap().is_close());
     }
@@ -1895,12 +1889,12 @@ mod tests {
 
         let msg_text = gen_random_hex(12);
         for _ in 0..1199 {
-            let msg = Message::from(msg_text.clone());
-            ws_client.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_client.send(C!(msg)).await.unwrap();
         }
 
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         assert!(ws_client.next().await.unwrap().unwrap().is_close());
     }
@@ -1913,7 +1907,7 @@ mod tests {
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let ws_pi = connect_async(&url).await;
         assert!(ws_pi.is_ok());
@@ -1928,8 +1922,8 @@ mod tests {
         // 300 message are fine
         for _ in 1..=300 {
             let msg_text = gen_random_hex(12);
-            let msg = Message::from(msg_text.clone());
-            ws_pi.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_pi.send(C!(msg)).await.unwrap();
             let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
             assert_eq!(result, &msg_text);
         }
@@ -1937,8 +1931,8 @@ mod tests {
         // 301 message is rate limited
 
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 1 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -1955,8 +1949,8 @@ mod tests {
         // Delete rate limit, and assert a message can be sent/received again!
         test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
@@ -1972,7 +1966,7 @@ mod tests {
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let ws_pi = connect_async(&url).await;
         assert!(ws_pi.is_ok());
@@ -1987,16 +1981,16 @@ mod tests {
         // 300 message fine
         for _ in 1..=300 {
             let msg_text = gen_random_hex(12);
-            let msg = Message::from(msg_text.clone());
-            ws_client.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_client.send(C!(msg)).await.unwrap();
             let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
             assert_eq!(result, &msg_text);
         }
 
         // 301 message rate limited
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 2 seconds to recevive a message, should never receive
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2013,8 +2007,8 @@ mod tests {
         // Delete rate limit, and assert a message can be sent/received again!
         test_setup.redis.del::<(), &str>(&key).await.unwrap();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
         let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(result, &msg_text);
 
@@ -2033,7 +2027,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let user = test_setup.get_model_user().await.as_ref().unwrap().clone();
+        let user = C!(test_setup.get_model_user().await.as_ref().unwrap());
 
         let ws_pi = connect_async(&url).await;
         assert!(ws_pi.is_ok());
@@ -2047,8 +2041,8 @@ mod tests {
         let (_, mut rx) = ws_client.split();
         for _ in 1..=10 {
             let msg_text = gen_random_hex(12);
-            let msg = Message::from(msg_text.clone());
-            ws_pi.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_pi.send(C!(msg)).await.unwrap();
             let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
             assert_eq!(result, &msg_text);
         }
@@ -2087,7 +2081,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
-        let user = test_setup.get_model_user().await.as_ref().unwrap().clone();
+        let user = C!(test_setup.get_model_user().await.as_ref().unwrap());
 
         let ws_pi = connect_async(&url).await;
         assert!(ws_pi.is_ok());
@@ -2101,8 +2095,8 @@ mod tests {
         let (_, mut rx) = ws_pi.split();
         for _ in 1..=10 {
             let msg_text = gen_random_hex(12);
-            let msg = Message::from(msg_text.clone());
-            ws_client.send(msg.clone()).await.unwrap();
+            let msg = Message::from(C!(msg_text));
+            ws_client.send(C!(msg)).await.unwrap();
             let result = &rx.next().await.unwrap().unwrap().into_text().unwrap();
             assert_eq!(result, &msg_text);
         }
@@ -2151,15 +2145,15 @@ mod tests {
         assert!(ws_client.is_ok());
         let (ws_client, _) = ws_client.unwrap();
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
         test_setup
             .insert_bandwidth(device.device_id, 5_000_000_000, ConnectionType::Pi, true)
             .await;
 
         let (_, mut rx) = ws_client.split();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2187,7 +2181,7 @@ mod tests {
         assert!(ws_client.is_ok());
         let (mut ws_client, _) = ws_client.unwrap();
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(
@@ -2200,8 +2194,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2219,7 +2213,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
 
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         test_setup
             .insert_bandwidth(device.device_id, 5_000_000_000, ConnectionType::Pi, true)
@@ -2235,7 +2229,7 @@ mod tests {
         let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
         let url = test_setup.get_access_code(ConnectionType::Client, 0).await;
 
         test_setup
@@ -2270,7 +2264,7 @@ mod tests {
         assert!(ws_client.is_ok());
         let (ws_client, _) = ws_client.unwrap();
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(device.device_id, 10_000_000_000, ConnectionType::Pi, true)
@@ -2278,8 +2272,8 @@ mod tests {
 
         let (_, mut rx) = ws_client.split();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2308,7 +2302,7 @@ mod tests {
         assert!(ws_client.is_ok());
         let (mut ws_client, _) = ws_client.unwrap();
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(
@@ -2321,8 +2315,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = gen_random_hex(12);
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2340,7 +2334,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         test_setup
@@ -2358,7 +2352,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let url = test_setup.get_access_code(ConnectionType::Client, 0).await;
 
@@ -2399,8 +2393,8 @@ mod tests {
         let (_, mut rx) = ws_client.split();
 
         let msg_text = (0..=10_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2440,8 +2434,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = (0..=10_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2481,8 +2475,8 @@ mod tests {
 
         let (_, mut rx) = ws_client.split();
         let msg_text = (0..=3_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(msg_text, response);
@@ -2523,8 +2517,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = (0..=3_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(msg_text, response);
@@ -2565,8 +2559,8 @@ mod tests {
 
         let (_, mut rx) = ws_client.split();
         let msg_text = (0..=5_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2607,8 +2601,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = (0..=5_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2709,8 +2703,8 @@ mod tests {
 
         let msg_text = format!(r#"{{"data":{long_msg}}}"#);
 
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         let result = ws_client
             .next()
@@ -2759,8 +2753,8 @@ mod tests {
 
         let (_, mut rx) = ws_client.split();
         let msg_text = (0..=8_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(msg_text, response);
@@ -2801,8 +2795,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = (0..=8_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
         assert_eq!(msg_text, response);
@@ -2843,8 +2837,8 @@ mod tests {
 
         let (_, mut rx) = ws_client.split();
         let msg_text = (0..=10_000_000).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_pi.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_pi.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())
@@ -2885,8 +2879,8 @@ mod tests {
 
         let (_, mut rx) = ws_pi.split();
         let msg_text = (0..=10_000_001).map(|_| S!("a")).collect::<String>();
-        let msg = Message::from(msg_text.clone());
-        ws_client.send(msg.clone()).await.unwrap();
+        let msg = Message::from(C!(msg_text));
+        ws_client.send(C!(msg)).await.unwrap();
 
         // Wait 2 second to recevive a message, should never occur
         if tokio::time::timeout(std::time::Duration::from_secs(2), &mut rx.next())

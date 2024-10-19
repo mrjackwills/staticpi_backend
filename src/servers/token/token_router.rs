@@ -192,7 +192,7 @@ mod tests {
         helpers::gen_random_hex,
         servers::test_setup::{get_keys, start_servers, token_base_url, Response, TestSetup},
         sleep,
-        user_io::incoming_json::ij::DevicePost,
+        user_io::incoming_json::ij::DevicePost, C,
     };
     use fred::{
         interfaces::{HashesInterface, KeysInterface},
@@ -333,7 +333,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -370,7 +370,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -411,14 +411,14 @@ mod tests {
         let password = gen_random_hex(20);
         let device = DevicePost {
             max_clients: 1,
-            client_password: Some(password.clone()),
+            client_password: Some(C!(password)),
             device_password: Some(password),
             structured_data: false,
             name: None,
         };
         test_setup.insert_device(&authed_cookie, Some(device)).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -442,14 +442,14 @@ mod tests {
         let password = gen_random_hex(20);
         let device = DevicePost {
             max_clients: 1,
-            client_password: Some(password.clone()),
+            client_password: Some(C!(password)),
             device_password: Some(password),
             structured_data: false,
             name: None,
         };
         test_setup.insert_device(&authed_cookie, Some(device)).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -474,14 +474,14 @@ mod tests {
         let device_password = gen_random_hex(20);
         let device = DevicePost {
             max_clients: 1,
-            client_password: Some(client_password.clone()),
-            device_password: Some(device_password.clone()),
+            client_password: Some(C!(client_password)),
+            device_password: Some(C!(device_password)),
             structured_data: false,
             name: None,
         };
         test_setup.insert_device(&authed_cookie, Some(device)).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -509,14 +509,14 @@ mod tests {
         let device_password = gen_random_hex(20);
         let device = DevicePost {
             max_clients: 1,
-            client_password: Some(client_password.clone()),
-            device_password: Some(device_password.clone()),
+            client_password: Some(C!(client_password)),
+            device_password: Some(C!(device_password)),
             structured_data: false,
             name: None,
         };
         test_setup.insert_device(&authed_cookie, Some(device)).await;
 
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         let client = TestSetup::get_client();
 
@@ -538,7 +538,7 @@ mod tests {
         let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(device.device_id, 5_000_000, ConnectionType::Pi, true)
@@ -569,7 +569,7 @@ mod tests {
         let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(device.device_id, 5_000_000, ConnectionType::Client, true)
@@ -602,7 +602,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(device.device_id, 10_000_000_000, ConnectionType::Pi, true)
@@ -635,7 +635,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .insert_bandwidth(
@@ -672,7 +672,7 @@ mod tests {
         let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .redis
@@ -703,7 +703,7 @@ mod tests {
         let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .redis
@@ -735,7 +735,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .redis
@@ -767,7 +767,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Pro).await;
         test_setup.insert_device(&authed_cookie, None).await;
-        let device = test_setup.query_user_active_devices().await[0].clone();
+        let device = C!(test_setup.query_user_active_devices().await[0]);
 
         test_setup
             .redis

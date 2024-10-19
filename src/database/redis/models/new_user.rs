@@ -14,7 +14,7 @@ use crate::{
         new_types::{EmailAddressId, IpId, UserAgentId},
         redis::{RedisKey, HASH_FIELD},
     },
-    hmap, redis_hash_to_struct,
+    hmap, redis_hash_to_struct, C,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -40,7 +40,7 @@ impl RedisNewUser {
         req: &ModelUserAgentIp,
     ) -> Self {
         Self {
-            email: email.email.clone(),
+            email: C!(email.email),
             email_address_id: email.email_address_id,
             full_name: name.to_owned(),
             password_hash: password_hash.to_string(),

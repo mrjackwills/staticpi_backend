@@ -10,8 +10,7 @@ use fred::interfaces::KeysInterface;
 use std::time::SystemTime;
 
 use crate::{
-    api_error::ApiError,
-    database::{
+    api_error::ApiError, database::{
         admin::{AdminDevice, AdminModelUser, AdminUserAndSession},
         contact_message::ModelContactMessage,
         device::ModelDevice,
@@ -23,15 +22,10 @@ use crate::{
         rate_limit::RateLimit,
         session::RedisSession,
         user::ModelUser,
-    },
-    define_routes,
-    helpers::calc_uptime,
-    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
-    user_io::{
+    }, define_routes, helpers::calc_uptime, servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ}, user_io::{
         incoming_json::ij,
         outgoing_json::oj::{self, AdminEmailsCounts},
-    },
-    S,
+    }, C, S
 };
 
 struct SysInfo {
@@ -136,7 +130,7 @@ impl ApiRouter for AdminRouter {
             .route(&AdminRoutes::Session.addr(), delete(Self::session_delete))
             .route(&AdminRoutes::AllUsers.addr(), get(Self::users_get))
             .layer(middleware::from_fn_with_state(
-                state.clone(),
+                C!(state),
                 authentication::is_admin_authenticated,
             ))
     }
@@ -488,7 +482,7 @@ mod tests {
         TEST_FULL_NAME, TEST_PASSWORD, TEST_USER_AGENT,
     };
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
-    use crate::{sleep, S};
+    use crate::{sleep, C, S};
 
     use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
@@ -3004,9 +2998,9 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
-                invite: invite.clone(),
+                invite: C!(invite),
                 count: 13,
             })
             .header("cookie", &authed_cookie)

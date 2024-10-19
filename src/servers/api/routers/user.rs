@@ -10,9 +10,7 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use std::fmt;
 
 use crate::{
-    api_error::ApiError,
-    argon::ArgonHash,
-    database::{
+    api_error::ApiError, argon::ArgonHash, database::{
         device::ModelDevice,
         download_data::ModelDownloadData,
         ip_user_agent::ModelUserAgentIp,
@@ -22,13 +20,7 @@ use crate::{
         two_fa_setup::RedisTwoFASetup,
         user::ModelUser,
         user_level::UserLevel,
-    },
-    define_routes,
-    emailer::{EmailTemplate, Emailer},
-    helpers::{self, gen_random_hex},
-    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
-    user_io::{incoming_json::ij, outgoing_json::oj},
-    S,
+    }, define_routes, emailer::{EmailTemplate, Emailer}, helpers::{self, gen_random_hex}, servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ}, user_io::{incoming_json::ij, outgoing_json::oj}, C, S
 };
 
 define_routes! {
@@ -107,7 +99,7 @@ async fn gen_backup_codes() -> Result<(Vec<String>, Vec<ArgonHash>), ApiError> {
     }
 
     for fut in &backup_codes {
-        vec_futures.push(ArgonHash::new(fut.clone()));
+        vec_futures.push(ArgonHash::new(C!(fut)));
     }
 
     while let Some(result) = vec_futures.next().await {
@@ -167,7 +159,7 @@ impl UserRouter {
             RedisSession::delete(&state.redis, &ulid).await?;
             Ok((
                 StatusCode::OK,
-                jar.remove(Cookie::from(state.cookie_name.clone())),
+                jar.remove(Cookie::from(C!(state.cookie_name))),
             ))
         } else {
             Ok((StatusCode::OK, jar))
@@ -259,7 +251,7 @@ impl UserRouter {
             ));
         }
 
-        let new_password_hash = ArgonHash::new(body.new_password.clone()).await?;
+        let new_password_hash = ArgonHash::new(C!(body.new_password)).await?;
         ModelUser::update_password(&state.postgres, user.registered_user_id, new_password_hash)
             .await?;
 
@@ -563,7 +555,7 @@ mod tests {
         api_base_url, get_keys, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
-    use crate::sleep;
+    use crate::{sleep, C};
     use crate::user_io::incoming_json::ij::DevicePost;
 
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
@@ -967,7 +959,7 @@ mod tests {
                     client_password: None,
                     device_password: None,
                     structured_data: false,
-                    name: Some(device_name.clone()),
+                    name: Some(C!(device_name)),
                 }),
             )
             .await;
@@ -1175,7 +1167,7 @@ mod tests {
             client_password: None,
             device_password: None,
             structured_data: false,
-            name: Some(device_name.clone()),
+            name: Some(C!(device_name)),
         };
         test_setup.insert_device(&anon_cookie, Some(device)).await;
 
@@ -3087,7 +3079,7 @@ mod tests {
         let del_limit = || async {
             test_setup
                 .redis
-                .clone()
+                // .clone()
                 .del::<(), String>(format!(
                     "ratelimit::download_data::{}",
                     test_setup.get_user_id().get()
@@ -3184,9 +3176,8 @@ mod tests {
         test_setup.request_reset().await;
 
         let device_name = test_setup.insert_device(&authed_cookie, None).await;
-        let api_key = test_setup.query_user_active_devices().await[0]
-            .api_key_string
-            .clone();
+        let api_key = C!(test_setup.query_user_active_devices().await[0]
+            .api_key_string);
 
         let ws_pi_url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         let (mut ws_pi, _) = connect_async(&ws_pi_url).await.unwrap();
