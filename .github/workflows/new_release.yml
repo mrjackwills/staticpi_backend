@@ -13,10 +13,10 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-gnu
-            output_name: linux_x86_64.tar.gz
+            output_name: x86_64
 
           - target: aarch64-unknown-linux-gnu
-            output_name: linux_aarch64.tar.gz
+            output_name: aarch64
 
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +38,7 @@ jobs:
       # Compress the binary
       - name: compress linux
         run: |
-          tar -C "target/${{ matrix.target }}/release" -czf "./staticpi_${{ matrix.output_name }}" staticpi
+          tar -C "target/${{ matrix.target }}/release" -czf "./staticpi_linux_${{ matrix.output_name }}.tar.gz" staticpi
 
       # Upload output for release page
       - name: Upload Artifacts
@@ -46,7 +46,7 @@ jobs:
         with:
           if-no-files-found: error
           name: ${{ matrix.target }}
-          path: staticpi_${{ matrix.output_name }}
+          path: staticpi_linux_${{ matrix.output_name }}.tar.gz
           retention-days: 1
 
   ###################
