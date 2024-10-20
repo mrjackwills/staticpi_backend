@@ -1,5 +1,7 @@
-use std::{collections::HashMap, env, fs, time::SystemTime};
+use std::{collections::HashMap, env, fmt, fs, time::SystemTime};
 use thiserror::Error;
+
+use crate::S;
 
 type EnvHashMap = HashMap<String, String>;
 
@@ -22,6 +24,16 @@ enum EnvError {
 pub enum RunMode {
     Production,
     Development,
+}
+
+impl fmt::Display for RunMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let x = match self {
+            Self::Development => "DEV",
+            Self::Production => "PROD",
+        };
+        write!(f, "{x}")
+    }
 }
 
 impl RunMode {
@@ -94,17 +106,15 @@ impl AppEnv {
         map: &EnvHashMap,
     ) -> Result<T, EnvError> {
         map.get(key)
-            .map_or(Err(EnvError::NotFound(key.into())), |data| {
+            .map_or(Err(EnvError::NotFound(S!(key))), |data| {
                 data.parse::<T>()
-                    .map_or(Err(EnvError::IntParse(data.into())), |d| Ok(d))
+                    .map_or(Err(EnvError::IntParse(S!(data))), |d| Ok(d))
             })
     }
 
     fn parse_string(key: &str, map: &EnvHashMap) -> Result<String, EnvError> {
-        map.get(key).map_or_else(
-            || Err(EnvError::NotFound(key.into())),
-            |value| Ok(value.into()),
-        )
+        map.get(key)
+            .map_or_else(|| Err(EnvError::NotFound(S!(key))), |value| Ok(S!(value)))
     }
 
     fn parse_log(map: &EnvHashMap) -> tracing::Level {
@@ -124,16 +134,16 @@ impl AppEnv {
     // Messy solution - should improve
     fn parse_cookie_secret(key: &str, map: &EnvHashMap) -> Result<[u8; 64], EnvError> {
         map.get(key).map_or_else(
-            || Err(EnvError::NotFound(key.into())),
+            || Err(EnvError::NotFound(S!(key))),
             |value| {
                 let as_bytes = value.as_bytes();
                 if as_bytes.len() == 64 {
                     value
                         .as_bytes()
                         .try_into()
-                        .map_or(Err(EnvError::Len(key.into())), Ok)
+                        .map_or(Err(EnvError::Len(S!(key))), Ok)
                 } else {
-                    Err(EnvError::Len(key.into()))
+                    Err(EnvError::Len(S!(key)))
                 }
             },
         )
@@ -201,13 +211,15 @@ impl AppEnv {
 ///
 /// cargo watch -q -c -w src/ -x 'test env_ -- --nocapture'
 #[cfg(test)]
-#[expect(clippy::unwrap_used, clippy::pedantic)]
+#[expect(clippy::unwrap_used)]
 mod tests {
+    use crate::S;
+
     use super::*;
 
     #[test]
     fn env_missing_env() {
-        let map = HashMap::from([("not_fish".to_owned(), "not_fish".to_owned())]);
+        let map = HashMap::from([(S!("not_fish"), S!("not_fish"))]);
 
         let result = AppEnv::parse_string("fish", &map);
 
@@ -218,12 +230,12 @@ mod tests {
     #[test]
     fn env_check_file_exists_ok() {
         // check folder exists ok
-        let result = AppEnv::check_file_exists("./src".to_owned());
+        let result = AppEnv::check_file_exists(S!("./src"));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "./src");
 
         // check file exists ok
-        let result = AppEnv::check_file_exists("./Cargo.toml".to_owned());
+        let result = AppEnv::check_file_exists(S!("./Cargo.toml"));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "./Cargo.toml");
     }
@@ -231,31 +243,31 @@ mod tests {
     #[test]
     fn env_check_file_exists_err() {
         // random folder error
-        let result = AppEnv::check_file_exists("./some_random_folder".to_owned());
+        let result = AppEnv::check_file_exists(S!("./some_random_folder"));
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            EnvError::FileNotFound("./some_random_folder".to_owned())
+            EnvError::FileNotFound(S!("./some_random_folder"))
         );
 
         // random file err
-        let result = AppEnv::check_file_exists("./some_random_file.txt".to_owned());
+        let result = AppEnv::check_file_exists(S!("./some_random_file.txt"));
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            EnvError::FileNotFound("./some_random_file.txt".to_owned())
+            EnvError::FileNotFound(S!("./some_random_file.txt"))
         );
     }
 
     #[test]
     fn env_parse_string_valid() {
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("123"))]);
 
         let result = AppEnv::parse_string("RANDOM_STRING", &map).unwrap();
 
         assert_eq!(result, "123");
 
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "hello_world".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("hello_world"))]);
 
         let result = AppEnv::parse_string("RANDOM_STRING", &map).unwrap();
 
@@ -264,27 +276,27 @@ mod tests {
 
     #[test]
     fn env_parse_log_valid() {
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("123"))]);
 
         let result = AppEnv::parse_log(&map);
 
         assert_eq!(result, tracing::Level::INFO);
 
-        let map = HashMap::from([("LOG_DEBUG".to_owned(), "false".to_owned())]);
+        let map = HashMap::from([(S!("LOG_DEBUG"), S!("false"))]);
 
         let result = AppEnv::parse_log(&map);
 
         assert_eq!(result, tracing::Level::INFO);
 
-        let map = HashMap::from([("LOG_TRACE".to_owned(), "false".to_owned())]);
+        let map = HashMap::from([(S!("LOG_TRACE"), S!("false"))]);
 
         let result = AppEnv::parse_log(&map);
 
         assert_eq!(result, tracing::Level::INFO);
 
         let map = HashMap::from([
-            ("LOG_DEBUG".to_owned(), "false".to_owned()),
-            ("LOG_TRACE".to_owned(), "false".to_owned()),
+            (S!("LOG_DEBUG"), S!("false")),
+            (S!("LOG_TRACE"), S!("false")),
         ]);
 
         let result = AppEnv::parse_log(&map);
@@ -292,26 +304,23 @@ mod tests {
         assert_eq!(result, tracing::Level::INFO);
 
         let map = HashMap::from([
-            ("LOG_DEBUG".to_owned(), "true".to_owned()),
-            ("LOG_TRACE".to_owned(), "false".to_owned()),
+            (S!("LOG_DEBUG"), S!("true")),
+            (S!("LOG_TRACE"), S!("false")),
         ]);
 
         let result = AppEnv::parse_log(&map);
 
         assert_eq!(result, tracing::Level::DEBUG);
 
-        let map = HashMap::from([
-            ("LOG_DEBUG".to_owned(), "true".to_owned()),
-            ("LOG_TRACE".to_owned(), "true".to_owned()),
-        ]);
+        let map = HashMap::from([(S!("LOG_DEBUG"), S!("true")), (S!("LOG_TRACE"), S!("true"))]);
 
         let result = AppEnv::parse_log(&map);
 
         assert_eq!(result, tracing::Level::TRACE);
 
         let map = HashMap::from([
-            ("LOG_DEBUG".to_owned(), "false".to_owned()),
-            ("LOG_TRACE".to_owned(), "true".to_owned()),
+            (S!("LOG_DEBUG"), S!("false")),
+            (S!("LOG_TRACE"), S!("true")),
         ]);
 
         let result = AppEnv::parse_log(&map);
@@ -321,25 +330,25 @@ mod tests {
 
     #[test]
     fn env_parse_run_mode_valid() {
-        let map = HashMap::from([("PRODUCTION".to_owned(), "123".to_owned())]);
+        let map = HashMap::from([(S!("PRODUCTION"), S!("123"))]);
 
         let result = AppEnv::parse_production(&map);
 
         assert!(!result.is_production());
 
-        let map = HashMap::from([("PRODUCTION".to_owned(), "false".to_owned())]);
+        let map = HashMap::from([(S!("PRODUCTION"), S!("false"))]);
 
         let result = AppEnv::parse_production(&map);
 
         assert!(!result.is_production());
 
-        let map = HashMap::from([("PRODUCTION".to_owned(), "".to_owned())]);
+        let map = HashMap::from([(S!("PRODUCTION"), S!())]);
 
         let result = AppEnv::parse_production(&map);
 
         assert!(!result.is_production());
 
-        let map = HashMap::from([("PRODUCTION".to_owned(), "true".to_owned())]);
+        let map = HashMap::from([(S!("PRODUCTION"), S!("true"))]);
 
         let result = AppEnv::parse_production(&map);
 
@@ -348,22 +357,19 @@ mod tests {
 
     #[test]
     fn env_parse_cookie_err() {
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("123"))]);
 
         let result = AppEnv::parse_cookie_secret("RANDOM_STRING", &map);
 
         assert!(result.is_err());
-        assert_eq!(
-            result.unwrap_err(),
-            EnvError::Len("RANDOM_STRING".to_owned())
-        );
+        assert_eq!(result.unwrap_err(), EnvError::Len(S!("RANDOM_STRING")));
     }
 
     #[test]
     fn env_parse_cookie_ok() {
         let map = HashMap::from([(
-            "RANDOM_STRING".to_owned(),
-            "1234567890123456789012345678901234567890123456789012345678901234".to_owned(),
+            S!("RANDOM_STRING"),
+            S!("1234567890123456789012345678901234567890123456789012345678901234"),
         )]);
 
         let result = AppEnv::parse_cookie_secret("RANDOM_STRING", &map);
@@ -377,13 +383,13 @@ mod tests {
 
     #[test]
     fn env_parse_number_valid() {
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "123".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("123"))]);
 
         let result = AppEnv::parse_number::<u8>("RANDOM_STRING", &map).unwrap();
 
         assert_eq!(result, 123);
 
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "123123456".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("123123456"))]);
 
         let result = AppEnv::parse_number::<u32>("RANDOM_STRING", &map).unwrap();
 
@@ -392,21 +398,21 @@ mod tests {
 
     #[test]
     fn env_parse_number_err() {
-        let map = HashMap::from([("RANDOM_STRING".to_owned(), "123456".to_owned())]);
+        let map = HashMap::from([(S!("RANDOM_STRING"), S!("123456"))]);
 
         let result = AppEnv::parse_number::<u8>("RANDOM_STRING", &map);
 
         assert!(result.is_err());
 
-        assert_eq!(result.unwrap_err(), EnvError::IntParse("123456".into()));
+        assert_eq!(result.unwrap_err(), EnvError::IntParse(S!("123456")));
     }
 
     #[test]
     fn env_parse_boolean_ok() {
         let map = HashMap::from([
-            ("valid_true".to_owned(), "true".to_owned()),
-            ("valid_false".to_owned(), "false".to_owned()),
-            ("invalid_but_false".to_owned(), "as".to_owned()),
+            (S!("valid_true"), S!("true")),
+            (S!("valid_false"), S!("false")),
+            (S!("invalid_but_false"), S!("as")),
         ]);
 
         let result01 = AppEnv::parse_boolean("valid_true", &map);
@@ -419,9 +425,4 @@ mod tests {
         assert!(!result03);
         assert!(!result04);
     }
-
-    // #[test]
-    // fn test_generate() {
-    // 	todo!("impl me");
-    // }
 }

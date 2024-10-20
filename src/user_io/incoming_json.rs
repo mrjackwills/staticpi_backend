@@ -7,6 +7,7 @@ pub mod ij {
             rate_limit::RateLimit,
         },
         user_io::deserializer::IncomingDeserializer as is,
+        S,
     };
 
     use std::{error::Error, fmt};
@@ -20,7 +21,6 @@ pub mod ij {
         http::{request::Parts, Request},
     };
     use serde::{self, de::DeserializeOwned, Deserialize};
-    use tracing::trace;
 
     #[cfg(test)]
     use serde::Serialize;
@@ -36,28 +36,24 @@ pub mod ij {
         if let Some(err) = find_error_source::<JsonDataError>(&e) {
             let text = err.body_text();
             if text.contains("missing field") {
-                return ApiError::MissingKey(
-                    text.split_once("missing field `")
-                        .map_or("", |f| f.1)
-                        .split_once('`')
-                        .map_or("", |f| f.0.trim())
-                        .to_owned(),
-                );
+                return ApiError::MissingKey(S!(text
+                    .split_once("missing field `")
+                    .map_or("", |f| f.1)
+                    .split_once('`')
+                    .map_or("", |f| f.0.trim())));
             } else if text.contains("unknown field") {
-                return ApiError::InvalidValue("invalid input".to_owned());
+                return ApiError::InvalidValue(S!("invalid input"));
             } else if text.contains("at line") {
-                return ApiError::InvalidValue(
-                    text.split_once("at line")
-                        .map_or("", |f| f.0)
-                        .split_once(':')
-                        .map_or("", |f| f.1)
-                        .split_once(':')
-                        .map_or("", |f| f.1.trim())
-                        .to_owned(),
-                );
+                return ApiError::InvalidValue(S!(text
+                    .split_once("at line")
+                    .map_or("", |f| f.0)
+                    .split_once(':')
+                    .map_or("", |f| f.1)
+                    .split_once(':')
+                    .map_or("", |f| f.1.trim())));
             }
         }
-        ApiError::Internal("downcast error".to_owned())
+        ApiError::Internal(S!("downcast error"))
     }
 
     /// attempt to downcast `err` into a `T` and if that fails recursively try and
@@ -110,23 +106,17 @@ pub mod ij {
                 Ok(value) => Ok(Self(value.0)),
                 Err(rejection) => match rejection {
                     JsonRejection::JsonDataError(e) => Err(extract_serde_error(e)),
-                    JsonRejection::JsonSyntaxError(_) => {
-                        Err(ApiError::InvalidValue("JSON".to_owned()))
-                    }
+                    JsonRejection::JsonSyntaxError(_) => Err(ApiError::InvalidValue(S!("JSON"))),
                     JsonRejection::MissingJsonContentType(e) => {
-                        trace!("{e:?}");
-                        Err(ApiError::InvalidValue(
-                            "\"application/json\" header".to_owned(),
-                        ))
+                        tracing::trace!("{e:?}");
+                        Err(ApiError::InvalidValue(S!("\"application/json\" header")))
                     }
                     JsonRejection::BytesRejection(e) => {
-                        trace!("{e:?}");
-                        trace!("BytesRejection");
-                        Err(ApiError::InvalidValue("Bytes Rejected".to_owned()))
+                        tracing::trace!("{e:?}");
+                        tracing::trace!("BytesRejection");
+                        Err(ApiError::InvalidValue(S!("Bytes Rejected")))
                     }
-                    _ => Err(ApiError::Internal(String::from(
-                        "IncomingJson from_request error",
-                    ))),
+                    _ => Err(ApiError::Internal(S!("IncomingJson from_request error"))),
                 },
             }
         }

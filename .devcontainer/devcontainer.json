@@ -25,12 +25,12 @@
 				"christian-kohler.path-intellisense",
 				"fill-labs.dependi",
 				"foxundermoon.shell-format",
+				"gruntfuggly.todo-tree",
 				"ms-vscode.live-server",
 				"mutantdino.resourcemonitor",
 				"rangav.vscode-thunder-client",
 				"redhat.vscode-yaml",
 				"rust-lang.rust-analyzer",
-				"serayuzgur.crates",
 				"tamasfe.even-better-toml",
 				"timonwong.shellcheck",
 				"vadimcn.vscode-lldb"

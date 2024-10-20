@@ -8,7 +8,6 @@ use axum::{
 use axum_extra::extract::{cookie::Cookie, PrivateCookieJar};
 use futures::{stream::FuturesUnordered, StreamExt};
 use std::fmt;
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
@@ -27,8 +26,9 @@ use crate::{
     define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, gen_random_hex},
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
+    C, S,
 };
 
 define_routes! {
@@ -54,10 +54,10 @@ enum UserResponse {
 impl fmt::Display for UserResponse {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let disp = match self {
-            Self::UnsafePassword => "unsafe password".to_owned(),
-            Self::SetupTwoFA => "Two FA setup already started or enabled".to_owned(),
-            Self::TwoFANotEnabled => "Two FA not enabled".to_owned(),
-            Self::TwoFABackupInPlace => "Two FA backups already in place".to_owned(),
+            Self::UnsafePassword => S!("unsafe password"),
+            Self::SetupTwoFA => S!("Two FA setup already started or enabled"),
+            Self::TwoFANotEnabled => S!("Two FA not enabled"),
+            Self::TwoFABackupInPlace => S!("Two FA backups already in place"),
         };
         write!(f, "{disp}")
     }
@@ -107,7 +107,7 @@ async fn gen_backup_codes() -> Result<(Vec<String>, Vec<ArgonHash>), ApiError> {
     }
 
     for fut in &backup_codes {
-        vec_futures.push(ArgonHash::new(fut.clone()));
+        vec_futures.push(ArgonHash::new(C!(fut)));
     }
 
     while let Some(result) = vec_futures.next().await {
@@ -134,9 +134,9 @@ impl UserRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::PasswordToken>,
     ) -> Result<StatusCode, ApiError> {
         if user.user_level == UserLevel::Admin {
-            return Err(ApiError::InvalidValue(
-                "Admin users can't delete their own accounts".to_owned(),
-            ));
+            return Err(ApiError::InvalidValue(S!(
+                "Admin users can't delete their own accounts"
+            )));
         }
 
         if !authentication::check_password_token(&user, &body.password, body.token, &state.postgres)
@@ -163,18 +163,13 @@ impl UserRouter {
         State(state): State<ApplicationState>,
         jar: PrivateCookieJar,
     ) -> Result<impl IntoResponse, ApiError> {
-        if let Some(cookie) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(cookie.value()) {
-                RedisSession::delete(&state.redis, &ulid).await?;
-            }
-
-            Ok((
-                StatusCode::OK,
-                jar.remove(Cookie::from(cookie.name().to_owned())),
-            ))
-        } else {
-            Ok((StatusCode::OK, jar))
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            RedisSession::delete(&state.redis, &ulid).await?;
         }
+        Ok((
+            StatusCode::OK,
+            jar.remove(Cookie::from(C!(state.cookie_name))),
+        ))
     }
 
     /// Update user password
@@ -210,9 +205,9 @@ impl UserRouter {
             .await
             .is_err()
         {
-            return Err(ApiError::InvalidValue(
-                "Limited to one download per 24-hours".to_owned(),
-            ));
+            return Err(ApiError::InvalidValue(S!(
+                "Limited to one download per 24-hours"
+            )));
         };
 
         // Email user download sent
@@ -262,7 +257,7 @@ impl UserRouter {
             ));
         }
 
-        let new_password_hash = ArgonHash::new(body.new_password.clone()).await?;
+        let new_password_hash = ArgonHash::new(C!(body.new_password)).await?;
         ModelUser::update_password(&state.postgres, user.registered_user_id, new_password_hash)
             .await?;
 
@@ -317,7 +312,7 @@ impl UserRouter {
         useragent_ip: ModelUserAgentIp,
         ij::IncomingJson(body): ij::IncomingJson<ij::TwoFA>,
     ) -> Result<StatusCode, ApiError> {
-        let err = || Err(ApiError::InvalidValue("invalid token".to_owned()));
+        let err = || Err(ApiError::InvalidValue(S!("invalid token")));
         if let Some(two_fa_setup) = RedisTwoFASetup::get(&state.redis, &user).await? {
             match body.token {
                 ij::Token::Totp(token) => {
@@ -374,7 +369,7 @@ impl UserRouter {
                 ));
             }
             if body.password.is_none() || body.token.is_none() {
-                return Err(ApiError::InvalidValue("password or token".to_owned()));
+                return Err(ApiError::InvalidValue(S!("password or token")));
             }
             if !authentication::check_password_op_token(
                 &user,
@@ -566,8 +561,8 @@ mod tests {
         api_base_url, get_keys, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
-    use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
+    use crate::{sleep, C, S};
 
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use futures::{SinkExt, StreamExt};
@@ -970,7 +965,7 @@ mod tests {
                     client_password: None,
                     device_password: None,
                     structured_data: false,
-                    name: Some(device_name.clone()),
+                    name: Some(C!(device_name)),
                 }),
             )
             .await;
@@ -1178,7 +1173,7 @@ mod tests {
             client_password: None,
             device_password: None,
             structured_data: false,
-            name: Some(device_name.clone()),
+            name: Some(C!(device_name)),
         };
         test_setup.insert_device(&anon_cookie, Some(device)).await;
 
@@ -1579,8 +1574,8 @@ mod tests {
         // Invalid passwords to test
         for password in [
             format!("new_password{}", TEST_EMAIL.to_uppercase()),
-            TEST_PASSWORD.to_owned(),
-            UNSAFE_PASSWORD.to_owned(),
+            S!(TEST_PASSWORD),
+            S!(UNSAFE_PASSWORD),
         ] {
             let body = HashMap::from([
                 ("current_password", TEST_PASSWORD),
@@ -2137,7 +2132,7 @@ mod tests {
 
         let user = test_setup.get_model_user().await.unwrap();
 
-        assert_eq!(user.two_fa_secret, Some(twofa_setup.value().to_owned()));
+        assert_eq!(user.two_fa_secret, Some(S!(twofa_setup.value())));
 
         // check email sent - well written to disk & inserted into db
         assert_eq!(
@@ -2326,7 +2321,7 @@ mod tests {
         // Missing token
         let body = TestAlwaysRequiredBody {
             always_required: false,
-            password: Some(TEST_PASSWORD.to_owned()),
+            password: Some(S!(TEST_PASSWORD)),
             token: None,
         };
 
@@ -2548,7 +2543,7 @@ mod tests {
         // Invalid token
         let body = TestAlwaysRequiredBody {
             always_required: false,
-            password: Some(TEST_PASSWORD.to_owned()),
+            password: Some(S!(TEST_PASSWORD)),
             token: Some(test_setup.get_invalid_token()),
         };
 
@@ -2586,7 +2581,7 @@ mod tests {
 
         let body = TestAlwaysRequiredBody {
             always_required: false,
-            password: Some(TEST_PASSWORD.to_owned()),
+            password: Some(S!(TEST_PASSWORD)),
             token: Some(test_setup.get_valid_token()),
         };
 
@@ -3090,7 +3085,7 @@ mod tests {
         let del_limit = || async {
             test_setup
                 .redis
-                .clone()
+                // .clone()
                 .del::<(), String>(format!(
                     "ratelimit::download_data::{}",
                     test_setup.get_user_id().get()
@@ -3187,9 +3182,7 @@ mod tests {
         test_setup.request_reset().await;
 
         let device_name = test_setup.insert_device(&authed_cookie, None).await;
-        let api_key = test_setup.query_user_active_devices().await[0]
-            .api_key_string
-            .clone();
+        let api_key = C!(test_setup.query_user_active_devices().await[0].api_key_string);
 
         let ws_pi_url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         let (mut ws_pi, _) = connect_async(&ws_pi_url).await.unwrap();

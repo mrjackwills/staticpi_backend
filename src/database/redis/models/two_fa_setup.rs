@@ -11,7 +11,7 @@ use crate::{
         redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
     },
-    hmap, redis_hash_to_struct,
+    hmap, redis_hash_to_struct, S,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -25,7 +25,7 @@ impl RedisTwoFASetup {
     }
 
     pub fn new(secret: &str) -> Self {
-        Self(secret.to_owned())
+        Self(S!(secret))
     }
 
     /// Generate the caches redis key

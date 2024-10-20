@@ -8,13 +8,13 @@ use axum_extra::extract::{cookie::Key, PrivateCookieJar};
 use fred::clients::RedisPool;
 use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Row};
 use time::OffsetDateTime;
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::ApplicationState,
+    servers::{get_cookie_ulid, ApplicationState},
+    C,
 };
 
 use super::{
@@ -64,7 +64,7 @@ impl<'r> FromRow<'r, PgRow> for ModelUser {
             two_fa_secret: row.try_get("two_fa_secret")?,
             two_fa_always_required: row.try_get("two_fa_always_required")?,
             two_fa_backup_count: row.try_get("two_fa_backup_count")?,
-            password_hash: ArgonHash(row.try_get::<'r, &str, &str>("password_hash")?.to_owned()),
+            password_hash: ArgonHash(row.try_get::<'r, String, &str>("password_hash")?),
             max_message_size_in_bytes: row.try_get("max_message_size_in_bytes")?,
             max_number_of_devices: row.try_get("max_number_of_devices")?,
             max_clients_per_device: row.try_get("max_clients_per_device")?,
@@ -81,7 +81,7 @@ impl<'r> FromRow<'r, PgRow> for ModelUser {
 
 impl ModelUser {
     pub fn get_password_hash(&self) -> ArgonHash {
-        self.password_hash.clone()
+        C!(self.password_hash)
     }
 
     /// Get vec of all registered users
@@ -170,9 +170,9 @@ INSERT INTO
 VALUES
 	($1, $2, $3, $4, $5, $6, $7)";
         sqlx::query(query)
-            .bind(user.full_name.clone())
+            .bind(C!(user.full_name))
             .bind(user.email_address_id.get())
-            .bind(user.password_hash.clone())
+            .bind(C!(user.password_hash))
             .bind(user.ip_id.get())
             .bind(user.user_agent_id.get())
             .bind(true)
@@ -419,16 +419,14 @@ where
 
     /// Check client is authenticated, and then return model_user object
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        if let Ok(jar) = PrivateCookieJar::<Key>::from_request_parts(parts, state).await {
-            let state = ApplicationState::from_ref(state);
-            if let Some(data) = jar.get(&state.cookie_name) {
-                if let Ok(ulid) = Ulid::from_string(data.value()) {
-                    if let Some(user) =
-                        RedisSession::get(&state.redis, &state.postgres, &ulid).await?
-                    {
-                        return Ok(user);
-                    }
-                }
+        let jar = PrivateCookieJar::<Key>::from_request_parts(parts, state)
+            .await
+            .map_err(|_| ApiError::Authentication)?;
+        let state = ApplicationState::from_ref(state);
+
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            if let Some(user) = RedisSession::get(&state.redis, &state.postgres, &ulid).await? {
+                return Ok(user);
             }
         }
         Err(ApiError::Authentication)

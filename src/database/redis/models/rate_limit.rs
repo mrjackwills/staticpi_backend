@@ -13,6 +13,7 @@ use crate::{
         user_level::UserLevel,
     },
     user_io::{deserializer::IncomingDeserializer, outgoing_json::oj::AdminLimit},
+    C, S,
 };
 
 const ONE_MINUTE_AS_SEC: i64 = 60;
@@ -90,76 +91,47 @@ impl TryFrom<&str> for RateLimit {
     type Error = ApiError;
 
     fn try_from(key: &str) -> Result<Self, ApiError> {
-        let splitter = key.splitn(3, "::").skip(1).collect::<Vec<_>>();
-        if let (Some(limit_type), Some(limit_key)) = (splitter.first(), splitter.get(1)) {
-            Ok(match *limit_type {
-                "api_key" => {
-                    if IncomingDeserializer::is_hex(limit_key, 128) {
-                        Self::from(&ApiKey::from(*limit_key))
-                    } else {
-                        return Err(ApiError::Internal(String::from("api_key error")));
-                    }
-                }
-                "ws_free" => {
-                    if let Ok(id) = limit_key.parse::<i64>() {
-                        Self::Ws(LimitWs::Free(UserId::from(id)))
-                    } else {
-                        return Err(ApiError::Internal(String::from("ws_free error")));
-                    }
-                }
-                "ws_pro" => {
-                    if let Ok(id) = limit_key.parse::<i64>() {
-                        Self::Ws(LimitWs::Pro(DeviceId::from(id)))
-                    } else {
-                        return Err(ApiError::Internal(String::from("ws_pro error")));
-                    }
-                }
-                "ip" => {
-                    if let Ok(ip) = limit_key.parse::<IpAddr>() {
-                        Self::Ip(ip)
-                    } else {
-                        return Err(ApiError::Internal(String::from("ip error")));
-                    }
-                }
-                "user" => {
-                    if let Ok(i) = limit_key.parse::<i64>() {
-                        Self::User(UserId::from(i))
-                    } else {
-                        return Err(ApiError::Internal(String::from("user_id")));
-                    }
-                }
-                "download_data" => {
-                    if let Ok(i) = limit_key.parse::<i64>() {
-                        Self::DownloadData(UserId::from(i))
-                    } else {
-                        return Err(ApiError::Internal(String::from("download_data")));
-                    }
-                }
-                "register" => {
-                    if let Some(email) = IncomingDeserializer::valid_email(limit_key) {
-                        Self::Register(email)
-                    } else {
-                        return Err(ApiError::Internal(String::from("email address")));
-                    }
-                }
-                "contact_email" => {
-                    if let Some(email) = IncomingDeserializer::valid_email(limit_key) {
-                        Self::Contact(LimitContact::Email(email))
-                    } else {
-                        return Err(ApiError::Internal(String::from("email address")));
-                    }
-                }
-                "contact_ip" => {
-                    if let Ok(ip) = limit_key.parse::<IpAddr>() {
-                        Self::Contact(LimitContact::Ip(ip))
-                    } else {
-                        return Err(ApiError::Internal(String::from("ip error")));
-                    }
-                }
-                _ => return Err(ApiError::Internal(String::from("unknown key"))),
-            })
-        } else {
-            Err(ApiError::InvalidValue("invalid rate limit key".to_owned()))
+        let (limit_type, limit_key) = key
+            .strip_prefix("ratelimit::")
+            .ok_or(ApiError::Internal(S!("can't split key")))?
+            .split_once("::")
+            .ok_or(ApiError::Internal(S!("can't split key")))?;
+
+        match limit_type {
+            "api_key" => IncomingDeserializer::is_hex(limit_key, 128)
+                .then(|| Self::from(&ApiKey::from(limit_key)))
+                .ok_or(ApiError::Internal(S!("api key error"))),
+            "contact_email" => IncomingDeserializer::valid_email(limit_key)
+                .map(|email| Self::Contact(LimitContact::Email(email)))
+                .ok_or(ApiError::Internal(S!("email_address"))),
+            "contact_ip" => limit_key
+                .parse::<IpAddr>()
+                .map(|ip| Self::Contact(LimitContact::Ip(ip)))
+                .map_err(|_| ApiError::Internal(S!("ip error"))),
+            "download_data" => limit_key
+                .parse::<i64>()
+                .map(|i| Self::DownloadData(UserId::from(i)))
+                .map_err(|_| ApiError::Internal(S!("download_data"))),
+            "ip" => limit_key
+                .parse::<IpAddr>()
+                .map(Self::Ip)
+                .map_err(|_| ApiError::Internal(S!("ip error"))),
+            "register" => IncomingDeserializer::valid_email(limit_key)
+                .map(Self::Register)
+                .ok_or(ApiError::Internal(S!("email_address"))),
+            "user" => limit_key
+                .parse::<i64>()
+                .map(|i| Self::User(UserId::from(i)))
+                .map_err(|_| ApiError::Internal(S!("user id"))),
+            "ws_free" => limit_key
+                .parse::<i64>()
+                .map(|i| Self::Ws(LimitWs::Free(UserId::from(i))))
+                .map_err(|_| ApiError::Internal(S!("ws_free error"))),
+            "ws_pro" => limit_key
+                .parse::<i64>()
+                .map(|i| Self::Ws(LimitWs::Pro(DeviceId::from(i))))
+                .map_err(|_| ApiError::Internal(S!("ws_pro error"))),
+            _ => Err(ApiError::Internal(S!("unknown key"))),
         }
     }
 }
@@ -175,7 +147,7 @@ impl From<&ModelWsDevice> for RateLimit {
 
 impl From<&ApiKey> for RateLimit {
     fn from(api_key: &ApiKey) -> Self {
-        Self::ApiKey(api_key.clone())
+        Self::ApiKey(C!(api_key))
     }
 }
 

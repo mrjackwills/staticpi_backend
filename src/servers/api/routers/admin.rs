@@ -8,8 +8,6 @@ use axum::{
 use axum_extra::extract::PrivateCookieJar;
 use fred::interfaces::KeysInterface;
 use std::time::SystemTime;
-use tracing::error;
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
@@ -28,11 +26,12 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     user_io::{
         incoming_json::ij,
         outgoing_json::oj::{self, AdminEmailsCounts},
     },
+    C, S,
 };
 
 struct SysInfo {
@@ -137,7 +136,7 @@ impl ApiRouter for AdminRouter {
             .route(&AdminRoutes::Session.addr(), delete(Self::session_delete))
             .route(&AdminRoutes::AllUsers.addr(), get(Self::users_get))
             .layer(middleware::from_fn_with_state(
-                state.clone(),
+                C!(state),
                 authentication::is_admin_authenticated,
             ))
     }
@@ -221,18 +220,12 @@ impl AdminRouter {
         jar: PrivateCookieJar,
         ij::Path(ij::UserSession { session }): ij::Path<ij::UserSession>,
     ) -> Result<StatusCode, ApiError> {
-        if let Some(data) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(data.value()) {
-                if session == ulid {
-                    return Err(ApiError::InvalidValue(String::from(
-                        "Can't delete current session",
-                    )));
-                }
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            if session == ulid {
+                return Err(ApiError::InvalidValue(S!("Can't delete current session")));
             }
-            RedisSession::delete(&state.redis, &session).await?;
-        } else {
-            error!("Unable to parse session_delete user session");
         }
+        RedisSession::delete(&state.redis, &session).await?;
         Ok(StatusCode::OK)
     }
 
@@ -255,7 +248,7 @@ impl AdminRouter {
     ) -> Result<StatusCode, ApiError> {
         if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
             if model_user.registered_user_id == user.registered_user_id {
-                Err(ApiError::InvalidValue("Can't de-activate self".to_owned()))
+                Err(ApiError::InvalidValue(S!("Can't de-activate self")))
             } else {
                 if model_user.active {
                     RedisSession::delete_all(&state.redis, model_user.registered_user_id).await?;
@@ -264,7 +257,7 @@ impl AdminRouter {
                 Ok(StatusCode::OK)
             }
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -337,7 +330,7 @@ impl AdminRouter {
             }
             Ok(StatusCode::OK)
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -373,10 +366,10 @@ impl AdminRouter {
                     .await?;
                 Ok(StatusCode::OK)
             } else {
-                Err(ApiError::InvalidValue(String::from("unknown device")))
+                Err(ApiError::InvalidValue(S!("unknown device")))
             }
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -399,14 +392,14 @@ impl AdminRouter {
         }
         if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
             if model_user == admin_user {
-                return Err(ApiError::InvalidValue(String::from(
-                    "Admin users can't delete their own accounts",
+                return Err(ApiError::InvalidValue(S!(
+                    "Admin users can't delete their own accounts"
                 )));
             }
             model_user.delete(&state.postgres, &state.redis).await?;
             Ok(StatusCode::OK)
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -433,7 +426,7 @@ impl AdminRouter {
             }
             Ok((StatusCode::OK, oj::OutgoingJson::new(output)))
         } else {
-            Err(ApiError::InvalidValue(String::from("unknown user")))
+            Err(ApiError::InvalidValue(S!("unknown user")))
         }
     }
 
@@ -494,8 +487,8 @@ mod tests {
         api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME, TEST_EMAIL,
         TEST_FULL_NAME, TEST_PASSWORD, TEST_USER_AGENT,
     };
-    use crate::sleep;
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
+    use crate::{sleep, C, S};
 
     use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
@@ -830,7 +823,6 @@ mod tests {
         ws_pi.unwrap().0.send(msg).await.unwrap();
         let ws_base_url = format!("ws://127.0.0.1:{}", test_setup.app_env.ws_port);
 
-        let _ratelimit_key = "ratelimit::ip::127.0.0.1";
         let ws_url = format!("{ws_base_url}/online");
         for _ in 1..=181 {
             connect_async(ws_url.as_str()).await.ok();
@@ -1088,7 +1080,7 @@ mod tests {
         let authed_cookie = test_setup.authed_user_cookie().await;
         test_setup.change_user_level(UserLevel::Admin).await;
 
-        let _device_name = test_setup.insert_device(&authed_cookie, None).await;
+        test_setup.insert_device(&authed_cookie, None).await;
         let ws_pi_url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         let ws_pi = connect_async(&ws_pi_url).await;
         assert!(ws_pi.is_ok());
@@ -1112,6 +1104,7 @@ mod tests {
             .send()
             .await
             .unwrap();
+
         assert_eq!(result.status(), StatusCode::OK);
 
         let result = result.json::<Response>().await.unwrap().response;
@@ -1128,7 +1121,6 @@ mod tests {
                 .starts_with("ratelimit::ws_pro")
         });
         assert!(ws_pro_index.is_some());
-        let _key = result.get(ws_pro_index.unwrap());
         let ws_rate_limit_key = result
             .get(ws_pro_index.unwrap())
             .unwrap()
@@ -1388,11 +1380,11 @@ mod tests {
         );
 
         let body = TmpBody {
-            device_type: String::from("Client"),
+            device_type: S!("Client"),
             device_id: test_setup.query_user_active_devices().await[0]
                 .device_id
                 .get(),
-            connection_ulid: client_ulid.to_owned(),
+            connection_ulid: S!(client_ulid),
         };
 
         let result = client
@@ -1463,11 +1455,11 @@ mod tests {
         );
 
         let body = TmpBody {
-            device_type: String::from("Pi"),
+            device_type: S!("Pi"),
             device_id: test_setup.query_user_active_devices().await[0]
                 .device_id
                 .get(),
-            connection_ulid: pi_ulid.to_owned(),
+            connection_ulid: S!(pi_ulid),
         };
 
         let result = client
@@ -2888,7 +2880,7 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
                 invite: gen_random_hex(12),
                 count: 1,
@@ -2940,7 +2932,7 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
                 invite: gen_random_hex(12),
                 count: 1,
@@ -2980,7 +2972,7 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
                 invite: gen_random_hex(12),
                 count: 1,
@@ -3012,9 +3004,9 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
-                invite: invite.clone(),
+                invite: C!(invite),
                 count: 13,
             })
             .header("cookie", &authed_cookie)

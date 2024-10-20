@@ -2,7 +2,6 @@ use crate::api_error::ApiError;
 use rand::{prelude::SliceRandom, Rng};
 use sha1::{Digest, Sha1};
 use std::time::SystemTime;
-use tracing::error;
 
 const HEX_CHARS: &[u8; 16] = b"ABCDEF0123456789";
 const HIBP: &str = "https://api.pwnedpasswords.com/range/";
@@ -77,6 +76,25 @@ const CHEESE: [&str; 32] = [
     "yarg",
 ];
 
+/// Simple macro to create a new String, or convert from a &str to  a String - basically just gets rid of String::from() / .to_owned() etc
+#[macro_export]
+macro_rules! S {
+    () => {
+        String::new()
+    };
+    ($s:expr) => {
+        String::from($s)
+    };
+}
+
+/// Simple macro to call `.clone()` on whatever is passed in
+#[macro_export]
+macro_rules! C {
+    ($i:expr) => {
+        $i.clone()
+    };
+}
+
 /// use `app_env.start_time` to work out how long the application has been running for, in seconds
 pub fn calc_uptime(start_time: SystemTime) -> u64 {
     std::time::SystemTime::now()
@@ -149,8 +167,8 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
             }))
         }
         Err(e) => {
-            error!("{e:?}");
-            Err(ApiError::Internal(String::from("hibp request error")))
+            tracing::error!("{e:?}");
+            Err(ApiError::Internal(S!("hibp request error")))
         }
     }
 }

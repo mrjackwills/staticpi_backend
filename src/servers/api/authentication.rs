@@ -2,7 +2,6 @@ use axum::{extract::State, http::Request, middleware::Next, response::Response};
 use axum_extra::extract::PrivateCookieJar;
 use sqlx::PgPool;
 use totp_rs::{Algorithm, Secret, TOTP};
-use ulid::Ulid;
 
 use crate::{
     api_error::ApiError,
@@ -11,8 +10,9 @@ use crate::{
         new_types::UserId, session::RedisSession, two_fa_backup::ModelTwoFABackup, user::ModelUser,
         user_level::UserLevel,
     },
-    servers::ApplicationState,
+    servers::{get_cookie_ulid, ApplicationState},
     user_io::incoming_json::ij::Token,
+    S,
 };
 
 /// Generate a secret to TOTP from a given secret
@@ -22,7 +22,7 @@ pub fn totp_from_secret(secret: &str) -> Result<TOTP, ApiError> {
             return Ok(totp);
         }
     }
-    Err(ApiError::Internal("TOTP ERROR".to_owned()))
+    Err(ApiError::Internal(S!("TOTP ERROR")))
 }
 
 /// Validate an 2fa token
@@ -122,11 +122,9 @@ pub async fn not_authenticated(
     req: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
-    if let Some(data) = jar.get(&state.cookie_name) {
-        if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if RedisSession::exists(&state.redis, &ulid).await?.is_some() {
-                return Err(ApiError::Authentication);
-            }
+    if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+        if RedisSession::exists(&state.redis, &ulid).await?.is_some() {
+            return Err(ApiError::Authentication);
         }
     }
     Ok(next.run(req).await)
@@ -139,11 +137,9 @@ pub async fn is_authenticated(
     req: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
-    if let Some(data) = jar.get(&state.cookie_name) {
-        if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if RedisSession::exists(&state.redis, &ulid).await?.is_some() {
-                return Ok(next.run(req).await);
-            }
+    if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+        if RedisSession::exists(&state.redis, &ulid).await?.is_some() {
+            return Ok(next.run(req).await);
         }
     }
     Err(ApiError::Authentication)
@@ -157,17 +153,10 @@ pub async fn is_admin_authenticated(
     req: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
-    if let Some(data) = jar.get(&state.cookie_name) {
-        if let Ok(ulid) = Ulid::from_string(data.value()) {
-            if let Some(model_user) =
-                RedisSession::get(&state.redis, &state.postgres, &ulid).await?
-            {
-                match model_user.user_level {
-                    UserLevel::Admin => {
-                        return Ok(next.run(req).await);
-                    }
-                    _ => return Err(ApiError::Authentication),
-                }
+    if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+        if let Some(model_user) = RedisSession::get(&state.redis, &state.postgres, &ulid).await? {
+            if model_user.user_level == UserLevel::Admin {
+                return Ok(next.run(req).await);
             }
         }
     }

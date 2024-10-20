@@ -15,7 +15,7 @@ use crate::{
         redis::{RedisKey, HASH_FIELD},
         user::ModelUser,
     },
-    hmap, redis_hash_to_struct,
+    hmap, redis_hash_to_struct, S,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,7 +31,7 @@ impl RedisSession {
     pub fn new(registered_user_id: UserId, email: &str) -> Self {
         Self {
             registered_user_id,
-            email: email.to_owned(),
+            email: S!(email),
             timestamp: OffsetDateTime::now_utc().unix_timestamp(),
         }
     }
@@ -91,14 +91,6 @@ impl RedisSession {
         // redis.expire(&key_session_set, ttl).await?;
         Ok(redis.expire(&key_session, ttl).await?)
     }
-
-    // On any setting change, need to make sure to update session
-    // pub async fn update(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
-    //     let key = RedisKey::Session(&ulid);
-    //     let session = serde_json::to_string(&self)?;
-    //     redis.set(key.to_string(), session).await?;
-    //     Ok(())
-    // }
 
     /// Delete session
     pub async fn delete(redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {

@@ -25,7 +25,6 @@ use servers::{api::ApiServer, token::TokenServer, ws::WsServer, Serve, ServeData
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::error;
 use tracing_subscriber::{fmt, prelude::__tracing_subscriber_SubscriberExt};
 
 fn setup_tracing(app_env: &AppEnv) -> Result<(), ApiError> {
@@ -50,7 +49,7 @@ fn setup_tracing(app_env: &AppEnv) -> Result<(), ApiError> {
         Ok(()) => Ok(()),
         Err(e) => {
             println!("{e:?}");
-            Err(ApiError::Internal("Unable to start tracing".to_owned()))
+            Err(ApiError::Internal(S!("Unable to start tracing")))
         }
     }
 }
@@ -71,7 +70,12 @@ async fn main() -> Result<(), ApiError> {
         std::process::exit(1);
     }
 
-    tracing::info!("{} - {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+    tracing::info!(
+        "{} - {} - {}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+        app_env.run_mode
+    );
 
     clear_postgres_connections(&app_env).await?;
     let connections = Arc::new(Mutex::new(Connections::default()));
@@ -79,7 +83,7 @@ async fn main() -> Result<(), ApiError> {
     let auth_data = ServeData::new(&app_env, &connections, ServerName::Token).await?;
     tokio::spawn(async move {
         if let Err(e) = TokenServer::serve(auth_data).await {
-            error!("{e:?}");
+            tracing::error!("{e:?}");
             std::process::exit(1);
         }
     });
@@ -87,7 +91,7 @@ async fn main() -> Result<(), ApiError> {
     let ws_data = ServeData::new(&app_env, &connections, ServerName::Ws).await?;
     tokio::spawn(async move {
         if let Err(e) = WsServer::serve(ws_data).await {
-            error!("{e:?}");
+            tracing::error!("{e:?}");
             std::process::exit(1);
         }
     });

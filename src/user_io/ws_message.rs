@@ -2,7 +2,7 @@ pub mod wm {
 
     use std::fmt;
 
-    use crate::user_io::deserializer::IncomingDeserializer as is;
+    use crate::{user_io::deserializer::IncomingDeserializer as is, S};
 
     use serde::{self, Deserialize, Serialize};
     use serde_json::Value;
@@ -102,7 +102,7 @@ pub mod wm {
         fn from(err: &Error) -> Self {
             let error = match err {
                 Error::InvalidStructure => ErrorBody {
-                    message: "received data is invalid structure".to_owned(),
+                    message: S!("received data is invalid structure"),
                     code: 400,
                 },
                 Error::RateLimit(limit) => ErrorBody {
@@ -110,11 +110,11 @@ pub mod wm {
                     code: 429,
                 },
                 Error::MessageSize => ErrorBody {
-                    message: "message size too large".to_owned(),
+                    message: S!("message size too large"),
                     code: 413,
                 },
                 Error::MonthlyBandwidth => ErrorBody {
-                    message: "monthly bandwidth allowance exceeded".to_owned(),
+                    message: S!("monthly bandwidth allowance exceeded"),
                     code: 509,
                 },
             };

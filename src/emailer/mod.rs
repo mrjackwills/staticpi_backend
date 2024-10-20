@@ -5,6 +5,7 @@ use crate::{
     api_error::ApiError,
     database::{email_log::ModelEmailLog, ip_user_agent::ModelUserAgentIp},
     parse_env::{AppEnv, RunMode},
+    C, S,
 };
 
 use lettre::{
@@ -14,7 +15,6 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use sqlx::PgPool;
-use tracing::{error, info, trace};
 
 use self::template::create_html_string;
 
@@ -35,11 +35,11 @@ pub struct EmailerEnv {
 impl EmailerEnv {
     pub fn new(app_env: &AppEnv) -> Self {
         Self {
-            domain: app_env.domain.clone(),
-            from_address: app_env.email_from_address.clone(),
-            host: app_env.email_host.clone(),
-            name: app_env.email_name.clone(),
-            password: app_env.email_password.clone(),
+            domain: C!(app_env.domain),
+            from_address: C!(app_env.email_from_address),
+            host: C!(app_env.email_host),
+            name: C!(app_env.email_name),
+            password: C!(app_env.email_password),
             port: app_env.email_port,
             run_mode: app_env.run_mode,
         }
@@ -49,7 +49,7 @@ impl EmailerEnv {
     }
 
     fn get_credentials(&self) -> Credentials {
-        Credentials::new(self.from_address.clone(), self.password.clone())
+        Credentials::new(C!(self.from_address), C!(self.password))
     }
 
     fn get_mailer(&self) -> Result<AsyncSmtpTransportBuilder, lettre::transport::smtp::Error> {
@@ -85,10 +85,10 @@ impl Emailer {
         email_env: &EmailerEnv,
     ) -> Self {
         Self {
-            name: name.to_owned(),
-            email_address: email_address.to_owned(),
+            name: S!(name),
+            email_address: S!(email_address),
             template,
-            env: email_env.clone(),
+            env: C!(email_env),
         }
     }
 
@@ -103,10 +103,10 @@ impl Emailer {
             let email_log =
                 ModelEmailLog::insert(postgres, &self.template, useragent_ip, &self.email_address)
                     .await?;
-            let postgres = postgres.clone();
-            tokio::spawn(Self::_send(self.clone(), postgres, email_log));
+            let postgres = C!(postgres);
+            tokio::spawn(Self::_send(C!(self), postgres, email_log));
         } else {
-            error!("email limit hit");
+            tracing::error!("email limit hit");
         }
         Ok(())
     }
@@ -134,26 +134,26 @@ impl Emailer {
                             .singlepart(
                                 SinglePart::builder()
                                     .header(header::ContentType::TEXT_HTML)
-                                    .body(html_string.clone()),
+                                    .body(C!(html_string)),
                             ),
                     );
 
                 if let Ok(message) = message_builder {
                     std::fs::write(EMAIL_HEADERS_LOCATION, message.headers().to_string()).ok();
                     std::fs::write(EMAIL_BODY_LOCATION, html_string).ok();
-                    info!("Would be sending email if on production");
+                    tracing::info!("Would be sending email if on production");
                 } else {
                     email_log.update_sent_false(&postgres).await;
-                    error!("unable to build message with Message::builder");
+                    tracing::error!("unable to build message with Message::builder");
                 }
             }
         } else {
             email_log.update_sent_false(&postgres).await;
-            error!("unable to parse from_box or to_box");
+            tracing::error!("unable to parse from_box or to_box");
         }
     }
 
-    /// Handle all errors in this function, just error!(e) on any issues
+    /// Handle all errors in this function, just tracing::error!(e) on any issues
     #[cfg(not(test))]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
@@ -163,7 +163,7 @@ impl Emailer {
                 let message_builder = Message::builder()
                     .from(from)
                     .to(to)
-                    .subject(subject.clone())
+                    .subject(C!(subject))
                     .multipart(
                         MultiPart::alternative()
                             .singlepart(
@@ -174,7 +174,7 @@ impl Emailer {
                             .singlepart(
                                 SinglePart::builder()
                                     .header(header::ContentType::TEXT_HTML)
-                                    .body(html_string.clone()),
+                                    .body(C!(html_string)),
                             ),
                     );
 
@@ -190,19 +190,19 @@ impl Emailer {
                                     .build();
                                 match transport.send(message).await {
                                     Ok(_) => {
-                                        trace!("Email sent successfully!");
+                                        tracing::trace!("Email sent successfully!");
                                     }
                                     Err(e) => {
                                         email_log.update_sent_false(&postgres).await;
-                                        error!("{e:?}");
-                                        error!("mailer.send error");
+                                        tracing::error!("{e:?}");
+                                        tracing::error!("mailer.send error");
                                     }
                                 }
                             }
                             Err(e) => {
                                 email_log.update_sent_false(&postgres).await;
-                                error!("{e:?}");
-                                info!("Mailer relay error");
+                                tracing::error!("{e:?}");
+                                tracing::info!("Mailer relay error");
                             }
                         }
                     } else {
@@ -212,15 +212,15 @@ impl Emailer {
                         )
                         .ok();
                         std::fs::write("/ramdrive/staticpi/email_body.txt", html_string).ok();
-                        info!("Would be sending email if on production");
+                        tracing::info!("Would be sending email if on production");
                     }
                 } else {
                     email_log.update_sent_false(&postgres).await;
-                    error!("unable to build message with Message::builder");
+                    tracing::error!("unable to build message with Message::builder");
                 }
             }
         } else {
-            error!("unable to parse from_box or to_box");
+            tracing::error!("unable to parse from_box or to_box");
             email_log.update_sent_false(&postgres).await;
         }
     }

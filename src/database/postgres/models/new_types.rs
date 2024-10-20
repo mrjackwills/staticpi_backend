@@ -3,7 +3,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize, Serializer};
 use std::sync::LazyLock;
 
-use crate::{api_error::ApiError, helpers::gen_random_hex};
+use crate::{api_error::ApiError, helpers::gen_random_hex, S};
 
 /// Api key, [A-F0-9]{128}
 #[derive(Debug, Clone, Eq, PartialEq, sqlx::Decode)]
@@ -38,7 +38,7 @@ impl Default for ApiKey {
 
 impl From<&str> for ApiKey {
     fn from(x: &str) -> Self {
-        Self(x.to_owned())
+        Self(S!(x))
     }
 }
 
@@ -66,14 +66,14 @@ impl TryFrom<String> for EmailAddress {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value.is_empty() || !value.contains('@') {
-            return Err(ApiError::InvalidValue("Email invalid".to_owned()));
+            return Err(ApiError::InvalidValue(S!("Email invalid")));
         };
         let email = value.to_lowercase();
 
         if REGEX_EMAIL.is_match(&email) {
             Ok(Self(email))
         } else {
-            Err(ApiError::InvalidValue("Email invalid".to_owned()))
+            Err(ApiError::InvalidValue(S!("Email invalid")))
         }
     }
 }

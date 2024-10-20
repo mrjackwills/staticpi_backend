@@ -1,7 +1,6 @@
 use crate::{api_error::ApiError, database::postgres::Count, emailer::EmailTemplate};
 use serde::Deserialize;
 use sqlx::PgPool;
-use tracing::error;
 
 use super::{
     email_address::ModelEmailAddress,
@@ -62,7 +61,7 @@ WHERE
             .execute(postgres)
             .await
         {
-            error!("{e:?}");
+            tracing::error!("{e:?}");
         };
     }
 

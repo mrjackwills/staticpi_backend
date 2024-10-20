@@ -24,6 +24,7 @@ use crate::{
         incoming_json::ij,
         outgoing_json::oj::{self, AllDevices},
     },
+    C,
 };
 
 define_routes! {
@@ -114,7 +115,7 @@ impl ApiRouter for DeviceRouter {
                 delete(Self::named_delete).get(Self::named_get),
             )
             .layer(middleware::from_fn_with_state(
-                state.clone(),
+                C!(state),
                 authentication::is_authenticated,
             ))
     }
@@ -159,7 +160,7 @@ impl DeviceRouter {
         for device in &devices {
             let limiter = RateLimit::from((device, &user));
             limits.push(oj::AllLimits {
-                name_of_device: device.name_of_device.clone(),
+                name_of_device: C!(device.name_of_device),
                 ttl: limiter.limited_ttl(&state.redis).await?,
             });
         }
@@ -581,8 +582,8 @@ mod tests {
     use crate::servers::test_setup::{
         api_base_url, get_keys, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
     };
-    use crate::sleep;
     use crate::user_io::incoming_json::ij::DevicePost;
+    use crate::{sleep, C, S};
 
     use futures::{SinkExt, StreamExt};
     use reqwest::StatusCode;
@@ -2600,7 +2601,7 @@ mod tests {
             device_name
         );
 
-        let pre_api_key = test_setup.query_user_active_devices().await[0].clone();
+        let pre_api_key = C!(test_setup.query_user_active_devices().await[0]);
 
         let resp = client
             .patch(&url)
@@ -3198,7 +3199,7 @@ mod tests {
         let new_name = gen_random_hex(10);
         let body = HashMap::from([("new_name", new_name)]);
 
-        let pre_device = test_setup.query_user_active_devices().await[0].clone();
+        let pre_device = C!(test_setup.query_user_active_devices().await[0]);
 
         let url = format!(
             "{}/authenticated{}/{}/rename",
@@ -3216,7 +3217,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let post_device = test_setup.query_user_active_devices().await[0].clone();
+        let post_device = C!(test_setup.query_user_active_devices().await[0]);
         assert_ne!(post_device.device_name_id, pre_device.device_name_id)
     }
 
@@ -3866,8 +3867,8 @@ mod tests {
                 &authed_cookie,
                 Some(DevicePost {
                     max_clients: 1,
-                    client_password: Some("this_is_a_password".to_owned()),
-                    device_password: Some("This_is_another_password".to_owned()),
+                    client_password: Some(S!("this_is_a_password")),
+                    device_password: Some(S!("This_is_another_password")),
                     structured_data: false,
                     name: None,
                 }),

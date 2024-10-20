@@ -38,9 +38,10 @@ use crate::{
     define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, calc_uptime},
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
     sleep,
     user_io::{incoming_json::ij, outgoing_json::oj},
+    C, S,
 };
 
 define_routes! {
@@ -71,17 +72,17 @@ enum IncognitoResponse {
 impl fmt::Display for IncognitoResponse {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let disp = match self {
-            Self::AgeInvalid => "Please confirm that you aged 13 years or older".to_owned(),
-            Self::AgreeInvalid => "Please agree to the terms & conditions".to_owned(),
+            Self::AgeInvalid => S!("Please confirm that you aged 13 years or older"),
+            Self::AgreeInvalid => S!("Please agree to the terms & conditions"),
             Self::DomainBanned(domain) => format!("{domain} is a banned domain"),
-            Self::InviteInvalid => "invite invalid".to_owned(),
-            Self::UnsafePassword => "unsafe password".to_owned(),
-            Self::Verified => "Account verified, please sign in to continue".to_owned(),
-            Self::VerifyInvalid => "Incorrect verification data".to_owned(),
+            Self::InviteInvalid => S!("invite invalid"),
+            Self::UnsafePassword => S!("unsafe password"),
+            Self::Verified => S!("Account verified, please sign in to continue"),
+            Self::VerifyInvalid => S!("Incorrect verification data"),
             Self::Instructions => {
-                "Instructions have been sent to the email address provided".to_owned()
+                S!("Instructions have been sent to the email address provided")
             }
-            Self::ResetPatch => "Password reset complete - please sign in".to_owned(),
+            Self::ResetPatch => S!("Password reset complete - please sign in"),
         };
         write!(f, "{disp}")
     }
@@ -103,7 +104,7 @@ impl ApiRouter for IncognitoRouter {
                 get(Self::verify_param_get),
             )
             .layer(middleware::from_fn_with_state(
-                state.clone(),
+                C!(state),
                 authentication::not_authenticated,
             ))
             .route(&IncognitoRoutes::Contact.addr(), post(Self::contact_post))
@@ -131,7 +132,7 @@ impl IncognitoRouter {
             StatusCode::OK,
             oj::OutgoingJson::new(oj::Online {
                 uptime: calc_uptime(state.start_time),
-                api_version: env!("CARGO_PKG_VERSION").into(),
+                api_version: S!(env!("CARGO_PKG_VERSION")),
             }),
         )
     }
@@ -183,7 +184,7 @@ impl IncognitoRouter {
             return Ok(response);
         }
 
-        if RateLimit::Register(body.email.clone())
+        if RateLimit::Register(C!(body.email))
             .check(&state.redis)
             .await
             .is_err()
@@ -199,7 +200,7 @@ impl IncognitoRouter {
             ));
         }
 
-        let password_hash = ArgonHash::new(body.password.clone()).await?;
+        let password_hash = ArgonHash::new(C!(body.password)).await?;
         let secret = Ulid::new();
 
         let email = if let Some(email) = postgres_email {
@@ -311,7 +312,7 @@ impl IncognitoRouter {
                     ));
                 }
 
-                let password_hash = ArgonHash::new(body.password.clone()).await?;
+                let password_hash = ArgonHash::new(C!(body.password)).await?;
 
                 tokio::try_join!(
                     ModelUser::update_password(
@@ -439,21 +440,17 @@ impl IncognitoRouter {
         let ip_limit = RateLimit::Contact(LimitContact::Ip(useragent_ip.ip))
             .check(&state.redis)
             .await;
-        let email_limit = RateLimit::Contact(LimitContact::Email(body.email.clone()))
+        let email_limit = RateLimit::Contact(LimitContact::Email(C!(body.email)))
             .check(&state.redis)
             .await;
 
         ip_limit?;
         email_limit?;
 
-        let registered_user_id = if let Some(data) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(data.value()) {
-                RedisSession::get(&state.redis, &state.postgres, &ulid)
-                    .await?
-                    .map(|i| i.registered_user_id)
-            } else {
-                None
-            }
+        let registered_user_id = if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            RedisSession::get(&state.redis, &state.postgres, &ulid)
+                .await?
+                .map(|i| i.registered_user_id)
         } else {
             None
         };
@@ -489,12 +486,16 @@ impl IncognitoRouter {
     ) -> Result<impl IntoResponse, ApiError> {
         // If front end and back end out of sync, and front end user has an api cookie, but not front-end authed, delete server cookie api session
         let ms = || rand::thread_rng().gen_range(100..500);
-        // remove previous current session
-        if let Some(data) = jar.get(&state.cookie_name) {
-            if let Ok(ulid) = Ulid::from_string(data.value()) {
-                RedisSession::delete(&state.redis, &ulid).await?;
-            }
+
+        if let Some(ulid) = get_cookie_ulid(&state, &jar) {
+            RedisSession::delete(&state.redis, &ulid).await?;
         }
+        // remove previous current session
+        // if let Some(data) = jar.get(&state.cookie_name) {
+        //     if let Ok(ulid) = Ulid::from_string(data.value()) {
+        //         RedisSession::delete(&state.redis, &ulid).await?;
+        //     }
+        // }
 
         if let Some(user) = ModelUser::get(&state.postgres, &body.email).await? {
             // Email user that account is blocked
@@ -584,8 +585,8 @@ impl IncognitoRouter {
                 Duration::hours(6)
             };
 
-            let mut cookie = Cookie::new(state.cookie_name.clone(), ulid.to_string());
-            cookie.set_domain(state.domain.clone());
+            let mut cookie = Cookie::new(C!(state.cookie_name), ulid.to_string());
+            cookie.set_domain(C!(state.domain));
             cookie.set_path("/");
             cookie.set_secure(state.run_mode.is_production());
             cookie.set_same_site(SameSite::Strict);
@@ -621,11 +622,11 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::api::api_tests::EMAIL_BODY_LOCATION;
     use crate::servers::test_setup::*;
-    use crate::sleep;
     use crate::{
         database::contact_message::ModelContactMessage,
         servers::api::api_tests::EMAIL_HEADERS_LOCATION,
     };
+    use crate::{sleep, C, S};
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
@@ -659,12 +660,8 @@ mod tests {
         test_setup.insert_test_user().await;
         let client = TestSetup::get_client();
         let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
-        let body = TestSetup::gen_signin_body(
-            None,
-            Some("thisistheincorrectpassword".to_owned()),
-            None,
-            None,
-        );
+        let body =
+            TestSetup::gen_signin_body(None, Some(S!("thisistheincorrectpassword")), None, None);
 
         let result = client.post(&url).json(&body).send().await.unwrap();
         let user = test_setup.get_model_user().await.unwrap();
@@ -710,12 +707,8 @@ mod tests {
 
         let url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
 
-        let body = TestSetup::gen_signin_body(
-            None,
-            Some("thisistheincorrectpassword".to_owned()),
-            None,
-            None,
-        );
+        let body =
+            TestSetup::gen_signin_body(None, Some(S!("thisistheincorrectpassword")), None, None);
 
         for _ in 0..=19 {
             client.post(&url).json(&body).send().await.unwrap();
@@ -828,8 +821,8 @@ mod tests {
 
         let body = TestSetup::gen_signin_body(
             None,
-            Some("thisistheincorrectpassword".to_owned()),
-            Some(valid_token.clone()),
+            Some(S!("thisistheincorrectpassword")),
+            Some(C!(valid_token)),
             None,
         );
 
@@ -1009,7 +1002,7 @@ mod tests {
         // This can fail! Unlikely but not zero
         let token = "519181150EEEAC92";
 
-        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let body = TestSetup::gen_signin_body(None, None, Some(S!(token)), None);
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
         let user = test_setup.get_model_user().await.unwrap();
@@ -1047,7 +1040,7 @@ mod tests {
 
         let token = codes[4].as_str().unwrap();
 
-        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let body = TestSetup::gen_signin_body(None, None, Some(S!(token)), None);
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::OK);
         let user = test_setup.get_model_user().await.unwrap();
@@ -2324,7 +2317,7 @@ mod tests {
             IncognitoRoutes::Contact.addr()
         );
 
-        let message = (0..63).map(|_| "a".to_owned()).collect::<String>();
+        let message = (0..63).map(|_| S!("a")).collect::<String>();
 
         let body = HashMap::from([("email", TEST_EMAIL), ("message", &message)]);
 
@@ -2355,7 +2348,7 @@ mod tests {
             IncognitoRoutes::Contact.addr()
         );
 
-        let message = (0..=1024).map(|_| "a".to_owned()).collect::<String>();
+        let message = (0..=1024).map(|_| S!("a")).collect::<String>();
 
         let body = HashMap::from([("email", TEST_EMAIL), ("message", &message)]);
 

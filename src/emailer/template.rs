@@ -1,5 +1,6 @@
+use crate::{C, S};
+
 use super::Emailer;
-use tracing::error;
 use ulid::Ulid;
 
 #[derive(Debug, Clone)]
@@ -62,17 +63,17 @@ impl EmailTemplate {
 
     pub fn get_subject(&self) -> String {
         match self {
-            Self::DownloadData => "Download Data".to_owned(),
-            Self::AccountLocked => "Security Alert".to_owned(),
-            Self::Custom(custom_email) => custom_email.title.clone(),
-            Self::PasswordChanged => "Password Changed".to_owned(),
-            Self::PasswordResetRequested(_) => "Password Reset Requested".to_owned(),
-            Self::TwoFABackupDisabled => "Two-Factor Backup Disabled".to_owned(),
-            Self::TwoFABackupEnabled => "Two-Factor Backup Enabled".to_owned(),
-            Self::TwoFABackupReGenerated => "Two-Factor Backups re-generated".to_owned(),
-            Self::TwoFADisabled => "Two-Factor Disabled".to_owned(),
-            Self::TwoFAEnabled => "Two-Factor Enabled".to_owned(),
-            Self::Verify(_) => "Verify Email Address".to_owned(),
+            Self::DownloadData => S!("Download Data"),
+            Self::AccountLocked => S!("Security Alert"),
+            Self::Custom(custom_email) => C!(custom_email.title),
+            Self::PasswordChanged => S!("Password Changed"),
+            Self::PasswordResetRequested(_) => S!("Password Reset Requested"),
+            Self::TwoFABackupDisabled => S!("Two-Factor Backup Disabled"),
+            Self::TwoFABackupEnabled => S!("Two-Factor Backup Enabled"),
+            Self::TwoFABackupReGenerated => S!("Two-Factor Backups re-generated"),
+            Self::TwoFADisabled => S!("Two-Factor Disabled"),
+            Self::TwoFAEnabled => S!("Two-Factor Enabled"),
+            Self::Verify(_) => S!("Verify Email Address"),
         }
     }
 
@@ -80,19 +81,19 @@ impl EmailTemplate {
         match self {
             Self::PasswordResetRequested(link) => Some(EmailButton {
                 link: format!("/user/reset/{link}"),
-                text: "RESET PASSWORD 🔒".to_owned(),
+                text: S!("RESET PASSWORD 🔒"),
             }),
             Self::Verify(link) => Some(EmailButton {
                 link: format!("/user/verify/{link}"),
-                text: "VERIFY EMAIL ADDRESS 📧".to_owned(),
+                text: S!("VERIFY EMAIL ADDRESS 📧"),
             }),
             Self::TwoFAEnabled => Some(EmailButton {
-                link: String::from("/user/settings/"),
-                text: "GENERATE BACKUP CODES ⭐".to_owned(),
+                link: S!("/user/settings/"),
+                text: S!("GENERATE BACKUP CODES ⭐"),
             }),
             Self::Custom(custom_email) => custom_email.button.as_ref().map(|button| EmailButton {
-                link: button.link.clone(),
-                text: button.text.clone(),
+                link: C!(button.link),
+                text: C!(button.text),
             }),
             _ => None,
         }
@@ -100,27 +101,26 @@ impl EmailTemplate {
 
     pub fn get_line_one(&self) -> String {
         match self {
-            Self::Custom(custom_email) => custom_email.line_one.clone(),
-            Self::DownloadData => "You have requested a copy of your user data".to_owned(),
-            Self::AccountLocked => "Due to multiple failed login attempts your account has been locked.".to_owned(),
-            Self::PasswordChanged => "The password for your staticPi account has been changed.".to_owned(),
-            Self::PasswordResetRequested(_) => "This password reset link will only be valid for one hour".to_owned(),
-            Self::TwoFABackupDisabled => "You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page.".to_owned(),
-            Self::TwoFABackupEnabled => "You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure".to_owned(),
-            Self::TwoFABackupReGenerated => "You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure.".to_owned(),
-            Self::TwoFADisabled => "You have disabled Two-Factor Authentication for your staticPi account.".to_owned(),
-            Self::TwoFAEnabled => "You have enabled Two-Factor Authentication for your staticPi account, it is recommended to create and save backup codes, these can be generated in the user settings area.".to_owned(),
-            Self::Verify(_) => "Welcome to staticPi, before you start we just need you to verify this email address.".to_owned(),
+            Self::Custom(custom_email) => C!(custom_email.line_one),
+            Self::DownloadData => S!("You have requested a copy of your user data"),
+            Self::AccountLocked => S!("Due to multiple failed login attempts your account has been locked."),
+            Self::PasswordChanged => S!("The password for your staticPi account has been changed."),
+            Self::PasswordResetRequested(_) => S!("This password reset link will only be valid for one hour"),
+            Self::TwoFABackupDisabled => S!("You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page."),
+            Self::TwoFABackupEnabled => S!("You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure"),
+            Self::TwoFABackupReGenerated => S!("You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure."),
+            Self::TwoFADisabled => S!("You have disabled Two-Factor Authentication for your staticPi account."),
+            Self::TwoFAEnabled => S!("You have enabled Two-Factor Authentication for your staticPi account, it is recommended to create and save backup codes, these can be generated in the user settings area."),
+            Self::Verify(_) => S!("Welcome to staticPi, before you start we just need you to verify this email address."),
         }
     }
 
     pub fn get_line_two(&self) -> Option<String> {
         let contact_support =
-            "If you did not enable this setting, please contact support as soon as possible."
-                .to_owned();
+            S!("If you did not enable this setting, please contact support as soon as possible.");
         match self {
             Self::AccountLocked => {
-                Some("Please contact support in order to unlock your account".to_owned())
+                Some(S!("Please contact support in order to unlock your account"))
             }
             Self::PasswordChanged
             | Self::TwoFAEnabled
@@ -129,10 +129,10 @@ impl EmailTemplate {
             | Self::TwoFABackupDisabled
             | Self::DownloadData
             | Self::TwoFABackupEnabled => Some(contact_support),
-            Self::PasswordResetRequested(_) => Some(
-                "If you did not request a password reset then please ignore this email".to_owned(),
-            ),
-            Self::Custom(custom_email) => custom_email.line_two.clone(),
+            Self::PasswordResetRequested(_) => Some(S!(
+                "If you did not request a password reset then please ignore this email"
+            )),
+            Self::Custom(custom_email) => C!(custom_email.line_two),
             Self::Verify(_) => None,
         }
     }
@@ -244,15 +244,15 @@ pub fn create_html_string(input: &Emailer) -> Option<String> {
             match root.render(&opts) {
                 Ok(email_string) => Some(email_string),
                 Err(e) => {
-                    error!("{e:?}");
-                    error!("email render error");
+                    tracing::error!("{e:?}");
+                    tracing::error!("email render error");
                     None
                 }
             }
         }
         Err(e) => {
-            error!("{e:?}");
-            error!("mrml parsing error");
+            tracing::error!("{e:?}");
+            tracing::error!("mrml parsing error");
             None
         }
     }

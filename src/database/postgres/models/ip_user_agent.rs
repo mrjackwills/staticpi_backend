@@ -17,6 +17,7 @@ use crate::{
     database::{redis::RedisKey, HASH_FIELD},
     hmap,
     servers::{get_ip, get_user_agent_header, ApplicationState},
+    C, S,
 };
 
 use super::new_types::{IpId, UserAgentId};
@@ -176,7 +177,7 @@ WHERE
         ) {
             Ok(Some(Self {
                 ip,
-                user_agent: user_agent.to_owned(),
+                user_agent: S!(user_agent),
                 ip_id,
                 user_agent_id,
             }))
@@ -236,7 +237,7 @@ FROM
 WHERE
 	user_agent_string = $1";
         sqlx::query_as::<_, Useragent>(query)
-            .bind(req.user_agent.clone())
+            .bind(&req.user_agent)
             .fetch_optional(&mut **transaction)
             .await
     }
@@ -254,7 +255,7 @@ VALUES
 RETURNING
 	user_agent_id";
         sqlx::query_as::<_, Useragent>(query)
-            .bind(req.user_agent.clone())
+            .bind(&req.user_agent)
             .fetch_one(&mut **transaction)
             .await
     }
@@ -284,7 +285,7 @@ RETURNING
         transaction.commit().await?;
 
         let output = Self {
-            user_agent: req.user_agent.clone(),
+            user_agent: C!(req.user_agent),
             ip: req.ip,
             user_agent_id: user_agent_id.user_agent_id,
             ip_id: ip_id.ip_id,

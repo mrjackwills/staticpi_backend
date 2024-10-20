@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{collections::HashMap, fmt, net::IpAddr, sync::Arc, time::Instant};
 use tokio::sync::Mutex;
-use tracing::error;
 use ulid::Ulid;
 
 use crate::{
@@ -25,6 +24,7 @@ use crate::{
         outgoing_json::oj,
         ws_message::wm::{ClientBody, PiBody},
     },
+    C, S,
 };
 
 pub type AMConnections = Arc<Mutex<Connections>>;
@@ -116,7 +116,7 @@ impl TryFrom<String> for ConnectionType {
         match x.to_lowercase().as_str() {
             "pi" => Ok(Self::Pi),
             "client" => Ok(Self::Client),
-            _ => Err(ApiError::Internal("unknown device type".to_owned())),
+            _ => Err(ApiError::Internal(S!("unknown device type"))),
         }
     }
 }
@@ -136,7 +136,7 @@ impl TryFrom<Uri> for ConnectionType {
         {
             "pi" => Ok(Self::Pi),
             "client" => Ok(Self::Client),
-            _ => Err(ApiError::Internal("unknown device type".to_owned())),
+            _ => Err(ApiError::Internal(S!("unknown device type"))),
         }
     }
 }
@@ -243,12 +243,12 @@ impl PiConnections {
         }
         for i in to_remove {
             self.close_and_remove(i.0).await;
-            let postgres = postgres.clone();
+            let postgres = C!(postgres);
             let connection_id = i.1;
             tokio::spawn(async move {
                 ModelConnection::update_offline(&postgres, connection_id)
                     .await
-                    .map_err(|e| error!("{e:?}"))
+                    .map_err(|e| tracing::error!("{e:?}"))
             });
         }
     }
@@ -335,12 +335,12 @@ impl ClientConnections {
 
         for i in to_remove {
             self.close_and_remove(i.0, i.1).await;
-            let postgres = postgres.clone();
+            let postgres = C!(postgres);
             let connection_id = i.2;
             tokio::spawn(async move {
                 ModelConnection::update_offline(&postgres, connection_id)
                     .await
-                    .map_err(|e| error!("{e:?}"))
+                    .map_err(|e| tracing::error!("{e:?}"))
             });
         }
     }
@@ -451,7 +451,7 @@ impl Connections {
                         input.redis,
                     );
                     for ws_sender in &mut map.values_mut() {
-                        ws_sender.socket.send(message.clone()).await.ok();
+                        ws_sender.socket.send(C!(message)).await.ok();
                     }
                 }
             }
@@ -661,12 +661,12 @@ impl Default for Connections {
 //             std::time::Instant::now() + std::time::Duration::from_secs(40);
 
 //         // if let Some(ws_sender) = ws_sender {
-//         //     let postgres = postgres.clone();
+//         //     let postgres = C!(postgres);
 //         //     ws_sender.auto_close = Some(tokio::spawn(async move {
 //         //         tokio::time::sleep(duration).await;
 //         //         if let Err(e) = ModelConnection::update_offline(&postgres, connection_id).await {
-//         //               error!("{e:?}");
-//         //             error!("unable to update connection details");
+//         //               tracing::error!("{e:?}");
+//         //             tracing::error!("unable to update connection details");
 //         //         };
 //         //         tokio::time::timeout(
 //         //             std::time::Duration::from_secs(2),

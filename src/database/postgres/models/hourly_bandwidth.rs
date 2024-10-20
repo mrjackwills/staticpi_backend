@@ -1,9 +1,8 @@
 use super::{monthly_bandwidth::ModelMonthlyBandwidth, new_types::DeviceId};
-use crate::connections::ConnectionType;
+use crate::{connections::ConnectionType, C};
 
 use fred::clients::RedisPool;
 use sqlx::PgPool;
-use tracing::error;
 
 pub struct ModelHourlyBandwidth;
 
@@ -21,8 +20,8 @@ impl ModelHourlyBandwidth {
         redis: &RedisPool,
     ) {
         if msg_size > 0 {
-            let spawn_postgres = postgres.clone();
-            let redis = redis.clone();
+            let spawn_postgres = C!(postgres);
+            let redis = C!(redis);
             if let Ok(size_in_bytes) = i64::try_from(msg_size) {
                 tokio::spawn(async move {
                     let query = r"
@@ -67,8 +66,8 @@ SET
                         .await
                         .err()
                     {
-                        error!("{e:?}");
-                        error!("unable to insert bandwidth");
+                        tracing::error!("{e:?}");
+                        tracing::error!("unable to insert bandwidth");
                     }
                     if let Some(e) = ModelMonthlyBandwidth::force_update_cache(
                         &spawn_postgres,
@@ -78,8 +77,8 @@ SET
                     .await
                     .err()
                     {
-                        error!("{e:?}");
-                        error!("unable to force update cache");
+                        tracing::error!("{e:?}");
+                        tracing::error!("unable to force update cache");
                     };
                 });
             }
