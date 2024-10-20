@@ -18,7 +18,6 @@
 ### Tests
 + refactored tests, [9a09eff8e76063e821fd49b201a56dc63c7fb36e]
 
-
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.18'>v0.0.18</a>
 ### 2024-09-06
 
