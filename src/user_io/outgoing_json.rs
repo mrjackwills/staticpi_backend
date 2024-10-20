@@ -5,7 +5,8 @@ pub mod oj {
 
     use crate::{
         connections::ConnectionType,
-        database::{device::ModelDevice, user::ModelUser, user_level::UserLevel}, C,
+        database::{device::ModelDevice, user::ModelUser, user_level::UserLevel},
+        C,
     };
 
     pub type AsJsonRes<T> = Json<OutgoingJson<T>>;

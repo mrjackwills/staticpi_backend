@@ -23,7 +23,8 @@ use crate::{
     user_io::{
         incoming_json::ij,
         outgoing_json::oj::{self, AllDevices},
-    }, C,
+    },
+    C,
 };
 
 define_routes! {

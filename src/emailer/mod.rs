@@ -4,7 +4,8 @@ mod template;
 use crate::{
     api_error::ApiError,
     database::{email_log::ModelEmailLog, ip_user_agent::ModelUserAgentIp},
-    parse_env::{AppEnv, RunMode}, C,
+    parse_env::{AppEnv, RunMode},
+    C,
 };
 
 use lettre::{

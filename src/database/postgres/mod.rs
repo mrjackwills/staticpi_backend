@@ -24,7 +24,6 @@ pub mod db_postgres {
             _ => options = options.disable_statement_logging(),
         }
 
-
         // Max connections on postgres is default 100, and no other application should be using it
         // Except the backup application!
         Ok(PgPoolOptions::new()

@@ -24,6 +24,7 @@ use crate::{
     helpers::calc_uptime,
     servers::{check_monthly_bandwidth, ApiRouter, ApplicationState, StatusOJ},
     user_io::{incoming_json::ij, outgoing_json::oj},
+    S,
 };
 
 define_routes! {
@@ -54,7 +55,7 @@ impl TokenRouter {
             StatusCode::OK,
             oj::OutgoingJson::new(oj::Online {
                 uptime: calc_uptime(state.start_time),
-                api_version: env!("CARGO_PKG_VERSION").into(),
+                api_version: S!(env!("CARGO_PKG_VERSION")),
             }),
         ))
     }
@@ -192,7 +193,8 @@ mod tests {
         helpers::gen_random_hex,
         servers::test_setup::{get_keys, start_servers, token_base_url, Response, TestSetup},
         sleep,
-        user_io::incoming_json::ij::DevicePost, C,
+        user_io::incoming_json::ij::DevicePost,
+        C,
     };
     use fred::{
         interfaces::{HashesInterface, KeysInterface},

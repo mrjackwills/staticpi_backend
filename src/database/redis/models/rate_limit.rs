@@ -4,13 +4,16 @@ use fred::{clients::RedisPool, interfaces::KeysInterface, types::Scanner};
 use futures::TryStreamExt;
 
 use crate::{
-    api_error::ApiError, database::{
+    api_error::ApiError,
+    database::{
         device::{ModelDevice, ModelWsDevice},
         new_types::{ApiKey, DeviceId, UserId},
         redis::RedisKey,
         user::ModelUser,
         user_level::UserLevel,
-    }, user_io::{deserializer::IncomingDeserializer, outgoing_json::oj::AdminLimit}, C, S
+    },
+    user_io::{deserializer::IncomingDeserializer, outgoing_json::oj::AdminLimit},
+    C, S,
 };
 
 const ONE_MINUTE_AS_SEC: i64 = 60;

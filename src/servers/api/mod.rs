@@ -8,7 +8,10 @@ use axum::{async_trait, http::HeaderValue, middleware, Extension, Router};
 use std::net::SocketAddr;
 
 use crate::{
-    api_error::ApiError, parse_env::RunMode, servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState}, C, S
+    api_error::ApiError,
+    parse_env::RunMode,
+    servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState},
+    C, S,
 };
 
 use super::{shutdown_signal, ApiRouter, Serve, ServeData};

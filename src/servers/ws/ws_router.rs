@@ -36,7 +36,8 @@ use crate::{
         incoming_json::ij,
         outgoing_json::oj,
         ws_message::wm::{self, ClientBody, PiBody},
-    }, C,
+    },
+    C, S,
 };
 
 const DEFAULT_BUFFER: usize = 1024 * 1024;
@@ -382,7 +383,7 @@ impl WsRouter {
     async fn online_message_handler(mut socket: WebSocket, state: ApplicationState) {
         if let Ok(response) = serde_json::to_string(&oj::Online {
             uptime: calc_uptime(state.start_time),
-            api_version: env!("CARGO_PKG_VERSION").into(),
+            api_version: S!(env!("CARGO_PKG_VERSION")),
         }) {
             if let Err(e) = socket.send(Message::Text(response)).await {
                 tracing::debug!("online_ws::send::{:?}", e);
@@ -475,12 +476,18 @@ impl WsRouter {
 #[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
     use crate::{
-        connections::ConnectionType, database::{
+        connections::ConnectionType,
+        database::{
             access_token::AccessToken, monthly_bandwidth::ModelMonthlyBandwidth,
             user_level::UserLevel, RedisKey,
-        }, helpers::gen_random_hex, servers::test_setup::{
+        },
+        helpers::gen_random_hex,
+        servers::test_setup::{
             get_keys, start_servers, token_base_url, ws_base_url, Response, TestSetup,
-        }, sleep, user_io::incoming_json::ij::DevicePost, C, S
+        },
+        sleep,
+        user_io::incoming_json::ij::DevicePost,
+        C, S,
     };
     use fred::interfaces::{HashesInterface, KeysInterface};
     use futures::{SinkExt, StreamExt};

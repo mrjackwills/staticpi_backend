@@ -13,7 +13,8 @@ use crate::{
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::{get_cookie_ulid, ApplicationState}, C,
+    servers::{get_cookie_ulid, ApplicationState},
+    C,
 };
 
 use super::{

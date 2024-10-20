@@ -10,7 +10,9 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use std::fmt;
 
 use crate::{
-    api_error::ApiError, argon::ArgonHash, database::{
+    api_error::ApiError,
+    argon::ArgonHash,
+    database::{
         device::ModelDevice,
         download_data::ModelDownloadData,
         ip_user_agent::ModelUserAgentIp,
@@ -20,7 +22,13 @@ use crate::{
         two_fa_setup::RedisTwoFASetup,
         user::ModelUser,
         user_level::UserLevel,
-    }, define_routes, emailer::{EmailTemplate, Emailer}, helpers::{self, gen_random_hex}, servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ}, user_io::{incoming_json::ij, outgoing_json::oj}, C, S
+    },
+    define_routes,
+    emailer::{EmailTemplate, Emailer},
+    helpers::{self, gen_random_hex},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
+    user_io::{incoming_json::ij, outgoing_json::oj},
+    C, S,
 };
 
 define_routes! {
@@ -157,13 +165,11 @@ impl UserRouter {
     ) -> Result<impl IntoResponse, ApiError> {
         if let Some(ulid) = get_cookie_ulid(&state, &jar) {
             RedisSession::delete(&state.redis, &ulid).await?;
-            Ok((
-                StatusCode::OK,
-                jar.remove(Cookie::from(C!(state.cookie_name))),
-            ))
-        } else {
-            Ok((StatusCode::OK, jar))
         }
+        Ok((
+            StatusCode::OK,
+            jar.remove(Cookie::from(C!(state.cookie_name))),
+        ))
     }
 
     /// Update user password
@@ -555,8 +561,8 @@ mod tests {
         api_base_url, get_keys, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
-    use crate::{sleep, C};
     use crate::user_io::incoming_json::ij::DevicePost;
+    use crate::{sleep, C};
 
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use futures::{SinkExt, StreamExt};
@@ -3176,8 +3182,7 @@ mod tests {
         test_setup.request_reset().await;
 
         let device_name = test_setup.insert_device(&authed_cookie, None).await;
-        let api_key = C!(test_setup.query_user_active_devices().await[0]
-            .api_key_string);
+        let api_key = C!(test_setup.query_user_active_devices().await[0].api_key_string);
 
         let ws_pi_url = test_setup.get_access_code(ConnectionType::Pi, 0).await;
         let (mut ws_pi, _) = connect_async(&ws_pi_url).await.unwrap();

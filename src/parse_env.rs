@@ -1,6 +1,8 @@
 use std::{collections::HashMap, env, fmt, fs, time::SystemTime};
 use thiserror::Error;
 
+use crate::S;
+
 type EnvHashMap = HashMap<String, String>;
 
 const LOCAL_ENV: &str = ".env";
@@ -26,10 +28,10 @@ pub enum RunMode {
 
 impl fmt::Display for RunMode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		let x = match self{
-			Self::Development => "DEV",
-			Self::Production => "PROD"
-		};
+        let x = match self {
+            Self::Development => "DEV",
+            Self::Production => "PROD",
+        };
         write!(f, "{x}")
     }
 }
@@ -104,17 +106,15 @@ impl AppEnv {
         map: &EnvHashMap,
     ) -> Result<T, EnvError> {
         map.get(key)
-            .map_or(Err(EnvError::NotFound(key.into())), |data| {
+            .map_or(Err(EnvError::NotFound(S!(key))), |data| {
                 data.parse::<T>()
-                    .map_or(Err(EnvError::IntParse(data.into())), |d| Ok(d))
+                    .map_or(Err(EnvError::IntParse(S!(data))), |d| Ok(d))
             })
     }
 
     fn parse_string(key: &str, map: &EnvHashMap) -> Result<String, EnvError> {
-        map.get(key).map_or_else(
-            || Err(EnvError::NotFound(key.into())),
-            |value| Ok(value.into()),
-        )
+        map.get(key)
+            .map_or_else(|| Err(EnvError::NotFound(S!(key))), |value| Ok(S!(value)))
     }
 
     fn parse_log(map: &EnvHashMap) -> tracing::Level {
@@ -134,16 +134,16 @@ impl AppEnv {
     // Messy solution - should improve
     fn parse_cookie_secret(key: &str, map: &EnvHashMap) -> Result<[u8; 64], EnvError> {
         map.get(key).map_or_else(
-            || Err(EnvError::NotFound(key.into())),
+            || Err(EnvError::NotFound(S!(key))),
             |value| {
                 let as_bytes = value.as_bytes();
                 if as_bytes.len() == 64 {
                     value
                         .as_bytes()
                         .try_into()
-                        .map_or(Err(EnvError::Len(key.into())), Ok)
+                        .map_or(Err(EnvError::Len(S!(key))), Ok)
                 } else {
-                    Err(EnvError::Len(key.into()))
+                    Err(EnvError::Len(S!(key)))
                 }
             },
         )

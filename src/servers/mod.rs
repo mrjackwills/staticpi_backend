@@ -1,8 +1,14 @@
 use crate::{
-    api_error::ApiError, connections::{AMConnections, Connections}, database::{
+    api_error::ApiError,
+    connections::{AMConnections, Connections},
+    database::{
         self, device::ModelWsDevice, monthly_bandwidth::ModelMonthlyBandwidth,
         rate_limit::RateLimit, session::RedisSession,
-    }, emailer::EmailerEnv, parse_env::{AppEnv, RunMode}, user_io::outgoing_json::oj::{AsJsonRes, OutgoingJson}, C, S
+    },
+    emailer::EmailerEnv,
+    parse_env::{AppEnv, RunMode},
+    user_io::outgoing_json::oj::{AsJsonRes, OutgoingJson},
+    C, S,
 };
 use axum::{
     async_trait,
@@ -208,9 +214,7 @@ fn parse_addr(host: &str, port: u16) -> Result<SocketAddr, ApiError> {
             let vec_i = i.take(1).collect::<Vec<SocketAddr>>();
             vec_i
                 .first()
-                .map_or(Err(ApiError::Internal(S!("No addr"))), |addr| {
-                    Ok(*addr)
-                })
+                .map_or(Err(ApiError::Internal(S!("No addr"))), |addr| Ok(*addr))
         }
         Err(e) => Err(ApiError::Internal(e.to_string())),
     }

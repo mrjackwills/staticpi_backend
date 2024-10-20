@@ -16,7 +16,8 @@ use crate::{
     api_error::ApiError,
     database::{redis::RedisKey, HASH_FIELD},
     hmap,
-    servers::{get_ip, get_user_agent_header, ApplicationState}, C,
+    servers::{get_ip, get_user_agent_header, ApplicationState},
+    C,
 };
 
 use super::new_types::{IpId, UserAgentId};

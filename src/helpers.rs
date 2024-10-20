@@ -95,7 +95,6 @@ macro_rules! C {
     };
 }
 
-
 /// use `app_env.start_time` to work out how long the application has been running for, in seconds
 pub fn calc_uptime(start_time: SystemTime) -> u64 {
     std::time::SystemTime::now()
@@ -131,8 +130,6 @@ pub fn xor(input_1: &[u8], input_2: &[u8]) -> bool {
         .sum::<usize>()
         == 0
 }
-
-
 
 // /// Check if two byte arrays match, rather than ==, by hashing, then comparing both inputs
 // pub fn xor_hash(s1: &[u8], s2: &[u8]) -> bool {

@@ -14,7 +14,8 @@ use crate::{
         redis::{RedisKey, HASH_FIELD},
     },
     hmap, redis_hash_to_struct,
-    user_io::ws_message::wm, C,
+    user_io::ws_message::wm,
+    C,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

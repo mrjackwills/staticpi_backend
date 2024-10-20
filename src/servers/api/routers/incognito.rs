@@ -18,7 +18,9 @@ use axum::{
 };
 
 use crate::{
-    api_error::ApiError, argon::ArgonHash, database::{
+    api_error::ApiError,
+    argon::ArgonHash,
+    database::{
         all_bandwidth::ModelAllBandwidth,
         banned_domain::ModelBannedEmail,
         contact_message::ModelContactMessage,
@@ -32,7 +34,14 @@ use crate::{
         rate_limit::{LimitContact, RateLimit},
         session::RedisSession,
         user::ModelUser,
-    }, define_routes, emailer::{EmailTemplate, Emailer}, helpers::{self, calc_uptime}, servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ}, sleep, user_io::{incoming_json::ij, outgoing_json::oj}, C, S
+    },
+    define_routes,
+    emailer::{EmailTemplate, Emailer},
+    helpers::{self, calc_uptime},
+    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
+    sleep,
+    user_io::{incoming_json::ij, outgoing_json::oj},
+    C, S,
 };
 
 define_routes! {
@@ -123,7 +132,7 @@ impl IncognitoRouter {
             StatusCode::OK,
             oj::OutgoingJson::new(oj::Online {
                 uptime: calc_uptime(state.start_time),
-                api_version: env!("CARGO_PKG_VERSION").into(),
+                api_version: S!(env!("CARGO_PKG_VERSION")),
             }),
         )
     }
@@ -445,18 +454,6 @@ impl IncognitoRouter {
         } else {
             None
         };
-
-        // let registered_user_id = if let Some(data) = jar.get(&state.cookie_name) {
-        //     if let Ok(ulid) = Ulid::from_string(data.value()) {
-        //         RedisSession::get(&state.redis, &state.postgres, &ulid)
-        //             .await?
-        //             .map(|i| i.registered_user_id)
-        //     } else {
-        //         None
-        //     }
-        // } else {
-        //     None
-        // };
         let mut transaction = state.postgres.begin().await?;
         let email_address_id =
             if let Some(email) = ModelEmailAddress::get(&mut *transaction, &body.email).await? {

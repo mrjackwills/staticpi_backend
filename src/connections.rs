@@ -10,17 +10,21 @@ use tokio::sync::Mutex;
 use ulid::Ulid;
 
 use crate::{
-    api_error::ApiError, database::{
+    api_error::ApiError,
+    database::{
         connection::ModelConnection,
         device::{ModelDeviceId, ModelWsDevice},
         hourly_bandwidth::ModelHourlyBandwidth,
         new_types::{ConnectionId, DeviceId},
         user::ModelUser,
         user_level::UserLevel,
-    }, servers::ws::HandlerData, user_io::{
+    },
+    servers::ws::HandlerData,
+    user_io::{
         outgoing_json::oj,
         ws_message::wm::{ClientBody, PiBody},
-    }, C, S
+    },
+    C, S,
 };
 
 pub type AMConnections = Arc<Mutex<Connections>>;

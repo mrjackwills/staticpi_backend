@@ -12,6 +12,7 @@ use crate::{
         new_types::{ContactMessageId, DeviceId},
         rate_limit::RateLimit,
     },
+    S,
 };
 
 use super::incoming_json::ij;
@@ -183,7 +184,7 @@ impl IncomingDeserializer {
         {
             return Err(de::Error::custom(name));
         }
-        Ok(parsed.trim().into())
+        Ok(S!(parsed.trim()))
     }
 
     /// Check a given string matches the rate_limit structure
