@@ -64,7 +64,7 @@ impl<'r> FromRow<'r, PgRow> for ModelUser {
             two_fa_secret: row.try_get("two_fa_secret")?,
             two_fa_always_required: row.try_get("two_fa_always_required")?,
             two_fa_backup_count: row.try_get("two_fa_backup_count")?,
-            password_hash: ArgonHash(row.try_get::<'r, &str, &str>("password_hash")?.to_owned()),
+            password_hash: ArgonHash(row.try_get::<'r, String, &str>("password_hash")?),
             max_message_size_in_bytes: row.try_get("max_message_size_in_bytes")?,
             max_number_of_devices: row.try_get("max_number_of_devices")?,
             max_clients_per_device: row.try_get("max_clients_per_device")?,

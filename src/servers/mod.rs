@@ -200,11 +200,10 @@ async fn check_monthly_bandwidth(
 
 /// Extract the user-agent string
 pub fn get_user_agent_header(headers: &HeaderMap) -> String {
-    headers
+    S!(headers
         .get(USER_AGENT)
         .and_then(|x| x.to_str().ok())
-        .unwrap_or("UNKNOWN")
-        .to_owned()
+        .unwrap_or("UNKNOWN"))
 }
 
 /// Parse a hostname + port number into a bind-able `SocketAddr`
@@ -318,6 +317,7 @@ pub mod test_setup {
     use fred::interfaces::SetsInterface;
     use fred::types::Scanner;
     use futures::TryStreamExt;
+    use regex::Regex;
     use reqwest::Url;
 
     use serde::{Deserialize, Serialize};
@@ -327,43 +327,70 @@ pub mod test_setup {
     use std::net::IpAddr;
     use std::net::Ipv4Addr;
     use std::sync::Arc;
+    use std::sync::LazyLock;
     use tokio::sync::Mutex;
 
-    use crate::connections::ConnectionType;
-    use crate::connections::Connections;
-    use crate::database::connection::ModelConnection;
-    use crate::database::email_address::ModelEmailAddress;
-    use crate::database::invite::ModelInvite;
-    use crate::database::ip_user_agent::ModelUserAgentIp;
-    use crate::database::ip_user_agent::ReqUserAgentIp;
-    use crate::database::new_types::*;
-    use crate::database::new_user::RedisNewUser;
-    use crate::database::password_reset::ModelPasswordReset;
-    use crate::database::two_fa_backup::ModelTwoFA;
-    use crate::database::two_fa_setup::RedisTwoFASetup;
-    use crate::database::user::ModelUser;
-    use crate::database::user_level::ModelUserLevel;
-    use crate::database::user_level::UserLevel;
-    use crate::database::*;
+    use crate::connections::{ConnectionType, Connections};
+    use crate::database::{
+        connection::ModelConnection,
+        email_address::ModelEmailAddress,
+        invite::ModelInvite,
+        ip_user_agent::{ModelUserAgentIp, ReqUserAgentIp},
+        new_types::*,
+        new_user::RedisNewUser,
+        password_reset::ModelPasswordReset,
+        two_fa_backup::ModelTwoFA,
+        two_fa_setup::RedisTwoFASetup,
+        user::ModelUser,
+        user_level::{ModelUserLevel, UserLevel},
+        *,
+    };
     use crate::helpers::gen_random_hex;
-    use crate::parse_env;
-    use crate::parse_env::AppEnv;
+    use crate::parse_env::{self, AppEnv};
     use crate::servers::api::authentication::totp_from_secret;
     use crate::sleep;
     use crate::user_io::incoming_json::ij;
-    use crate::user_io::incoming_json::ij::DevicePost;
-    use crate::ServeData;
-    use crate::C;
-    use crate::S;
+    use crate::{ServeData, C, S};
 
-    use super::api::api_tests::EMAIL_BODY_LOCATION;
-    use super::api::api_tests::EMAIL_HEADERS_LOCATION;
+    use super::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
     use super::api::ApiServer;
-    use super::get_api_version;
-    use super::token::TokenServer;
-    use super::ws::WsServer;
-    use super::Serve;
-    use super::ServerName;
+    use super::{get_api_version, token::TokenServer, ws::WsServer, Serve, ServerName};
+
+    // use crate::connections::ConnectionType;
+    // use crate::connections::Connections;
+    // use crate::database::connection::ModelConnection;
+    // use crate::database::email_address::ModelEmailAddress;
+    // use crate::database::invite::ModelInvite;
+    // use crate::database::ip_user_agent::ModelUserAgentIp;
+    // use crate::database::ip_user_agent::ReqUserAgentIp;
+    // use crate::database::new_types::*;
+    // use crate::database::new_user::RedisNewUser;
+    // use crate::database::password_reset::ModelPasswordReset;
+    // use crate::database::two_fa_backup::ModelTwoFA;
+    // use crate::database::two_fa_setup::RedisTwoFASetup;
+    // use crate::database::user::ModelUser;
+    // use crate::database::user_level::ModelUserLevel;
+    // use crate::database::user_level::UserLevel;
+    // use crate::database::*;
+    // use crate::helpers::gen_random_hex;
+    // use crate::parse_env;
+    // use crate::parse_env::AppEnv;
+    // use crate::servers::api::authentication::totp_from_secret;
+    // use crate::sleep;
+    // use crate::user_io::incoming_json::ij;
+    // use crate::user_io::incoming_json::ij::DevicePost;
+    // use crate::ServeData;
+    // use crate::C;
+    // use crate::S;
+
+    // use super::api::api_tests::EMAIL_BODY_LOCATION;
+    // use super::api::api_tests::EMAIL_HEADERS_LOCATION;
+    // use super::api::ApiServer;
+    // use super::get_api_version;
+    // use super::token::TokenServer;
+    // use super::ws::WsServer;
+    // use super::Serve;
+    // use super::ServerName;
 
     pub const TEST_EMAIL: &str = "test_user@email.com";
     pub const TEST_PASSWORD: &str = "N}}2&zwhgUmfVup[g))EmCchQxcu%R~x";
@@ -378,6 +405,12 @@ pub mod test_setup {
     pub const ANON_PASSWORD: &str = "this_is_the_anon_test_user_password";
     pub const ANON_PASSWORD_HASH: &str = "$argon2id$v=19$m=4096,t=1,p=1$ODYzbGwydnl4YzAwMDAwMA$x0HG3MOFFlMEDQoVNNacku3lj7yx2Mniacytc+ULPxU8GPj+";
     pub const ANON_FULL_NAME: &str = "Anon user full name";
+
+    pub static RATELIMIT_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new("rate limited for ([5][0-9]|60) seconds").unwrap());
+
+    pub static RATELIMIT_REGEX_BIG: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new("rate limited for (29[0-9]|300) seconds").unwrap());
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Response {
@@ -598,7 +631,7 @@ pub mod test_setup {
                 .smembers(format!("session_set::user::{}", user_id.get()))
                 .await
                 .unwrap();
-            sessions.first().map(|i| i.to_owned())
+            sessions.first().map(|i| S!(i))
         }
 
         pub fn get_user_id(&self) -> UserId {
@@ -634,10 +667,10 @@ pub mod test_setup {
                 .unwrap();
 
             let new_user = RedisNewUser {
-                email: TEST_EMAIL.to_owned(),
+                email: S!(TEST_EMAIL),
                 email_address_id: email.email_address_id,
-                full_name: TEST_FULL_NAME.to_owned(),
-                password_hash: TEST_PASSWORD_HASH.to_string(),
+                full_name: S!(TEST_FULL_NAME),
+                password_hash: S!(TEST_PASSWORD_HASH),
                 ip_id: req.ip_id,
                 user_agent_id: req.user_agent_id,
             };
@@ -657,10 +690,10 @@ pub mod test_setup {
                 .unwrap();
 
             let new_user = RedisNewUser {
-                email: ANON_EMAIL.to_owned(),
+                email: S!(ANON_EMAIL),
                 email_address_id: email.email_address_id,
-                full_name: ANON_FULL_NAME.to_owned(),
-                password_hash: ANON_PASSWORD_HASH.to_string(),
+                full_name: S!(ANON_FULL_NAME),
+                password_hash: S!(ANON_PASSWORD_HASH),
                 ip_id: req.ip_id,
                 user_agent_id: req.user_agent_id,
             };
@@ -775,8 +808,7 @@ pub mod test_setup {
         /// attempt a signin in with an invalid password
         pub async fn invalid_signin(&mut self, email: &str) {
             let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
-            let body =
-                Self::gen_signin_body(Some(email.to_owned()), Some(gen_random_hex(20)), None, None);
+            let body = Self::gen_signin_body(Some(S!(email)), Some(gen_random_hex(20)), None, None);
             Self::get_client()
                 .post(&url)
                 .json(&body)
@@ -797,13 +829,12 @@ pub mod test_setup {
                 .await
                 .unwrap();
             self.delete_email_log().await;
-            signin
+            S!(signin
                 .headers()
                 .get("set-cookie")
                 .unwrap()
                 .to_str()
-                .unwrap()
-                .to_owned()
+                .unwrap())
         }
 
         /// Sign in the anon user (Required anon_user to be inserted beforehand), and return cookie string
@@ -823,8 +854,8 @@ pub mod test_setup {
 
             let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
             let body = Self::gen_signin_body(
-                Some(ANON_EMAIL.to_owned()),
-                Some(ANON_PASSWORD.to_owned()),
+                Some(S!(ANON_EMAIL)),
+                Some(S!(ANON_PASSWORD)),
                 Some(token),
                 None,
             );
@@ -837,7 +868,7 @@ pub mod test_setup {
             signin
                 .headers()
                 .get("set-cookie")
-                .map(|f| f.to_str().unwrap().to_owned())
+                .map(|f| S!(f.to_str().unwrap()))
         }
 
         pub async fn query_password_hash(&self) -> String {
@@ -881,8 +912,8 @@ pub mod test_setup {
             remember: Option<bool>,
         ) -> TestBodySignin {
             TestBodySignin {
-                email: email.unwrap_or_else(|| TEST_EMAIL.to_owned()),
-                password: password.unwrap_or_else(|| TEST_PASSWORD.to_owned()),
+                email: email.unwrap_or_else(|| S!(TEST_EMAIL)),
+                password: password.unwrap_or_else(|| S!(TEST_PASSWORD)),
                 token,
                 remember: remember.unwrap_or(false),
             }
@@ -891,7 +922,7 @@ pub mod test_setup {
         pub async fn insert_device(
             &self,
             authed_cookie: &str,
-            device: Option<DevicePost>,
+            device: Option<ij::DevicePost>,
         ) -> String {
             let url = format!("{}/authenticated/device", api_base_url(&self.app_env),);
             let body = device.unwrap_or_else(|| Self::gen_device_post(1, None, None, false, None));
@@ -903,7 +934,7 @@ pub mod test_setup {
                 .await
                 .unwrap();
             let result = result.json::<Response>().await.unwrap().response;
-            result.as_str().unwrap().to_owned()
+            S!(result.as_str().unwrap())
         }
 
         pub async fn get_access_code(&self, device_type: ConnectionType, index: usize) -> String {
@@ -987,13 +1018,13 @@ pub mod test_setup {
             device_password: Option<&str>,
             structured_data: bool,
             name: Option<&str>,
-        ) -> DevicePost {
-            DevicePost {
+        ) -> ij::DevicePost {
+            ij::DevicePost {
                 max_clients,
-                client_password: client_password.map(|i| i.to_owned()),
-                device_password: device_password.map(|i| i.to_owned()),
+                client_password: client_password.map(|i| S!(i)),
+                device_password: device_password.map(|i| S!(i)),
                 structured_data,
-                name: name.map(|i| i.to_owned()),
+                name: name.map(|i| S!(i)),
             }
         }
 
@@ -1034,10 +1065,10 @@ pub mod test_setup {
             agree: bool,
         ) -> ij::Register {
             ij::Register {
-                full_name: full_name.to_owned(),
-                password: password.to_owned(),
-                invite: invite.to_owned(),
-                email: email.to_owned(),
+                full_name: S!(full_name),
+                password: S!(password),
+                invite: S!(invite),
+                email: S!(email),
                 age,
                 agree,
             }
@@ -1065,7 +1096,7 @@ pub mod test_setup {
         while let Some(mut page) = scanner.try_next().await.unwrap() {
             if let Some(page) = page.take_results() {
                 for i in page {
-                    output.push(i.as_str().unwrap_or_default().to_owned());
+                    output.push(S!(i.as_str().unwrap_or_default()));
                 }
             }
             page.next().unwrap_or_default();

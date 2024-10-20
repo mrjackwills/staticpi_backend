@@ -562,7 +562,7 @@ mod tests {
         ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
     };
     use crate::user_io::incoming_json::ij::DevicePost;
-    use crate::{sleep, C};
+    use crate::{sleep, C, S};
 
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use futures::{SinkExt, StreamExt};
@@ -1574,8 +1574,8 @@ mod tests {
         // Invalid passwords to test
         for password in [
             format!("new_password{}", TEST_EMAIL.to_uppercase()),
-            TEST_PASSWORD.to_owned(),
-            UNSAFE_PASSWORD.to_owned(),
+            S!(TEST_PASSWORD),
+            S!(UNSAFE_PASSWORD),
         ] {
             let body = HashMap::from([
                 ("current_password", TEST_PASSWORD),
@@ -2132,7 +2132,7 @@ mod tests {
 
         let user = test_setup.get_model_user().await.unwrap();
 
-        assert_eq!(user.two_fa_secret, Some(twofa_setup.value().to_owned()));
+        assert_eq!(user.two_fa_secret, Some(S!(twofa_setup.value())));
 
         // check email sent - well written to disk & inserted into db
         assert_eq!(
@@ -2321,7 +2321,7 @@ mod tests {
         // Missing token
         let body = TestAlwaysRequiredBody {
             always_required: false,
-            password: Some(TEST_PASSWORD.to_owned()),
+            password: Some(S!(TEST_PASSWORD)),
             token: None,
         };
 
@@ -2543,7 +2543,7 @@ mod tests {
         // Invalid token
         let body = TestAlwaysRequiredBody {
             always_required: false,
-            password: Some(TEST_PASSWORD.to_owned()),
+            password: Some(S!(TEST_PASSWORD)),
             token: Some(test_setup.get_invalid_token()),
         };
 
@@ -2581,7 +2581,7 @@ mod tests {
 
         let body = TestAlwaysRequiredBody {
             always_required: false,
-            password: Some(TEST_PASSWORD.to_owned()),
+            password: Some(S!(TEST_PASSWORD)),
             token: Some(test_setup.get_valid_token()),
         };
 

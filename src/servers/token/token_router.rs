@@ -191,7 +191,10 @@ mod tests {
         connections::ConnectionType,
         database::{access_token::AccessToken, user_level::UserLevel, RedisKey},
         helpers::gen_random_hex,
-        servers::test_setup::{get_keys, start_servers, token_base_url, Response, TestSetup},
+        servers::test_setup::{
+            get_keys, start_servers, token_base_url, Response, TestSetup, RATELIMIT_REGEX,
+            RATELIMIT_REGEX_BIG,
+        },
         sleep,
         user_io::incoming_json::ij::DevicePost,
         C,
@@ -243,8 +246,7 @@ mod tests {
         let resp = reqwest::get(url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
     }
 
     #[tokio::test]
@@ -273,8 +275,7 @@ mod tests {
         let resp = reqwest::get(url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
     }
 
     #[tokio::test]
@@ -291,21 +292,20 @@ mod tests {
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
 
         // 90+ request is rate limited for 300 seconds
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        assert_eq!(result, "rate limited for 300 seconds");
+        assert!(RATELIMIT_REGEX_BIG.is_match(result.as_str().unwrap()));
 
         // any further requests resets the ban to 300 again
         sleep!(1000);
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        assert_eq!(result, "rate limited for 300 seconds");
+        assert!(RATELIMIT_REGEX_BIG.is_match(result.as_str().unwrap()));
     }
 
     #[tokio::test]
@@ -545,14 +545,6 @@ mod tests {
         test_setup
             .insert_bandwidth(device.device_id, 5_000_000, ConnectionType::Pi, true)
             .await;
-        // ModelHourlyBandwidth::insert(
-        //     DeviceType::Pi,
-        //     &test_setup.postgres,
-        //     &test_setup.redis,
-        //     device.device_id,
-        //     5_000_000,
-        //     true,
-        // );
 
         let client = TestSetup::get_client();
 
@@ -577,15 +569,6 @@ mod tests {
             .insert_bandwidth(device.device_id, 5_000_000, ConnectionType::Client, true)
             .await;
 
-        // ModelHourlyBandwidth::insert(
-        //     DeviceType::Client,
-        //     &test_setup.postgres,
-        //     &test_setup.redis,
-        //     device.device_id,
-        //     5_000_000,
-        //     true,
-        // );
-
         let client = TestSetup::get_client();
 
         let url = format!("{}/client", &token_base_url(&test_setup.app_env));
@@ -609,15 +592,6 @@ mod tests {
         test_setup
             .insert_bandwidth(device.device_id, 10_000_000_000, ConnectionType::Pi, true)
             .await;
-
-        // ModelHourlyBandwidth::insert(
-        //     DeviceType::Pi,
-        //     &test_setup.postgres,
-        //     &test_setup.redis,
-        //     device.device_id,
-        //     10_000_000_000,
-        //     true,
-        // );
 
         let client = TestSetup::get_client();
 
@@ -647,15 +621,6 @@ mod tests {
                 true,
             )
             .await;
-
-        // ModelHourlyBandwidth::insert(
-        //     DeviceType::Client,
-        //     &test_setup.postgres,
-        //     &test_setup.redis,
-        //     device.device_id,
-        //     10_000_000_000,
-        //     true,
-        // );
 
         let client = TestSetup::get_client();
 

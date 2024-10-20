@@ -17,7 +17,7 @@ use crate::{
     database::{redis::RedisKey, HASH_FIELD},
     hmap,
     servers::{get_ip, get_user_agent_header, ApplicationState},
-    C,
+    C, S,
 };
 
 use super::new_types::{IpId, UserAgentId};
@@ -177,7 +177,7 @@ WHERE
         ) {
             Ok(Some(Self {
                 ip,
-                user_agent: user_agent.to_owned(),
+                user_agent: S!(user_agent),
                 ip_id,
                 user_agent_id,
             }))

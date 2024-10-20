@@ -1384,7 +1384,7 @@ mod tests {
             device_id: test_setup.query_user_active_devices().await[0]
                 .device_id
                 .get(),
-            connection_ulid: client_ulid.to_owned(),
+            connection_ulid: S!(client_ulid),
         };
 
         let result = client
@@ -1459,7 +1459,7 @@ mod tests {
             device_id: test_setup.query_user_active_devices().await[0]
                 .device_id
                 .get(),
-            connection_ulid: pi_ulid.to_owned(),
+            connection_ulid: S!(pi_ulid),
         };
 
         let result = client
@@ -2880,7 +2880,7 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
                 invite: gen_random_hex(12),
                 count: 1,
@@ -2932,7 +2932,7 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
                 invite: gen_random_hex(12),
                 count: 1,
@@ -2972,7 +2972,7 @@ mod tests {
         let resp = client
             .post(&url)
             .json(&AdminInvite {
-                password: TEST_PASSWORD.to_owned(),
+                password: S!(TEST_PASSWORD),
                 token: None,
                 invite: gen_random_hex(12),
                 count: 1,

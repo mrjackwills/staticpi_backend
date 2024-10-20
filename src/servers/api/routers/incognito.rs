@@ -1002,7 +1002,7 @@ mod tests {
         // This can fail! Unlikely but not zero
         let token = "519181150EEEAC92";
 
-        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let body = TestSetup::gen_signin_body(None, None, Some(S!(token)), None);
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::UNAUTHORIZED);
         let user = test_setup.get_model_user().await.unwrap();
@@ -1040,7 +1040,7 @@ mod tests {
 
         let token = codes[4].as_str().unwrap();
 
-        let body = TestSetup::gen_signin_body(None, None, Some(token.to_owned()), None);
+        let body = TestSetup::gen_signin_body(None, None, Some(S!(token)), None);
         let result = client.post(&url).json(&body).send().await.unwrap();
         assert_eq!(result.status(), StatusCode::OK);
         let user = test_setup.get_model_user().await.unwrap();

@@ -35,7 +35,7 @@ impl IncomingDeserializer {
         if parsed.is_empty() || !parsed.contains('@') {
             return None;
         }
-        let email = parsed.to_owned().to_lowercase();
+        let email = S!(parsed).to_lowercase();
 
         if REGEX_EMAIL.is_match(&email) {
             Some(email)
@@ -92,7 +92,7 @@ impl IncomingDeserializer {
         let parsed = Self::parse_string(deserializer, name)?;
         let parsed = parsed.trim();
         if (64..=1024).contains(&parsed.chars().count()) {
-            Ok(parsed.to_owned())
+            Ok(S!(parsed))
         } else {
             Err(de::Error::custom(name))
         }
@@ -263,7 +263,7 @@ impl IncomingDeserializer {
         if !allowed_len.contains(&trimmed.chars().count()) {
             return Err(de::Error::custom(name));
         }
-        Ok(trimmed.to_owned())
+        Ok(S!(trimmed))
     }
 
     /// Device name needs to be 1-64, but else any valid utf 8 string is fine
@@ -278,7 +278,7 @@ impl IncomingDeserializer {
             if !allowed_len.contains(&trimmed.chars().count()) {
                 return Err(de::Error::custom("device_name"));
             }
-            Ok(Some(trimmed.to_owned()))
+            Ok(Some(S!(trimmed)))
         } else {
             Ok(None)
         }
@@ -297,7 +297,7 @@ impl IncomingDeserializer {
         if !allowed_len.contains(&trimmed.chars().count()) {
             return Err(de::Error::custom(name));
         }
-        Ok(trimmed.to_owned())
+        Ok(S!(trimmed))
     }
 
     /// Shouldn't trim?
@@ -312,7 +312,7 @@ impl IncomingDeserializer {
             if !allowed_len.contains(&trimmed.chars().count()) {
                 return Err(de::Error::custom("device_password"));
             }
-            Ok(Some(trimmed.to_owned()))
+            Ok(Some(S!(trimmed)))
         } else {
             Ok(None)
         }
@@ -467,7 +467,7 @@ mod tests {
     #[test]
     fn incoming_serializer_ulid_invalid() {
         let test = |ulid: &str| {
-            let deserializer: StringDeserializer<ValueError> = ulid.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(ulid).into_deserializer();
             let result = IncomingDeserializer::ulid(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "ulid");
@@ -493,7 +493,7 @@ mod tests {
     #[test]
     fn incoming_serializer_ulid_valid() {
         let test = |ulid: &str| {
-            let deserializer: StringDeserializer<ValueError> = ulid.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(ulid).into_deserializer();
             let result = IncomingDeserializer::ulid(deserializer);
             assert!(result.is_ok());
         };
@@ -505,8 +505,7 @@ mod tests {
     #[test]
     fn incoming_serializer_rate_limit_invalid() {
         let test = |rate_limit: &str| {
-            let deserializer: StringDeserializer<ValueError> =
-                rate_limit.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(rate_limit).into_deserializer();
             let result = IncomingDeserializer::rate_limit(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "rate_limit");
@@ -566,7 +565,7 @@ mod tests {
     fn incoming_serializer_token_ok() {
         // Should split tests, match as totp, or match as backup
         let test = |token: &str| {
-            let deserializer: StringDeserializer<ValueError> = token.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(token).into_deserializer();
             let result = IncomingDeserializer::token(deserializer);
             assert!(result.is_ok());
             assert_eq!(
@@ -588,7 +587,7 @@ mod tests {
     #[test]
     fn incoming_serializer_token_err() {
         let test = |token: &str| {
-            let deserializer: StringDeserializer<ValueError> = token.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(token).into_deserializer();
             let result = IncomingDeserializer::token(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "token");
@@ -605,8 +604,7 @@ mod tests {
     #[test]
     fn incoming_serializer_device_err() {
         let test = |device: &str| {
-            let deserializer: StringDeserializer<ValueError> =
-                device.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(device).into_deserializer();
             let result = IncomingDeserializer::device_type(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "device_type");
@@ -625,25 +623,25 @@ mod tests {
     #[test]
     fn incoming_serializer_device_ok() {
         let device = "pi";
-        let deserializer: StringDeserializer<ValueError> = device.to_owned().into_deserializer();
+        let deserializer: StringDeserializer<ValueError> = S!(device).into_deserializer();
         let result = IncomingDeserializer::device_type(deserializer);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ConnectionType::Pi);
 
         let device = "PI";
-        let deserializer: StringDeserializer<ValueError> = device.to_owned().into_deserializer();
+        let deserializer: StringDeserializer<ValueError> = S!(device).into_deserializer();
         let result = IncomingDeserializer::device_type(deserializer);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ConnectionType::Pi);
 
         let device = "client";
-        let deserializer: StringDeserializer<ValueError> = device.to_owned().into_deserializer();
+        let deserializer: StringDeserializer<ValueError> = S!(device).into_deserializer();
         let result = IncomingDeserializer::device_type(deserializer);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ConnectionType::Client);
 
         let device = "ClIeNt";
-        let deserializer: StringDeserializer<ValueError> = device.to_owned().into_deserializer();
+        let deserializer: StringDeserializer<ValueError> = S!(device).into_deserializer();
         let result = IncomingDeserializer::device_type(deserializer);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ConnectionType::Client);
@@ -652,7 +650,7 @@ mod tests {
     #[test]
     fn incoming_serializer_email_ok() {
         let test = |email: &str| {
-            let deserializer: StringDeserializer<ValueError> = email.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(email).into_deserializer();
             let result = IncomingDeserializer::email(deserializer);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), email.to_lowercase());
@@ -667,7 +665,7 @@ mod tests {
     #[test]
     fn incoming_serializer_email_err() {
         let test = |email: &str| {
-            let deserializer: StringDeserializer<ValueError> = email.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(email).into_deserializer();
             let result = IncomingDeserializer::email(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "email");
@@ -693,7 +691,7 @@ mod tests {
     #[test]
     fn incoming_serializer_name_ok() {
         let test = |name: &str| {
-            let deserializer: StringDeserializer<ValueError> = name.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(name).into_deserializer();
             let result = IncomingDeserializer::name(deserializer);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), name.trim());
@@ -709,7 +707,7 @@ mod tests {
     #[test]
     fn incoming_serializer_name_err() {
         let test = |name: &str| {
-            let deserializer: StringDeserializer<ValueError> = name.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(name).into_deserializer();
             let result = IncomingDeserializer::name(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "name");
@@ -731,8 +729,7 @@ mod tests {
     #[test]
     fn incoming_serializer_password() {
         let test = |password: &str| {
-            let deserializer: StringDeserializer<ValueError> =
-                password.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(password).into_deserializer();
             let result = IncomingDeserializer::password(deserializer);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), password);
@@ -747,8 +744,7 @@ mod tests {
     #[test]
     fn incoming_serializer_password_err() {
         let test = |password: &str| {
-            let deserializer: StringDeserializer<ValueError> =
-                password.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(password).into_deserializer();
             let result = IncomingDeserializer::password(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "password");
@@ -767,8 +763,7 @@ mod tests {
     #[test]
     fn incoming_serializer_invite() {
         let test = |invite: &str| {
-            let deserializer: StringDeserializer<ValueError> =
-                invite.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(invite).into_deserializer();
             let result = IncomingDeserializer::invite(deserializer);
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), invite);
@@ -783,8 +778,7 @@ mod tests {
     #[test]
     fn incoming_serializer_invite_err() {
         let test = |invite: &str| {
-            let deserializer: StringDeserializer<ValueError> =
-                invite.to_owned().into_deserializer();
+            let deserializer: StringDeserializer<ValueError> = S!(invite).into_deserializer();
             let result = IncomingDeserializer::invite(deserializer);
             assert!(result.is_err());
             assert_eq!(result.unwrap_err().to_string(), "invite");

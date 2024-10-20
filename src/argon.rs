@@ -68,7 +68,7 @@ impl ArgonHash {
 
 /// check a password against a known password hash, use blocking to run in own thread
 pub async fn verify_password(password: &str, argon_hash: ArgonHash) -> Result<bool, ApiError> {
-    let password = password.to_owned();
+    let password = S!(password);
     tokio::task::spawn_blocking(move || -> Result<bool, ApiError> {
         PasswordHash::new(&argon_hash.0).map_or(
             Err(ApiError::Internal(S!("verify_password::new_hash"))),

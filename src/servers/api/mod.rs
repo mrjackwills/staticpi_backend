@@ -103,14 +103,15 @@ impl Serve for ApiServer {
 #[cfg(test)]
 #[expect(clippy::unwrap_used, clippy::pedantic)]
 pub mod api_tests {
+
     use fred::interfaces::KeysInterface;
     use rand::{distributions::Alphanumeric, Rng};
     use reqwest::StatusCode;
 
-    use crate::servers::test_setup::api_base_url;
-    use crate::servers::test_setup::Response;
-    use crate::servers::test_setup::TestSetup;
-    use crate::servers::{get_api_version, test_setup::start_servers};
+    use crate::servers::get_api_version;
+    use crate::servers::test_setup::{
+        api_base_url, start_servers, Response, TestSetup, RATELIMIT_REGEX, RATELIMIT_REGEX_BIG,
+    };
     use crate::S;
 
     pub const EMAIL_BODY_LOCATION: &str = "/ramdrive/staticpi/email_body.txt";
@@ -190,8 +191,7 @@ pub mod api_tests {
         let resp = reqwest::get(url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
     }
 
     #[tokio::test]
@@ -244,8 +244,7 @@ pub mod api_tests {
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
 
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
     }
 
     #[tokio::test]
@@ -261,14 +260,13 @@ pub mod api_tests {
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
 
         // 90+ request is rate limited for 300 seconds
         let resp = reqwest::get(&url).await.unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        assert_eq!(result, "rate limited for 300 seconds");
+        assert!(RATELIMIT_REGEX_BIG.is_match(result.as_str().unwrap()));
     }
 
     #[tokio::test]
@@ -308,8 +306,7 @@ pub mod api_tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = ["rate limited for 60 seconds", "rate limited for 59 seconds"];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX.is_match(result.as_str().unwrap()));
 
         // 300+ request is rate limited for 300 seconds
         let resp = client
@@ -320,10 +317,6 @@ pub mod api_tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
         let result = resp.json::<Response>().await.unwrap().response;
-        let messages = [
-            "rate limited for 300 seconds",
-            "rate limited for 299 seconds",
-        ];
-        assert!(messages.contains(&result.as_str().unwrap()));
+        assert!(RATELIMIT_REGEX_BIG.is_match(result.as_str().unwrap()));
     }
 }

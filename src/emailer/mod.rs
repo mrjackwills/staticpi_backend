@@ -5,7 +5,7 @@ use crate::{
     api_error::ApiError,
     database::{email_log::ModelEmailLog, ip_user_agent::ModelUserAgentIp},
     parse_env::{AppEnv, RunMode},
-    C,
+    C, S,
 };
 
 use lettre::{
@@ -85,8 +85,8 @@ impl Emailer {
         email_env: &EmailerEnv,
     ) -> Self {
         Self {
-            name: name.to_owned(),
-            email_address: email_address.to_owned(),
+            name: S!(name),
+            email_address: S!(email_address),
             template,
             env: C!(email_env),
         }

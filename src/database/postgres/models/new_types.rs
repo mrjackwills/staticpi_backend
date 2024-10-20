@@ -38,7 +38,7 @@ impl Default for ApiKey {
 
 impl From<&str> for ApiKey {
     fn from(x: &str) -> Self {
-        Self(x.to_owned())
+        Self(S!(x))
     }
 }
 

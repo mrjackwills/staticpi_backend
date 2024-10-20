@@ -129,7 +129,7 @@ impl<'r> FromRow<'r, PgRow> for ModelDevicePasswordHash {
     fn from_row(row: &'r PgRow) -> Result<Self, Error> {
         Ok(Self {
             device_password_id: row.try_get("device_password_id")?,
-            password_hash: ArgonHash(row.try_get::<'r, &str, &str>("password_hash")?.to_owned()),
+            password_hash: ArgonHash(row.try_get::<'r, String, &str>("password_hash")?),
         })
     }
 }
