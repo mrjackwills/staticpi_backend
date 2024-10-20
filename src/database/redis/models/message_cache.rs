@@ -5,7 +5,6 @@ use fred::{
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
-use tracing::error;
 
 use crate::{
     api_error::ApiError,
@@ -44,7 +43,7 @@ impl MessageCache {
                     .hset::<(), String, HashMap<&str, String>>(Self::key(device_id), hmap!(data))
                     .await
                 {
-                    error!("{e:?}");
+                    tracing::error!("{e:?}");
                 }
             }
         });

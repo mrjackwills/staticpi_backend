@@ -2,7 +2,6 @@ use crate::api_error::ApiError;
 use rand::{prelude::SliceRandom, Rng};
 use sha1::{Digest, Sha1};
 use std::time::SystemTime;
-use tracing::error;
 
 const HEX_CHARS: &[u8; 16] = b"ABCDEF0123456789";
 const HIBP: &str = "https://api.pwnedpasswords.com/range/";
@@ -171,7 +170,7 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
             }))
         }
         Err(e) => {
-            error!("{e:?}");
+            tracing::error!("{e:?}");
             Err(ApiError::Internal(S!("hibp request error")))
         }
     }

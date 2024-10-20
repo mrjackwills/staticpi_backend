@@ -1,7 +1,6 @@
 use crate::{C, S};
 
 use super::Emailer;
-use tracing::error;
 use ulid::Ulid;
 
 #[derive(Debug, Clone)]
@@ -245,15 +244,15 @@ pub fn create_html_string(input: &Emailer) -> Option<String> {
             match root.render(&opts) {
                 Ok(email_string) => Some(email_string),
                 Err(e) => {
-                    error!("{e:?}");
-                    error!("email render error");
+                    tracing::error!("{e:?}");
+                    tracing::error!("email render error");
                     None
                 }
             }
         }
         Err(e) => {
-            error!("{e:?}");
-            error!("mrml parsing error");
+            tracing::error!("{e:?}");
+            tracing::error!("mrml parsing error");
             None
         }
     }

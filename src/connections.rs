@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{collections::HashMap, fmt, net::IpAddr, sync::Arc, time::Instant};
 use tokio::sync::Mutex;
-use tracing::error;
 use ulid::Ulid;
 
 use crate::{
@@ -245,7 +244,7 @@ impl PiConnections {
             tokio::spawn(async move {
                 ModelConnection::update_offline(&postgres, connection_id)
                     .await
-                    .map_err(|e| error!("{e:?}"))
+                    .map_err(|e| tracing::error!("{e:?}"))
             });
         }
     }
@@ -337,7 +336,7 @@ impl ClientConnections {
             tokio::spawn(async move {
                 ModelConnection::update_offline(&postgres, connection_id)
                     .await
-                    .map_err(|e| error!("{e:?}"))
+                    .map_err(|e| tracing::error!("{e:?}"))
             });
         }
     }
@@ -662,8 +661,8 @@ impl Default for Connections {
 //         //     ws_sender.auto_close = Some(tokio::spawn(async move {
 //         //         tokio::time::sleep(duration).await;
 //         //         if let Err(e) = ModelConnection::update_offline(&postgres, connection_id).await {
-//         //               error!("{e:?}");
-//         //             error!("unable to update connection details");
+//         //               tracing::error!("{e:?}");
+//         //             tracing::error!("unable to update connection details");
 //         //         };
 //         //         tokio::time::timeout(
 //         //             std::time::Duration::from_secs(2),

@@ -24,7 +24,6 @@ use std::{
     time::SystemTime,
 };
 use tokio::{signal, sync::Mutex};
-use tracing::info;
 use ulid::Ulid;
 
 pub mod api;
@@ -85,7 +84,7 @@ impl fmt::Display for ServerName {
 
 impl ServerName {
     pub fn show_name(self, addr: &SocketAddr) {
-        info!("starting server::{self} @ {addr}");
+        tracing::info!("starting server::{self} @ {addr}");
     }
 }
 
@@ -298,7 +297,7 @@ async fn shutdown_signal(server_name: ServerName) {
         () = terminate => {},
     }
 
-    info!(
+    tracing::info!(
         "signal received, starting graceful shutdown - {}",
         server_name
     );

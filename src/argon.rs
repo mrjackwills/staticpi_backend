@@ -3,7 +3,6 @@ use argon2::{
     Version::V0x13,
 };
 use std::{fmt, sync::LazyLock};
-use tracing::error;
 
 use crate::{api_error::ApiError, C, S};
 
@@ -58,7 +57,7 @@ impl ArgonHash {
             match PasswordHash::generate(get_hasher(), password, &salt) {
                 Ok(hash) => Ok(hash.to_string()),
                 Err(e) => {
-                    error!("{e}");
+                    tracing::error!("{e}");
                     Err(ApiError::Internal(S!("password_hash generate")))
                 }
             }

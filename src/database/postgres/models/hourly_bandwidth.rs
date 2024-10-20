@@ -3,7 +3,6 @@ use crate::{connections::ConnectionType, C};
 
 use fred::clients::RedisPool;
 use sqlx::PgPool;
-use tracing::error;
 
 pub struct ModelHourlyBandwidth;
 
@@ -67,8 +66,8 @@ SET
                         .await
                         .err()
                     {
-                        error!("{e:?}");
-                        error!("unable to insert bandwidth");
+                        tracing::error!("{e:?}");
+                        tracing::error!("unable to insert bandwidth");
                     }
                     if let Some(e) = ModelMonthlyBandwidth::force_update_cache(
                         &spawn_postgres,
@@ -78,8 +77,8 @@ SET
                     .await
                     .err()
                     {
-                        error!("{e:?}");
-                        error!("unable to force update cache");
+                        tracing::error!("{e:?}");
+                        tracing::error!("unable to force update cache");
                     };
                 });
             }

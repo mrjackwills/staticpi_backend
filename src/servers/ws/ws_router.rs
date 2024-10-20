@@ -14,7 +14,6 @@ use fred::clients::RedisPool;
 use futures::{StreamExt, TryStreamExt};
 
 use sqlx::PgPool;
-use tracing::{debug, error};
 use ulid::Ulid;
 
 use crate::{
@@ -236,8 +235,8 @@ impl WsRouter {
         Self::close_connection(&state.connections, device.device_id, ulid, device_type).await;
 
         if let Err(e) = ModelConnection::update_offline(&state.postgres, connection_id).await {
-            error!("{e:?}");
-            error!("unable to update connection details");
+            tracing::error!("{e:?}");
+            tracing::error!("unable to update connection details");
         };
     }
 
@@ -271,7 +270,7 @@ impl WsRouter {
                                 Self::send_self(input, cache_msg).await;
                             }
                             Ok(None) => (),
-                            Err(e) => error!("{:?}", e),
+                            Err(e) => tracing::error!("{:?}", e),
                         };
                     }
                 }
@@ -287,7 +286,7 @@ impl WsRouter {
                         } else if let Err(e) =
                             MessageCache::delete(input.redis, input.device.device_id).await
                         {
-                            error!("{e:?}");
+                            tracing::error!("{e:?}");
                         };
                     }
 
@@ -386,18 +385,18 @@ impl WsRouter {
             api_version: env!("CARGO_PKG_VERSION").into(),
         }) {
             if let Err(e) = socket.send(Message::Text(response)).await {
-                debug!("online_ws::send::{:?}", e);
+                tracing::debug!("online_ws::send::{:?}", e);
             }
         }
 
         match tokio::time::timeout(std::time::Duration::from_secs(2), socket.close()).await {
             Ok(close_result) => {
                 if let Err(e) = close_result {
-                    debug!("online_ws::close::{:?}", e);
+                    tracing::debug!("online_ws::close::{:?}", e);
                 }
             }
             Err(e) => {
-                debug!("online_ws::tokio_timeout::{}", e);
+                tracing::debug!("online_ws::tokio_timeout::{}", e);
             }
         }
     }

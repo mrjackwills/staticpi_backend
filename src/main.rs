@@ -25,7 +25,6 @@ use servers::{api::ApiServer, token::TokenServer, ws::WsServer, Serve, ServeData
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::error;
 use tracing_subscriber::{fmt, prelude::__tracing_subscriber_SubscriberExt};
 
 fn setup_tracing(app_env: &AppEnv) -> Result<(), ApiError> {
@@ -79,7 +78,7 @@ async fn main() -> Result<(), ApiError> {
     let auth_data = ServeData::new(&app_env, &connections, ServerName::Token).await?;
     tokio::spawn(async move {
         if let Err(e) = TokenServer::serve(auth_data).await {
-            error!("{e:?}");
+            tracing::error!("{e:?}");
             std::process::exit(1);
         }
     });
@@ -87,7 +86,7 @@ async fn main() -> Result<(), ApiError> {
     let ws_data = ServeData::new(&app_env, &connections, ServerName::Ws).await?;
     tokio::spawn(async move {
         if let Err(e) = WsServer::serve(ws_data).await {
-            error!("{e:?}");
+            tracing::error!("{e:?}");
             std::process::exit(1);
         }
     });

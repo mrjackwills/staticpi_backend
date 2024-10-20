@@ -6,7 +6,6 @@ use fred::error::{RedisError, RedisErrorKind};
 use std::time::SystemTimeError;
 use thiserror::Error;
 use tokio::task::JoinError;
-use tracing::error;
 
 use crate::user_io::outgoing_json::oj::OutgoingJson;
 
@@ -60,7 +59,7 @@ macro_rules! internal {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let exit = || {
-            error!("EXITING");
+            tracing::error!("EXITING");
             std::process::exit(1);
         };
 
@@ -70,17 +69,17 @@ impl IntoResponse for ApiError {
             Self::Authorization => (StatusCode::UNAUTHORIZED, Some(OutgoingJson::new(prefix))),
             Self::Authentication => (StatusCode::FORBIDDEN, Some(OutgoingJson::new(prefix))),
             Self::AxumExtension(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 internal!(prefix)
             }
             Self::Conflict(conflict) => (StatusCode::CONFLICT, Some(OutgoingJson::new(conflict))),
             Self::Internal(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 internal!(prefix)
             }
             Self::InvalidValue(value) => (StatusCode::BAD_REQUEST, Some(OutgoingJson::new(value))),
             Self::Io(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 internal!(prefix)
             }
             Self::MissingKey(key) => (
@@ -93,19 +92,19 @@ impl IntoResponse for ApiError {
                 Some(OutgoingJson::new(format!("{prefix} {limit} seconds"))),
             ),
             Self::RedisError(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 if e.kind() == &RedisErrorKind::IO {
                     exit();
                 }
                 internal!(prefix)
             }
             Self::Reqwest(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 internal!(prefix)
             }
             Self::SerdeJson(_) => internal!(prefix),
             Self::SqlxError(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 match e {
                     sqlx::Error::Io(_) | sqlx::Error::PoolClosed | sqlx::Error::PoolTimedOut => {
                         exit();
@@ -115,11 +114,11 @@ impl IntoResponse for ApiError {
                 internal!(prefix)
             }
             Self::ThreadError(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 internal!(prefix)
             }
             Self::TimeError(e) => {
-                error!("{e:?}");
+                tracing::error!("{e:?}");
                 internal!(prefix)
             }
         };

@@ -21,7 +21,6 @@ pub mod ij {
         http::{request::Parts, Request},
     };
     use serde::{self, de::DeserializeOwned, Deserialize};
-    use tracing::trace;
 
     #[cfg(test)]
     use serde::Serialize;
@@ -109,12 +108,12 @@ pub mod ij {
                     JsonRejection::JsonDataError(e) => Err(extract_serde_error(e)),
                     JsonRejection::JsonSyntaxError(_) => Err(ApiError::InvalidValue(S!("JSON"))),
                     JsonRejection::MissingJsonContentType(e) => {
-                        trace!("{e:?}");
+                        tracing::trace!("{e:?}");
                         Err(ApiError::InvalidValue(S!("\"application/json\" header")))
                     }
                     JsonRejection::BytesRejection(e) => {
-                        trace!("{e:?}");
-                        trace!("BytesRejection");
+                        tracing::trace!("{e:?}");
+                        tracing::trace!("BytesRejection");
                         Err(ApiError::InvalidValue(S!("Bytes Rejected")))
                     }
                     _ => Err(ApiError::Internal(S!("IncomingJson from_request error"))),
