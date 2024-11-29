@@ -61,8 +61,7 @@ async fn clear_postgres_connections(app_env: &AppEnv) -> Result<(), ApiError> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<(), ApiError> {
+async fn start() -> Result<(), ApiError> {
     let app_env = parse_env::AppEnv::get_env();
 
     if let Err(e) = setup_tracing(&app_env) {
@@ -104,4 +103,11 @@ async fn main() -> Result<(), ApiError> {
 
     let api_data = ServeData::new(&app_env, &connections, ServerName::Api).await?;
     ApiServer::serve(api_data).await
+}
+
+
+#[tokio::main]
+async fn main() -> Result<(), ApiError> {
+    tokio::spawn(start()).await.ok();
+    Ok(())
 }
