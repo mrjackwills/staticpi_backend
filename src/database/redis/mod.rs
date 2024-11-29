@@ -28,7 +28,7 @@ pub enum RedisKey<'a> {
     VerifySecret(&'a Ulid),
 }
 
-impl<'a> fmt::Display for RedisKey<'a> {
+impl fmt::Display for RedisKey<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let disp = match self {
             Self::AccessToken(ulid) => format!("access_token::{ulid}"),

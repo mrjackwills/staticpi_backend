@@ -572,7 +572,7 @@ impl DeviceRouter {
 /// Use reqwest to test against real server
 /// cargo watch -q -c -w src/ -x 'test device_router_user -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[expect(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
+#[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
     use super::DeviceRoutes;
