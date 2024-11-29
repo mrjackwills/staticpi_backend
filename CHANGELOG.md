@@ -1,3 +1,13 @@
+# <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.20'>v0.0.20</a>
+### 2024-11-29
+
+### Chores
++ dependencies updated, [cb248c8c](https://github.com/mrjackwills/staticpi_backend/commit/cb248c8cf4c75066fa972e3be68dc9e710ae3ab9),
++ Rust 1.83.0 linting, [1d8b7d65](https://github.com/mrjackwills/staticpi_backend/commit/1d8b7d65d591edaf038d3856a25c6fac34247335),
+
+### Features
++ spawn everything in main, [12bd38e2](https://github.com/mrjackwills/staticpi_backend/commit/12bd38e24ea2f6cfcce92091a413d9f20040c4b4),
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.0.19'>v0.0.19</a>
 ### 2024-10-20
 
