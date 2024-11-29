@@ -105,7 +105,6 @@ async fn start() -> Result<(), ApiError> {
     ApiServer::serve(api_data).await
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), ApiError> {
     tokio::spawn(start()).await.ok();
