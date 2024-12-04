@@ -6,7 +6,7 @@ use axum::{
     http::request::Parts,
 };
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -59,7 +59,7 @@ impl ModelUserAgentIp {
     /// Search for ip_addresses that are not longer referenced anywhere, delete, and also remove from redis cache
     pub async fn delete_ip(
         transaction: &mut Transaction<'_, Postgres>,
-        redis: &RedisPool,
+        redis: &Pool,
     ) -> Result<(), ApiError> {
         let query = r"
 DELETE FROM
@@ -107,7 +107,7 @@ WHERE
     /// Search for user_agent's that are not longer referenced anywhere, delete, and also remove from redis cache
     pub async fn delete_useragent(
         transaction: &mut Transaction<'_, Postgres>,
-        redis: &RedisPool,
+        redis: &Pool,
     ) -> Result<(), ApiError> {
         let query = "
 DELETE FROM
@@ -151,7 +151,7 @@ WHERE
         Ok(())
     }
 
-    async fn insert_cache(&self, redis: &RedisPool) -> Result<(), ApiError> {
+    async fn insert_cache(&self, redis: &Pool) -> Result<(), ApiError> {
         let ip_key = RedisKey::CacheIp(self.ip).to_string();
         let user_agent_key = RedisKey::CacheUseragent(&self.user_agent).to_string();
 
@@ -164,7 +164,7 @@ WHERE
     }
 
     async fn get_cache(
-        redis: &RedisPool,
+        redis: &Pool,
         ip: IpAddr,
         user_agent: &str,
     ) -> Result<Option<Self>, ApiError> {
@@ -263,7 +263,7 @@ RETURNING
     /// get `ip_id` and `user_agent_id`
     pub async fn get(
         postgres: &PgPool,
-        redis: &RedisPool,
+        redis: &Pool,
         req: &ReqUserAgentIp,
     ) -> Result<Self, ApiError> {
         if let Some(cache) = Self::get_cache(redis, req.ip, &req.user_agent).await? {

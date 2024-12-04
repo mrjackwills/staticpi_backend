@@ -20,7 +20,7 @@ use axum::{
 };
 use axum_extra::extract::{cookie::Key, PrivateCookieJar};
 
-use fred::clients::RedisPool;
+use fred::clients::Pool;
 use sqlx::PgPool;
 use std::{
     fmt,
@@ -44,7 +44,7 @@ pub struct ServeData {
     pub app_env: AppEnv,
     pub connections: AMConnections,
     pub postgres: PgPool,
-    pub redis: RedisPool,
+    pub redis: Pool,
     pub server_name: ServerName,
 }
 
@@ -119,7 +119,7 @@ pub struct InnerState {
     pub domain: String,
     pub email_env: EmailerEnv,
     pub postgres: PgPool,
-    pub redis: RedisPool,
+    pub redis: Pool,
     pub run_mode: RunMode,
     pub start_time: SystemTime,
     cookie_key: Key,
@@ -183,7 +183,7 @@ pub fn get_ip(headers: &HeaderMap, addr: ConnectInfo<SocketAddr>) -> IpAddr {
 /// Should take into account the incoming message size?
 async fn check_monthly_bandwidth(
     postgres: &PgPool,
-    redis: &RedisPool,
+    redis: &Pool,
     device: &ModelWsDevice,
 ) -> Result<(), ApiError> {
     match ModelMonthlyBandwidth::get(postgres, redis, device.registered_user_id).await {
@@ -312,10 +312,10 @@ async fn shutdown_signal(server_name: ServerName) {
 #[expect(clippy::unwrap_used, clippy::pedantic, clippy::nursery)]
 pub mod test_setup {
 
-    use fred::clients::RedisPool;
+    use fred::clients::Pool;
     use fred::interfaces::ClientLike;
     use fred::interfaces::SetsInterface;
-    use fred::types::Scanner;
+    use fred::types::scan::Scanner;
     use futures::TryStreamExt;
     use regex::Regex;
     use reqwest::Url;
@@ -352,45 +352,12 @@ pub mod test_setup {
     use crate::user_io::incoming_json::ij;
     use crate::{ServeData, C, S};
 
-    use super::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
-    use super::api::ApiServer;
+    use super::api::{
+        api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION},
+        ApiServer,
+    };
+    // use super::api::;
     use super::{get_api_version, token::TokenServer, ws::WsServer, Serve, ServerName};
-
-    // use crate::connections::ConnectionType;
-    // use crate::connections::Connections;
-    // use crate::database::connection::ModelConnection;
-    // use crate::database::email_address::ModelEmailAddress;
-    // use crate::database::invite::ModelInvite;
-    // use crate::database::ip_user_agent::ModelUserAgentIp;
-    // use crate::database::ip_user_agent::ReqUserAgentIp;
-    // use crate::database::new_types::*;
-    // use crate::database::new_user::RedisNewUser;
-    // use crate::database::password_reset::ModelPasswordReset;
-    // use crate::database::two_fa_backup::ModelTwoFA;
-    // use crate::database::two_fa_setup::RedisTwoFASetup;
-    // use crate::database::user::ModelUser;
-    // use crate::database::user_level::ModelUserLevel;
-    // use crate::database::user_level::UserLevel;
-    // use crate::database::*;
-    // use crate::helpers::gen_random_hex;
-    // use crate::parse_env;
-    // use crate::parse_env::AppEnv;
-    // use crate::servers::api::authentication::totp_from_secret;
-    // use crate::sleep;
-    // use crate::user_io::incoming_json::ij;
-    // use crate::user_io::incoming_json::ij::DevicePost;
-    // use crate::ServeData;
-    // use crate::C;
-    // use crate::S;
-
-    // use super::api::api_tests::EMAIL_BODY_LOCATION;
-    // use super::api::api_tests::EMAIL_HEADERS_LOCATION;
-    // use super::api::ApiServer;
-    // use super::get_api_version;
-    // use super::token::TokenServer;
-    // use super::ws::WsServer;
-    // use super::Serve;
-    // use super::ServerName;
 
     pub const TEST_EMAIL: &str = "test_user@email.com";
     pub const TEST_PASSWORD: &str = "N}}2&zwhgUmfVup[g))EmCchQxcu%R~x";
@@ -432,7 +399,7 @@ pub mod test_setup {
 
     pub struct TestSetup {
         pub app_env: AppEnv,
-        pub redis: RedisPool,
+        pub redis: Pool,
         pub postgres: PgPool,
         pub model_user: Option<ModelUser>,
         pub anon_user: Option<ModelUser>,
@@ -1090,16 +1057,18 @@ pub mod test_setup {
         test_setup.clean_up().await;
         test_setup
     }
-    pub async fn get_keys(redis: &RedisPool, pattern: &str) -> Vec<String> {
+    pub async fn get_keys(redis: &Pool, pattern: &str) -> Vec<String> {
         let mut scanner = redis.next().scan(pattern, Some(100), None);
         let mut output = vec![];
         while let Some(mut page) = scanner.try_next().await.unwrap() {
             if let Some(page) = page.take_results() {
                 for i in page {
-                    output.push(S!(i.as_str().unwrap_or_default()));
+                    if let Some(s) = i.as_str() {
+                        output.push(S!(s));
+                    }
                 }
             }
-            page.next().unwrap_or_default();
+            page.next();
         }
         output
     }

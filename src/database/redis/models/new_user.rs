@@ -1,5 +1,5 @@
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -60,7 +60,7 @@ impl RedisNewUser {
     }
 
     /// On register, insert a new user into redis cache, to be inserted into postgres once verify email responded to
-    pub async fn insert(&self, redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &Pool, ulid: &Ulid) -> Result<(), ApiError> {
         let key_secret = Self::key_secret(ulid);
         let key_email = Self::key_email(&self.email);
 
@@ -70,16 +70,18 @@ impl RedisNewUser {
             .hset::<(), _, _>(&key_email, hmap!(ulid.to_string()))
             .await?;
         redis
-            .expire::<(), _>(key_email, Self::TTL_AS_SEC.into())
+            .expire::<(), _>(key_email, Self::TTL_AS_SEC.into(), None)
             .await?;
         redis
             .hset::<(), _, _>(&key_secret, hmap!(new_user_as_string))
             .await?;
-        Ok(redis.expire(key_secret, Self::TTL_AS_SEC.into()).await?)
+        Ok(redis
+            .expire(key_secret, Self::TTL_AS_SEC.into(), None)
+            .await?)
     }
 
     /// Remove both verify keys from redis
-    pub async fn delete(&self, redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn delete(&self, redis: &Pool, ulid: &Ulid) -> Result<(), ApiError> {
         redis.del::<(), _>(Self::key_secret(ulid)).await?;
         Ok(redis.del(Self::key_email(&self.email)).await?)
     }
@@ -87,12 +89,12 @@ impl RedisNewUser {
     /// Just check if a email is in redis cache, so that if a user has register but not yet verified, cannot sign up again
     /// Static method, as want to use before one creates a `NewUser` struct
     /// THIS ONE NEEDS TO BE mut redis rather than redis: &mut
-    pub async fn exists(redis: &RedisPool, email: &str) -> Result<bool, ApiError> {
+    pub async fn exists(redis: &Pool, email: &str) -> Result<bool, ApiError> {
         Ok(redis.hexists(Self::key_email(email), HASH_FIELD).await?)
     }
 
     /// Verify a new account, secret emailed to user, user visits url with secret as a param
-    pub async fn get(redis: &RedisPool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
+    pub async fn get(redis: &Pool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
         Ok(redis.hget(Self::key_secret(ulid), HASH_FIELD).await?)
     }
 }

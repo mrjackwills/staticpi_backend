@@ -1,6 +1,6 @@
 use std::{fmt, net::IpAddr};
 
-use fred::{clients::RedisPool, interfaces::KeysInterface, types::Scanner};
+use fred::{clients::Pool, interfaces::KeysInterface, types::scan::Scanner};
 use futures::TryStreamExt;
 
 use crate::{
@@ -72,7 +72,7 @@ impl fmt::Display for RateLimit {
 }
 
 /// Return AdminLimit object for a given rate_limit
-async fn get_admin_limit(rate_limit: RateLimit, redis: &RedisPool) -> Result<AdminLimit, ApiError> {
+async fn get_admin_limit(rate_limit: RateLimit, redis: &Pool) -> Result<AdminLimit, ApiError> {
     let blocked = rate_limit.exceeded(redis).await?;
     let ttl = rate_limit.ttl(redis).await?;
     let points = rate_limit.get_count(redis).await?.unwrap_or_default();
@@ -208,7 +208,7 @@ impl RateLimit {
 
     // Get all current rate limits - is either based on user_email or ip address
     // User as input, so that only admin user can access it?
-    pub async fn get_all(redis: &RedisPool, user: &ModelUser) -> Result<Vec<AdminLimit>, ApiError> {
+    pub async fn get_all(redis: &Pool, user: &ModelUser) -> Result<Vec<AdminLimit>, ApiError> {
         match user.user_level {
             UserLevel::Admin => {
                 let mut output = vec![];
@@ -225,7 +225,7 @@ impl RateLimit {
                             );
                         }
                     }
-                    page.next()?;
+                    page.next();
                 }
 
                 Ok(output)
@@ -239,12 +239,12 @@ impl RateLimit {
     }
 
     /// Get the ttl for a given limiter, converts from the redis isize to usize
-    pub async fn ttl(&self, redis: &RedisPool) -> Result<i64, ApiError> {
+    pub async fn ttl(&self, redis: &Pool) -> Result<i64, ApiError> {
         Ok(redis.ttl::<i64, String>(self.key()).await?)
     }
 
     /// If currently rate limited, return ttl, else 0
-    pub async fn limited_ttl(&self, redis: &RedisPool) -> Result<i64, ApiError> {
+    pub async fn limited_ttl(&self, redis: &Pool) -> Result<i64, ApiError> {
         if let Some(count) = self.get_count(redis).await? {
             if count >= self.get_limit() {
                 return self.ttl(redis).await;
@@ -254,7 +254,7 @@ impl RateLimit {
     }
 
     /// Return true if rate limit is exceeded by factor of 4
-    pub async fn exceeded(&self, redis: &RedisPool) -> Result<bool, ApiError> {
+    pub async fn exceeded(&self, redis: &Pool) -> Result<bool, ApiError> {
         if let Some(i) = self.get_count(redis).await? {
             if i >= self.get_limit() * 4 {
                 return Ok(true);
@@ -263,11 +263,11 @@ impl RateLimit {
         Ok(false)
     }
 
-    async fn get_count(&self, redis: &RedisPool) -> Result<Option<u64>, ApiError> {
+    async fn get_count(&self, redis: &Pool) -> Result<Option<u64>, ApiError> {
         Ok(redis.get::<Option<u64>, String>(self.key()).await?)
     }
     /// Check if request has been rate limited, always increases the current value of the given rate limit
-    pub async fn check(&self, redis: &RedisPool) -> Result<(), ApiError> {
+    pub async fn check(&self, redis: &Pool) -> Result<(), ApiError> {
         let key = self.key();
         let limit = self.get_limit();
         let blocks = BlockTimes::new(self);
@@ -275,18 +275,18 @@ impl RateLimit {
         if let Some(count) = self.get_count(redis).await? {
             redis.incr::<(), _>(&key).await?;
             if count >= limit * 2 {
-                redis.expire::<(), _>(&key, blocks.big).await?;
+                redis.expire::<(), _>(&key, blocks.big, None).await?;
             }
             if count > limit {
                 return Err(ApiError::RateLimited(self.ttl(redis).await?));
             }
             if count == limit {
-                redis.expire::<(), _>(&key, blocks.small).await?;
+                redis.expire::<(), _>(&key, blocks.small, None).await?;
                 return Err(ApiError::RateLimited(blocks.small));
             }
         } else {
             redis.incr::<(), _>(&key).await?;
-            redis.expire::<(), _>(&key, blocks.small).await?;
+            redis.expire::<(), _>(&key, blocks.small, None).await?;
         }
         Ok(())
     }

@@ -1,5 +1,5 @@
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -23,10 +23,7 @@ pub struct ModelMonthlyBandwidth {
 redis_hash_to_struct!(ModelMonthlyBandwidth);
 
 impl ModelMonthlyBandwidth {
-    async fn get_cache(
-        redis: &RedisPool,
-        registered_user_id: UserId,
-    ) -> Result<Option<Self>, ApiError> {
+    async fn get_cache(redis: &Pool, registered_user_id: UserId) -> Result<Option<Self>, ApiError> {
         Ok(redis
             .hget(
                 RedisKey::CacheMonthlyBandwidth(registered_user_id).to_string(),
@@ -35,19 +32,19 @@ impl ModelMonthlyBandwidth {
             .await?)
     }
 
-    async fn insert_cache(&self, redis: &RedisPool) -> Result<(), ApiError> {
+    async fn insert_cache(&self, redis: &Pool) -> Result<(), ApiError> {
         let key = RedisKey::CacheMonthlyBandwidth(self.registered_user_id).to_string();
         redis
             .hset::<(), _, _>(&key, hmap!(serde_json::to_string(&self)?))
             .await?;
 
-        Ok(redis.expire(&key, 30).await?)
+        Ok(redis.expire(&key, 30, None).await?)
     }
 
     /// Force update monthly bandwidth redis cache, derive user_id from device_id
     pub async fn force_update_cache(
         postgres: &PgPool,
-        redis: &RedisPool,
+        redis: &Pool,
         device_id: DeviceId,
     ) -> Result<(), ApiError> {
         let query = r"
@@ -102,7 +99,7 @@ GROUP BY
     /// Get a users monthly bandwidth, check redis cache before hitting postgres
     pub async fn get(
         postgres: &PgPool,
-        redis: &RedisPool,
+        redis: &Pool,
         registered_user_id: UserId,
     ) -> Result<Option<Self>, ApiError> {
         if let Some(cache) = Self::get_cache(redis, registered_user_id).await? {

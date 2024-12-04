@@ -10,7 +10,7 @@ use axum::{
     routing::get,
     Router,
 };
-use fred::clients::RedisPool;
+use fred::clients::Pool;
 use futures::{StreamExt, TryStreamExt};
 
 use sqlx::PgPool;
@@ -67,7 +67,7 @@ pub struct HandlerData<'a> {
     pub limiter: &'a RateLimit,
     pub msg_size: usize,
     pub postgres: &'a PgPool,
-    pub redis: &'a RedisPool,
+    pub redis: &'a Pool,
     pub ulid: Ulid,
 }
 impl<'a> HandlerData<'a> {

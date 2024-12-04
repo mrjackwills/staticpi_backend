@@ -1,5 +1,5 @@
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -34,28 +34,28 @@ impl RedisTwoFASetup {
     }
 
     // Insert new twofa secret & set ttl of 2 minutes
-    pub async fn insert(&self, redis: &RedisPool, user: &ModelUser) -> Result<&Self, ApiError> {
+    pub async fn insert(&self, redis: &Pool, user: &ModelUser) -> Result<&Self, ApiError> {
         let key = Self::key(user.registered_user_id);
         let session = serde_json::to_string(&self)?;
         redis.hset::<(), _, _>(&key, hmap!(session)).await?;
-        redis.expire::<(), _>(&key, 120).await?;
+        redis.expire::<(), _>(&key, 120, None).await?;
         Ok(self)
     }
 
     /// Delete twofa secret
-    pub async fn delete(redis: &RedisPool, user: &ModelUser) -> Result<(), ApiError> {
+    pub async fn delete(redis: &Pool, user: &ModelUser) -> Result<(), ApiError> {
         Ok(redis.del(Self::key(user.registered_user_id)).await?)
     }
 
     /// get twofa setup secret
-    pub async fn get(redis: &RedisPool, user: &ModelUser) -> Result<Option<Self>, ApiError> {
+    pub async fn get(redis: &Pool, user: &ModelUser) -> Result<Option<Self>, ApiError> {
         Ok(redis
             .hget(Self::key(user.registered_user_id), HASH_FIELD)
             .await?)
     }
 
     /// Check twofa setup secret is in cache or not
-    pub async fn exists(redis: &RedisPool, user: &ModelUser) -> Result<bool, ApiError> {
+    pub async fn exists(redis: &Pool, user: &ModelUser) -> Result<bool, ApiError> {
         Ok(redis
             .hexists::<bool, String, &str>(Self::key(user.registered_user_id), HASH_FIELD)
             .await?)

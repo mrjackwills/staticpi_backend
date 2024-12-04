@@ -1,5 +1,5 @@
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface, SetsInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -47,7 +47,7 @@ impl RedisSession {
     }
 
     pub async fn admin_get_all(
-        redis: &RedisPool,
+        redis: &Pool,
         registered_user_id: UserId,
     ) -> Result<Vec<AdminSession>, ApiError> {
         let key_session_set = Self::key_session_set(registered_user_id);
@@ -71,12 +71,7 @@ impl RedisSession {
     }
 
     /// Insert new session & set ttl
-    pub async fn insert(
-        &self,
-        redis: &RedisPool,
-        ttl: Duration,
-        ulid: Ulid,
-    ) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &Pool, ttl: Duration, ulid: Ulid) -> Result<(), ApiError> {
         let key_session = Self::key_session(&ulid);
         let session = serde_json::to_string(&self)?;
         let key_session_set = Self::key_session_set(self.registered_user_id);
@@ -89,11 +84,11 @@ impl RedisSession {
             .await?;
         // This won't work as expected, should set TTL to the max at all times
         // redis.expire(&key_session_set, ttl).await?;
-        Ok(redis.expire(&key_session, ttl).await?)
+        Ok(redis.expire(&key_session, ttl, None).await?)
     }
 
     /// Delete session
-    pub async fn delete(redis: &RedisPool, ulid: &Ulid) -> Result<(), ApiError> {
+    pub async fn delete(redis: &Pool, ulid: &Ulid) -> Result<(), ApiError> {
         let key_session = Self::key_session(ulid);
         if let Some(session) = redis
             .hget::<Option<Self>, &str, &str>(&key_session, HASH_FIELD)
@@ -117,7 +112,7 @@ impl RedisSession {
     }
 
     /// Delete all sessions for a single user - used when setting a user active status to false, or password reset!
-    pub async fn delete_all(redis: &RedisPool, registered_user_id: UserId) -> Result<(), ApiError> {
+    pub async fn delete_all(redis: &Pool, registered_user_id: UserId) -> Result<(), ApiError> {
         let key_session_set = Self::key_session_set(registered_user_id);
 
         let session_set: Vec<String> = redis.smembers(&key_session_set).await?;
@@ -129,7 +124,7 @@ impl RedisSession {
 
     /// Convert a session into a `ModelUser` object
     pub async fn get(
-        redis: &RedisPool,
+        redis: &Pool,
         postgres: &PgPool,
         ulid: &Ulid,
     ) -> Result<Option<ModelUser>, ApiError> {
@@ -149,7 +144,7 @@ impl RedisSession {
         }
     }
     /// Check session exists in redis
-    pub async fn exists(redis: &RedisPool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
+    pub async fn exists(redis: &Pool, ulid: &Ulid) -> Result<Option<Self>, ApiError> {
         Ok(redis.hget(Self::key_session(ulid), HASH_FIELD).await?)
     }
 }

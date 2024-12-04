@@ -1,5 +1,5 @@
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -47,22 +47,22 @@ impl AccessToken {
     }
 
     /// Insert an access token, with a ttl of 20 seconds,
-    pub async fn insert(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &Pool, ulid: Ulid) -> Result<(), ApiError> {
         let key = Self::key(ulid);
         redis
             .hset::<(), _, _>(&key, hmap!(serde_json::to_string(&self)?))
             .await?;
-        Ok(redis.expire(key, Self::TTL_AS_SEC.into()).await?)
+        Ok(redis.expire(key, Self::TTL_AS_SEC.into(), None).await?)
     }
 
     /// Remove access token
-    pub async fn delete(&self, redis: &RedisPool, ulid: Ulid) -> Result<(), ApiError> {
+    pub async fn delete(&self, redis: &Pool, ulid: Ulid) -> Result<(), ApiError> {
         Ok(redis.del(Self::key(ulid)).await?)
     }
 
     /// Retrieve the access token, assuming ttl is still valid, and that the ip_id & device type matches
     pub async fn get(
-        redis: &RedisPool,
+        redis: &Pool,
         ulid: Ulid,
         device_type: ConnectionType,
         useragent_ip: &ModelUserAgentIp,

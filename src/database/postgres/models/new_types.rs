@@ -1,4 +1,4 @@
-use fred::{error::RedisError, types::FromRedis};
+use fred::{error::Error, types::FromValue};
 use regex::Regex;
 use serde::{Deserialize, Serialize, Serializer};
 use std::sync::LazyLock;
@@ -105,13 +105,11 @@ macro_rules! generic_id {
             }
         }
 
-        impl FromRedis for $struct_name {
-            fn from_value(
-                value: fred::prelude::RedisValue,
-            ) -> Result<Self, fred::prelude::RedisError> {
+        impl FromValue for $struct_name {
+            fn from_value(value: fred::prelude::Value) -> Result<Self, fred::prelude::Error> {
                 value.as_i64().map_or(
-                    Err(RedisError::new(
-                        fred::error::RedisErrorKind::Parse,
+                    Err(Error::new(
+                        fred::error::ErrorKind::Parse,
                         format!("FromRedis: {}", stringify!($struct_name)),
                     )),
                     |i| Ok(Self(i)),

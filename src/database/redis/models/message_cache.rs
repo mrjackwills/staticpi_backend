@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use fred::{
-    clients::RedisPool,
+    clients::Pool,
     interfaces::{HashesInterface, KeysInterface},
 };
 use serde::{Deserialize, Serialize};
@@ -35,7 +35,7 @@ impl MessageCache {
 
     /// Insert message into redis cache
     /// Is spawned onto own thread
-    pub fn insert(&self, redis: &RedisPool, device_id: DeviceId) {
+    pub fn insert(&self, redis: &Pool, device_id: DeviceId) {
         let spawn_self = C!(self);
         let spawn_redis = C!(redis);
         tokio::spawn(async move {
@@ -51,15 +51,12 @@ impl MessageCache {
     }
 
     /// Remove single device message cache
-    pub async fn delete(redis: &RedisPool, device_id: DeviceId) -> Result<(), ApiError> {
+    pub async fn delete(redis: &Pool, device_id: DeviceId) -> Result<(), ApiError> {
         Ok(redis.del(Self::key(device_id)).await?)
     }
 
     /// Remove multiple device's message cache
-    pub async fn delete_all(
-        redis: &RedisPool,
-        device_ids: &[ModelDeviceId],
-    ) -> Result<(), ApiError> {
+    pub async fn delete_all(redis: &Pool, device_ids: &[ModelDeviceId]) -> Result<(), ApiError> {
         for device in device_ids {
             redis.del::<(), _>(Self::key(device.device_id)).await?;
         }
@@ -67,10 +64,7 @@ impl MessageCache {
     }
 
     /// Retrieve message cache, and convert to a piBody
-    pub async fn get(
-        redis: &RedisPool,
-        device_id: DeviceId,
-    ) -> Result<Option<wm::PiBody>, ApiError> {
+    pub async fn get(redis: &Pool, device_id: DeviceId) -> Result<Option<wm::PiBody>, ApiError> {
         redis
             .hget::<Option<Self>, String, &str>(Self::key(device_id), HASH_FIELD)
             .await?
