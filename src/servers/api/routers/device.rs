@@ -31,14 +31,14 @@ define_routes! {
     DeviceRoutes,
     "/device",
     Base => "",
-    Named => "/:name",
-    NamedApiKey => "/:name/api_key",
-    NamedMaxClients => "/:name/max_clients",
-    NamedPassword => "/:name/password",
-    NamedPause => "/:name/pause",
-    NamedRename => "/:name/rename",
-    NamedStructured => "/:name/structured_data",
-    NamedCache => "/:name/cache"
+    Named => "/{name}",
+    NamedApiKey => "/{name}/api_key",
+    NamedMaxClients => "/{name}/max_clients",
+    NamedPassword => "/{name}/password",
+    NamedPause => "/{name}/pause",
+    NamedRename => "/{name}/rename",
+    NamedStructured => "/{name}/structured_data",
+    NamedCache => "/{name}/cache"
 }
 
 // This is shared, should put elsewhere

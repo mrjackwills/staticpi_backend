@@ -13,7 +13,6 @@ pub mod ij {
     use std::{error::Error, fmt};
 
     use axum::{
-        async_trait,
         extract::{
             rejection::{JsonDataError, JsonRejection},
             FromRequest, FromRequestParts,
@@ -90,7 +89,6 @@ pub mod ij {
     /// Implement custom error handing for JSON extraction on incoming JSON
     /// Either return valid json (meeting a struct spec listed below), or return an ApiError
     /// Then each route handler, can use `IncomingJson(body): IncomingJson<T>`, to extract T into param body
-    #[async_trait]
     impl<S, T> FromRequest<S> for IncomingJson<T>
     where
         axum::Json<T>: FromRequest<S, Rejection = JsonRejection>,
@@ -125,7 +123,6 @@ pub mod ij {
     // We define our own `Path` extractor that customizes the error from `axum::extract::Path`
     pub struct Path<T>(pub T);
 
-    #[async_trait]
     impl<S, T> FromRequestParts<S> for Path<T>
     where
         // these trait bounds are copied from `impl FromRequest for axum::extract::path::Path`

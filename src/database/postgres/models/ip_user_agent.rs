@@ -1,7 +1,6 @@
 use std::net::{IpAddr, SocketAddr};
 
 use axum::{
-    async_trait,
     extract::{ConnectInfo, FromRef, FromRequestParts},
     http::request::Parts,
 };
@@ -297,7 +296,6 @@ RETURNING
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for ModelUserAgentIp
 where
     ApplicationState: FromRef<S>,
@@ -312,6 +310,6 @@ where
             user_agent: get_user_agent_header(&parts.headers),
             ip: get_ip(&parts.headers, addr),
         };
-        Ok(Self::get(&state.postgres, &state.redis, &useragent_ip).await?)
+        Self::get(&state.postgres, &state.redis, &useragent_ip).await
     }
 }

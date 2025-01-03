@@ -1,5 +1,6 @@
 use axum::{
-    extract::ws::{Message, WebSocket},
+    body::Bytes,
+    extract::ws::{Message, Utf8Bytes, WebSocket},
     http::Uri,
 };
 use futures::{stream::SplitSink, SinkExt};
@@ -31,40 +32,52 @@ pub type AMConnections = Arc<Mutex<Connections>>;
 
 #[derive(Debug)]
 pub enum SendMessage {
-    Text(String),
-    Binary(Vec<u8>),
+    Text(Utf8Bytes),
+    Binary(Bytes),
 }
 
 impl SendMessage {
     pub fn get_size(&self) -> usize {
         match self {
             Self::Binary(x) => x.len(),
-            Self::Text(x) => x.as_bytes().len(),
+            Self::Text(x) => x.len(),
         }
+    }
+}
+
+impl From<Bytes> for SendMessage {
+    fn from(x: Bytes) -> Self {
+        Self::Binary(x)
     }
 }
 
 impl From<Vec<u8>> for SendMessage {
     fn from(x: Vec<u8>) -> Self {
-        Self::Binary(x)
+        Self::Binary(x.into())
+    }
+}
+
+impl From<Utf8Bytes> for SendMessage {
+    fn from(x: Utf8Bytes) -> Self {
+        Self::Text(x)
     }
 }
 
 impl From<String> for SendMessage {
     fn from(x: String) -> Self {
-        Self::Text(x)
+        Self::Text(x.into())
     }
 }
 
 impl From<PiBody> for SendMessage {
     fn from(x: PiBody) -> Self {
-        Self::Text(x.to_string())
+        Self::Text(x.to_string().into())
     }
 }
 
 impl From<ClientBody> for SendMessage {
     fn from(x: ClientBody) -> Self {
-        Self::Text(x.to_string())
+        Self::Text(x.to_string().into())
     }
 }
 
@@ -192,7 +205,7 @@ impl WsSender {
     /// Check if auto close valid, if not, close connection, else send a ping message
     async fn ping(&mut self, now: &Instant) -> Result<(), ()> {
         if self.auto_close_valid(now).is_ok() {
-            self.socket.send(Message::Ping(vec![])).await.ok();
+            self.socket.send(Message::Ping(Bytes::new())).await.ok();
             Ok(())
         } else {
             Err(())
