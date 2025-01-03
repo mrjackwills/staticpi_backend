@@ -11,7 +11,6 @@ use crate::{
     C, S,
 };
 use axum::{
-    async_trait,
     extract::{ConnectInfo, FromRef, FromRequestParts, OriginalUri, State},
     http::{request::Parts, HeaderMap, Request, StatusCode},
     middleware::Next,
@@ -64,7 +63,6 @@ impl ServeData {
     }
 }
 
-#[async_trait]
 pub trait Serve {
     async fn serve(serve_data: ServeData) -> Result<(), ApiError>;
 }

@@ -1,6 +1,6 @@
 use tower_http::cors::{Any, CorsLayer};
 
-use axum::{async_trait, http::Method, middleware, Router};
+use axum::{http::Method, middleware, Router};
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 
@@ -21,7 +21,6 @@ async fn token_fallback() -> Result<(), ApiError> {
     Err(ApiError::AccessToken)
 }
 
-#[async_trait]
 impl Serve for TokenServer {
     async fn serve(serve_data: ServeData) -> Result<(), ApiError> {
         let cors = CorsLayer::new()

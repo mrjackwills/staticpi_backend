@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use axum::{
     extract::{
-        ws::{Message, WebSocket},
+        ws::{Message, Utf8Bytes, WebSocket},
         OriginalUri, State, WebSocketUpgrade,
     },
     http::StatusCode,
@@ -11,7 +11,7 @@ use axum::{
     Router,
 };
 use fred::clients::Pool;
-use futures::{StreamExt, TryStreamExt};
+use futures::{SinkExt, StreamExt, TryStreamExt};
 
 use sqlx::PgPool;
 use ulid::Ulid;
@@ -46,8 +46,8 @@ define_routes! {
     WsRoutes,
     "/",
     Online => "online",
-    Client => "client/:access_token",
-    Pi => "pi/:access_token"
+    Client => "client/{access_token}",
+    Pi => "pi/{access_token}"
 }
 
 // Measure message size in bytes
@@ -242,7 +242,7 @@ impl WsRouter {
     }
 
     /// Deal with text messages when structured data is enabled
-    async fn structured_text_handler(input: &HandlerData<'_>, data: String) {
+    async fn structured_text_handler(input: &HandlerData<'_>, data: Utf8Bytes) {
         match input.device_type {
             ConnectionType::Client => match serde_json::from_str::<wm::ClientBody>(&data) {
                 Ok(body) => {
@@ -385,7 +385,7 @@ impl WsRouter {
             uptime: calc_uptime(state.start_time),
             api_version: S!(env!("CARGO_PKG_VERSION")),
         }) {
-            if let Err(e) = socket.send(Message::Text(response)).await {
+            if let Err(e) = socket.send(Message::Text(response.into())).await {
                 tracing::debug!("online_ws::send::{:?}", e);
             }
         }
@@ -1161,35 +1161,35 @@ mod tests {
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // structured error
         let msg_text = r#"{"error":{"message":"received data is invalid structure", "code":400}}"#;
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // structured additional field
         let msg_text = r#"{"data":{"message":"received data is invalid structure", "code":400}, "another":"one:}"#;
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // cache not bool
         let msg_text = r#"{"data":"something", "cache":1}"#;
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // unique not ulid
         let msg_text = r#"{"data":"something", "unique":1}"#;
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // unique invalid ulid
         let ulid = Ulid::new();
@@ -1197,7 +1197,7 @@ mod tests {
         let msg = Message::from(msg_text);
         ws_pi.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
     }
 
     #[tokio::test]
@@ -1235,7 +1235,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // structured error
         let msg_text = r#"{"error":{"message":"received data is invalid structure", "code":400}}"#;
@@ -1248,7 +1248,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // structured additional field
         let msg_text = r#"{"data":{"message":"received data is invalid structure", "code":400}, "another":"one:}"#;
@@ -1261,7 +1261,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // cache anything
         let msg_text = r#"{"data":"something", "cache":1}"#;
@@ -1274,7 +1274,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // unique not ulid
         let msg_text = r#"{"data":"something", "unique":1}"#;
@@ -1287,7 +1287,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
 
         // unique not true
         let msg_text = r#"{"data":"something", "unique":false}"#;
@@ -1300,7 +1300,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, INVALID_BODY);
+        assert_eq!(result.as_str(), INVALID_BODY);
     }
 
     #[tokio::test]
@@ -1342,7 +1342,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, msg_text);
+        assert_eq!(result.as_str(), msg_text);
     }
 
     #[tokio::test]
@@ -1389,7 +1389,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, msg_text);
+        assert_eq!(result.as_str(), msg_text);
 
         let result = &ws_client_02
             .next()
@@ -1398,7 +1398,7 @@ mod tests {
             .unwrap()
             .into_text()
             .unwrap();
-        assert_eq!(result, msg_text);
+        assert_eq!(result.as_str(), msg_text);
     }
 
     #[tokio::test]
@@ -1434,7 +1434,7 @@ mod tests {
         let msg = Message::from(msg_text);
         ws_client.send(msg).await.unwrap();
         let result = &ws_pi.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(result, msg_text);
+        assert_eq!(result.as_str(), msg_text);
     }
 
     #[tokio::test]
@@ -2485,7 +2485,7 @@ mod tests {
         ws_pi.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(msg_text, response);
+        assert_eq!(msg_text, response.as_str());
 
         // sleep as bandwidth inserted on own thread
         sleep!();
@@ -2527,7 +2527,7 @@ mod tests {
         ws_client.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(msg_text, response);
+        assert_eq!(msg_text, response.as_str());
 
         // sleep as bandwidth inserted on own thread
         sleep!();
@@ -2763,7 +2763,7 @@ mod tests {
         ws_pi.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(msg_text, response);
+        assert_eq!(msg_text, response.as_str());
 
         // sleep as bandwidth inserted on own thread
         sleep!();
@@ -2805,7 +2805,7 @@ mod tests {
         ws_client.send(C!(msg)).await.unwrap();
 
         let response = rx.next().await.unwrap().unwrap().into_text().unwrap();
-        assert_eq!(msg_text, response);
+        assert_eq!(msg_text, response.as_str());
 
         // sleep as bandwidth inserted on own thread
         sleep!();

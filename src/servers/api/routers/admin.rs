@@ -82,12 +82,12 @@ define_routes! {
     Invite => "/invite",
     Limit => "/limit",
     Memory => "/memory",
-    Session => "/session/:session",
-    UserEmail => "/user/:email",
-    UserEmailActive => "/user/:email/active",
-    UserEmailAttempt => "/user/:email/attempt",
-    UserEmailDevice => "/user/:email/device/:device_name",
-    UserEmailDevices => "/user/:email/devices"
+    Session => "/session/{session}",
+    UserEmail => "/user/{email}",
+    UserEmailActive => "/user/{email}/active",
+    UserEmailAttempt => "/user/{email}/attempt",
+    UserEmailDevice => "/user/{email}/device/{device_name}",
+    UserEmailDevices => "/user/{email}/devices"
 }
 
 pub struct AdminRouter;

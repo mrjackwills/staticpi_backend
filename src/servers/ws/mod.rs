@@ -1,6 +1,6 @@
 use tower_http::cors::{Any, CorsLayer};
 
-use axum::{async_trait, http::Method, middleware, Router};
+use axum::{http::Method, middleware, Router};
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 
@@ -19,7 +19,6 @@ mod ws_router;
 
 pub struct WsServer;
 
-#[async_trait]
 impl Serve for WsServer {
     /// Serve the `ws_application`
     async fn serve(serve_data: ServeData) -> Result<(), ApiError> {
