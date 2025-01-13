@@ -1,10 +1,8 @@
-### 2024-11-29
+### 2025-01-13
 
 ### Chores
-+ dependencies updated, [cb248c8cf4c75066fa972e3be68dc9e710ae3ab9]
-+ Rust 1.83.0 linting, [1d8b7d65d591edaf038d3856a25c6fac34247335]
-
-### Features
-+ spawn everything in main, [12bd38e24ea2f6cfcce92091a413d9f20040c4b4]
++ alpine & postgres updated, [57c1ccc06c9079867fd8efc87348acf7a7b1b25a]
++ dependencies updated, [d0d5fbea8d26b609b1f1c4f72eece8e2b17884c2]
++ Rust 1.84 linting, [85676b7ed6cae9d9e436bc0877786056db96da11]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
