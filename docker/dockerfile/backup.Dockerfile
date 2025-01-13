@@ -1,11 +1,11 @@
-FROM alpine:3.20
+FROM alpine:3.21
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \
 	DOCKER_APP_USER=app_user \
 	DOCKER_APP_GROUP=app_group
 
-RUN apk add --update --no-cache gnupg age postgresql16-client \
+RUN apk add --update --no-cache gnupg age postgresql17-client \
 	&& addgroup -g ${DOCKER_GUID} -S ${DOCKER_APP_GROUP} \
 	&& adduser -u ${DOCKER_UID} -S -G ${DOCKER_APP_GROUP} ${DOCKER_APP_USER} \
 	&& mkdir /backups /redis_data /logs
