@@ -53,7 +53,7 @@ define_routes! {
 // Measure message size in bytes
 pub fn get_message_size(msg: &Message) -> usize {
     match msg {
-        Message::Text(data) => data.as_bytes().len(),
+        Message::Text(data) => data.len(),
         Message::Binary(data) | Message::Ping(data) | Message::Pong(data) => data.len(),
         Message::Close(_) => 0,
     }

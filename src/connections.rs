@@ -293,8 +293,7 @@ impl ClientConnections {
 
     fn is_alive(&self, device_id: DeviceId, ulid: Ulid) -> bool {
         self.0
-            .get(&device_id)
-            .map_or(false, |map| map.get(&ulid).is_some())
+            .get(&device_id).is_some_and(|map| map.get(&ulid).is_some())
     }
 
     /// Close all client_connections linked to a single device, and remove inner hashmap
@@ -449,7 +448,7 @@ impl Connections {
 
     /// Send a message from pi to all clients, or client to pi
     /// msg should be message type?
-    pub async fn send_all<'a>(&mut self, input: &'a HandlerData<'_>, msg: SendMessage) {
+    pub async fn send_all(&mut self, input: & HandlerData<'_>, msg: SendMessage) {
         let message: Message = msg.into();
         match input.device_type {
             // Send to all clients
@@ -498,7 +497,7 @@ impl Connections {
     }
 
     /// Send a message to self, used when returning error messages etc
-    pub async fn send_self<'a>(&mut self, input: &'a HandlerData<'_>, msg: SendMessage) {
+    pub async fn send_self(&mut self, input: & HandlerData<'_>, msg: SendMessage) {
         let msg_size = msg.get_size();
         let message = Message::from(msg);
 
@@ -517,9 +516,9 @@ impl Connections {
 
     /// Send a message to a single client
     /// Will only send if the sendee is a Pi
-    pub async fn send_unique<'a>(
+    pub async fn send_unique(
         &mut self,
-        input: &'a HandlerData<'_>,
+        input: &HandlerData<'_>,
         msg: SendMessage,
         ulid: Ulid,
     ) {

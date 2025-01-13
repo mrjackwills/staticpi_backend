@@ -100,7 +100,7 @@ impl Serve for ApiServer {
 // http tests - ran via actual requests to a (local) server
 // cargo watch -q -c -w src/ -x 'test http_mod -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[expect(clippy::unwrap_used, clippy::pedantic)]
+#[expect(clippy::unwrap_used)]
 pub mod api_tests {
 
     use fred::interfaces::KeysInterface;
