@@ -2,7 +2,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use fred::error::{RedisError, RedisErrorKind};
+use fred::error::{Error, ErrorKind};
 use std::time::SystemTimeError;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -32,7 +32,7 @@ pub enum ApiError {
     #[error("rate limited for")]
     RateLimited(i64),
     #[error("redis error")]
-    RedisError(#[from] RedisError),
+    Error(#[from] Error),
     #[error("reqwest")]
     Reqwest(#[from] reqwest::Error),
     #[error("internal error")]
@@ -91,9 +91,9 @@ impl IntoResponse for ApiError {
                 StatusCode::TOO_MANY_REQUESTS,
                 Some(OutgoingJson::new(format!("{prefix} {limit} seconds"))),
             ),
-            Self::RedisError(e) => {
+            Self::Error(e) => {
                 tracing::error!("{e:?}");
-                if e.kind() == &RedisErrorKind::IO {
+                if e.kind() == &ErrorKind::IO {
                     exit();
                 }
                 internal!(prefix)

@@ -1,7 +1,7 @@
 mod models;
 
 use crate::{api_error::ApiError, parse_env::AppEnv};
-use fred::{clients::RedisPool, interfaces::ClientLike, types::ReconnectPolicy};
+use fred::{clients::Pool, interfaces::ClientLike, prelude::ReconnectPolicy};
 
 pub use models::*;
 use std::{fmt, net::IpAddr};
@@ -55,21 +55,16 @@ impl fmt::Display for RedisKey<'_> {
 #[macro_export]
 macro_rules! redis_hash_to_struct {
     ($struct_name:ident) => {
-        impl fred::types::FromRedis for $struct_name {
-            fn from_value(
-                value: fred::prelude::RedisValue,
-            ) -> Result<Self, fred::prelude::RedisError> {
+        impl fred::types::FromValue for $struct_name {
+            fn from_value(value: fred::prelude::Value) -> Result<Self, fred::prelude::Error> {
                 value.as_str().map_or(
-                    Err(fred::error::RedisError::new(
-                        fred::error::RedisErrorKind::Parse,
+                    Err(fred::error::Error::new(
+                        fred::error::ErrorKind::Parse,
                         format!("FromRedis: {}", stringify!(struct_name)),
                     )),
                     |i| {
                         serde_json::from_str::<Self>(&i).map_err(|_| {
-                            fred::error::RedisError::new(
-                                fred::error::RedisErrorKind::Parse,
-                                "serde",
-                            )
+                            fred::error::Error::new(fred::error::ErrorKind::Parse, "serde")
                         })
                     },
                 )
@@ -90,7 +85,7 @@ pub struct DbRedis;
 
 impl DbRedis {
     /// Get an async redis connection
-    pub async fn get_pool(app_env: &AppEnv) -> Result<RedisPool, ApiError> {
+    pub async fn get_pool(app_env: &AppEnv) -> Result<Pool, ApiError> {
         let redis_url = format!(
             "redis://:{password}@{host}:{port}/{db}",
             password = app_env.redis_password,
@@ -99,11 +94,8 @@ impl DbRedis {
             db = app_env.redis_database
         );
 
-        let config = fred::types::RedisConfig::from_url(&redis_url)?;
+        let config = fred::types::config::Config::from_url(&redis_url)?;
         let pool = fred::types::Builder::from_config(config)
-            .with_performance_config(|config| {
-                config.auto_pipeline = true;
-            })
             // use exponential backoff, starting at 100 ms and doubling on each failed attempt up to 30 sec
             .set_policy(ReconnectPolicy::new_exponential(0, 100, 30_000, 2))
             .build_pool(32)?;
@@ -128,7 +120,7 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
 
-        let result = result.ping::<String>().await;
+        let result = result.ping::<String>(None).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "PONG");

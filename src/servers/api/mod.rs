@@ -4,7 +4,7 @@ mod routers;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
-use axum::{async_trait, http::HeaderValue, middleware, Extension, Router};
+use axum::{http::HeaderValue, middleware, Extension, Router};
 use std::net::SocketAddr;
 
 use crate::{
@@ -18,7 +18,6 @@ use super::{shutdown_signal, ApiRouter, Serve, ServeData};
 
 pub struct ApiServer;
 
-#[async_trait]
 impl Serve for ApiServer {
     /// Serve the `api_application`
     async fn serve(serve_data: ServeData) -> Result<(), ApiError> {
@@ -101,7 +100,7 @@ impl Serve for ApiServer {
 // http tests - ran via actual requests to a (local) server
 // cargo watch -q -c -w src/ -x 'test http_mod -- --test-threads=1 --nocapture'
 #[cfg(test)]
-#[expect(clippy::unwrap_used, clippy::pedantic)]
+#[expect(clippy::unwrap_used)]
 pub mod api_tests {
 
     use fred::interfaces::KeysInterface;

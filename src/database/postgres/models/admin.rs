@@ -1,4 +1,4 @@
-use fred::clients::RedisPool;
+use fred::clients::Pool;
 use serde::Serialize;
 use sqlx::PgPool;
 
@@ -63,7 +63,7 @@ impl AdminModelUser {
     #[expect(clippy::too_many_lines)]
     pub async fn get_all(
         postgres: &PgPool,
-        redis: &RedisPool,
+        redis: &Pool,
     ) -> Result<Vec<AdminUserAndSession>, ApiError> {
         let query = r"
 SELECT

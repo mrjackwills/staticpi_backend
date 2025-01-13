@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 
-use fred::clients::RedisPool;
+use fred::clients::Pool;
 use ulid::Ulid;
 
 use crate::{
@@ -62,7 +62,7 @@ impl TokenRouter {
 
     /// Insert an access token into redis
     async fn create_access_token(
-        redis: &RedisPool,
+        redis: &Pool,
         device_id: DeviceId,
         device_type: ConnectionType,
         req: &ModelUserAgentIp,
@@ -643,7 +643,7 @@ mod tests {
 
         test_setup
             .redis
-            .set::<(), String, u8>(
+            .set::<(), String, i8>(
                 format!("ratelimit::ws_free::{}", test_setup.get_user_id().get()),
                 30,
                 Some(Expiration::EX(60)),
@@ -674,7 +674,7 @@ mod tests {
 
         test_setup
             .redis
-            .set::<(), String, u8>(
+            .set::<(), String, i8>(
                 format!("ratelimit::ws_free::{}", test_setup.get_user_id().get()),
                 30,
                 Some(Expiration::EX(60)),

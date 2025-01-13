@@ -1,7 +1,7 @@
 use super::{monthly_bandwidth::ModelMonthlyBandwidth, new_types::DeviceId};
 use crate::{connections::ConnectionType, C};
 
-use fred::clients::RedisPool;
+use fred::clients::Pool;
 use sqlx::PgPool;
 
 pub struct ModelHourlyBandwidth;
@@ -17,7 +17,7 @@ impl ModelHourlyBandwidth {
         is_counted: bool,
         msg_size: usize,
         postgres: &PgPool,
-        redis: &RedisPool,
+        redis: &Pool,
     ) {
         if msg_size > 0 {
             let spawn_postgres = C!(postgres);

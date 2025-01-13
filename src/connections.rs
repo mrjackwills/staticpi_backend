@@ -1,5 +1,6 @@
 use axum::{
-    extract::ws::{Message, WebSocket},
+    body::Bytes,
+    extract::ws::{Message, Utf8Bytes, WebSocket},
     http::Uri,
 };
 use futures::{stream::SplitSink, SinkExt};
@@ -31,40 +32,52 @@ pub type AMConnections = Arc<Mutex<Connections>>;
 
 #[derive(Debug)]
 pub enum SendMessage {
-    Text(String),
-    Binary(Vec<u8>),
+    Text(Utf8Bytes),
+    Binary(Bytes),
 }
 
 impl SendMessage {
     pub fn get_size(&self) -> usize {
         match self {
             Self::Binary(x) => x.len(),
-            Self::Text(x) => x.as_bytes().len(),
+            Self::Text(x) => x.len(),
         }
+    }
+}
+
+impl From<Bytes> for SendMessage {
+    fn from(x: Bytes) -> Self {
+        Self::Binary(x)
     }
 }
 
 impl From<Vec<u8>> for SendMessage {
     fn from(x: Vec<u8>) -> Self {
-        Self::Binary(x)
+        Self::Binary(x.into())
+    }
+}
+
+impl From<Utf8Bytes> for SendMessage {
+    fn from(x: Utf8Bytes) -> Self {
+        Self::Text(x)
     }
 }
 
 impl From<String> for SendMessage {
     fn from(x: String) -> Self {
-        Self::Text(x)
+        Self::Text(x.into())
     }
 }
 
 impl From<PiBody> for SendMessage {
     fn from(x: PiBody) -> Self {
-        Self::Text(x.to_string())
+        Self::Text(x.to_string().into())
     }
 }
 
 impl From<ClientBody> for SendMessage {
     fn from(x: ClientBody) -> Self {
-        Self::Text(x.to_string())
+        Self::Text(x.to_string().into())
     }
 }
 
@@ -192,7 +205,7 @@ impl WsSender {
     /// Check if auto close valid, if not, close connection, else send a ping message
     async fn ping(&mut self, now: &Instant) -> Result<(), ()> {
         if self.auto_close_valid(now).is_ok() {
-            self.socket.send(Message::Ping(vec![])).await.ok();
+            self.socket.send(Message::Ping(Bytes::new())).await.ok();
             Ok(())
         } else {
             Err(())
@@ -281,7 +294,7 @@ impl ClientConnections {
     fn is_alive(&self, device_id: DeviceId, ulid: Ulid) -> bool {
         self.0
             .get(&device_id)
-            .map_or(false, |map| map.get(&ulid).is_some())
+            .is_some_and(|map| map.get(&ulid).is_some())
     }
 
     /// Close all client_connections linked to a single device, and remove inner hashmap
@@ -436,7 +449,7 @@ impl Connections {
 
     /// Send a message from pi to all clients, or client to pi
     /// msg should be message type?
-    pub async fn send_all<'a>(&mut self, input: &'a HandlerData<'_>, msg: SendMessage) {
+    pub async fn send_all(&mut self, input: &HandlerData<'_>, msg: SendMessage) {
         let message: Message = msg.into();
         match input.device_type {
             // Send to all clients
@@ -485,7 +498,7 @@ impl Connections {
     }
 
     /// Send a message to self, used when returning error messages etc
-    pub async fn send_self<'a>(&mut self, input: &'a HandlerData<'_>, msg: SendMessage) {
+    pub async fn send_self(&mut self, input: &HandlerData<'_>, msg: SendMessage) {
         let msg_size = msg.get_size();
         let message = Message::from(msg);
 
@@ -504,12 +517,7 @@ impl Connections {
 
     /// Send a message to a single client
     /// Will only send if the sendee is a Pi
-    pub async fn send_unique<'a>(
-        &mut self,
-        input: &'a HandlerData<'_>,
-        msg: SendMessage,
-        ulid: Ulid,
-    ) {
+    pub async fn send_unique(&mut self, input: &HandlerData<'_>, msg: SendMessage, ulid: Ulid) {
         let message = Message::from(msg);
         if input.device_type == ConnectionType::Pi {
             if let Some(map) = self.client.0.get_mut(&input.device.device_id) {

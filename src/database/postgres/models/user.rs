@@ -1,11 +1,10 @@
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
 use axum_extra::extract::{cookie::Key, PrivateCookieJar};
 
-use fred::clients::RedisPool;
+use fred::clients::Pool;
 use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Row};
 use time::OffsetDateTime;
 
@@ -26,7 +25,7 @@ use super::{
 #[expect(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelUser {
-    // skip serializng?
+    // skip serializing?
     pub registered_user_id: UserId,
     pub full_name: String,
     pub email: String,
@@ -226,7 +225,7 @@ WHERE
     /// This is a hard delete, and also checks to see if any IP address, UserAgents, and DeviceNames can also be deleted
     /// take in admin user, and match user id?
     #[expect(clippy::too_many_lines)]
-    pub async fn delete(&self, postgres: &PgPool, redis: &RedisPool) -> Result<(), ApiError> {
+    pub async fn delete(&self, postgres: &PgPool, redis: &Pool) -> Result<(), ApiError> {
         let mut transaction = postgres.begin().await?;
 
         let registered_user_query = "
@@ -408,7 +407,6 @@ WHERE
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for ModelUser
 where
     ApplicationState: FromRef<S>,

@@ -97,7 +97,7 @@ impl AppEnv {
 
     /// Parse "true" or "false" to bool, else false
     fn parse_boolean(key: &str, map: &EnvHashMap) -> bool {
-        map.get(key).map_or(false, |value| value == "true")
+        map.get(key).is_some_and(|value| value == "true")
     }
 
     /// Parse string to u32, else return 1
