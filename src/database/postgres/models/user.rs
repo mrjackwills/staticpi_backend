@@ -25,7 +25,7 @@ use super::{
 #[expect(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelUser {
-    // skip serializng?
+    // skip serializing?
     pub registered_user_id: UserId,
     pub full_name: String,
     pub email: String,

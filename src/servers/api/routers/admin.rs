@@ -2165,7 +2165,7 @@ mod tests {
     }
 
     #[tokio::test]
-    /// Admin user able to de-activate the anon user, anon user session_set & sessions removed, unabled to log in,
+    /// Admin user able to de-activate the anon user, anon user session_set & sessions removed, unable to log in,
     async fn admin_router_active_anon_ok() {
         let mut test_setup = start_servers().await;
         let authed_cookie = test_setup.authed_user_cookie().await;
