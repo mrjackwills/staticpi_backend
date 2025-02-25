@@ -1,7 +1,7 @@
 use fred::clients::Pool;
 use futures::Future;
 use serde::Serialize;
-use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Postgres, Row, Transaction};
+use sqlx::{Error, FromRow, PgPool, Postgres, Row, Transaction, postgres::PgRow};
 use std::{net::IpAddr, pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -244,12 +244,12 @@ WHERE
             Ok(exists)
         } else {
             let query = "
-INSERT INTO
-	device_name(name_of_device)
-VALUES
-	($1)
-RETURNING
-	device_name_id, name_of_device";
+        INSERT INTO
+        	device_name(name_of_device)
+        VALUES
+        	($1)
+        RETURNING
+        	device_name_id, name_of_device";
             Ok(sqlx::query_as::<_, Self>(query)
                 .bind(device_name)
                 .fetch_one(&mut **transaction)
@@ -650,28 +650,29 @@ WHERE
 			name_of_device = $2
 	) RETURNING device_id,
 	api_key_id";
-        if let Some(device_api_id) = sqlx::query_as::<_, ModelDeviceIdApiKeyId>(query)
+        match sqlx::query_as::<_, ModelDeviceIdApiKeyId>(query)
             .bind(user.registered_user_id.get())
             .bind(device_name)
             .fetch_optional(&mut *transaction)
             .await?
         {
-            let query = "
+            Some(device_api_id) => {
+                let query = "
 UPDATE
 	api_key
 SET
 	active = FALSE
 WHERE
 	api_key_id = $1";
-            sqlx::query(query)
-                .bind(device_api_id.api_key_id.get())
-                .execute(&mut *transaction)
-                .await?;
+                sqlx::query(query)
+                    .bind(device_api_id.api_key_id.get())
+                    .execute(&mut *transaction)
+                    .await?;
 
-            transaction.commit().await?;
-            Ok(Some(device_api_id.device_id))
-        } else {
-            Ok(None)
+                transaction.commit().await?;
+                Ok(Some(device_api_id.device_id))
+            }
+            _ => Ok(None),
         }
     }
 

@@ -11,7 +11,7 @@ use crate::{
     database::{
         ip_user_agent::ModelUserAgentIp,
         new_types::{DeviceId, IpId},
-        redis::{RedisKey, HASH_FIELD},
+        redis::{HASH_FIELD, RedisKey},
     },
     hmap, redis_hash_to_struct,
 };

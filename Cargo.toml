@@ -1,13 +1,13 @@
 [package]
 name = "staticpi"
 version = "0.0.21"
-edition = "2021"
+edition = "2024"
 authors = ["Jack Wills <email@mrjackwills.com>"]
 description = "staticPi backend server"
 repository = "https://github.com/mrjackwills/staticpi_api"
 license = "MIT"
 readme = "README.md"
-rust-version = "1.82.0"
+rust-version = "1.85"
 
 [lints.rust]
 unsafe_code = "forbid"

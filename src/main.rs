@@ -21,7 +21,7 @@ use database::connection::ModelConnection;
 use parse_env::AppEnv;
 use pinger::Pinger;
 
-use servers::{api::ApiServer, token::TokenServer, ws::WsServer, Serve, ServeData, ServerName};
+use servers::{Serve, ServeData, ServerName, api::ApiServer, token::TokenServer, ws::WsServer};
 
 use std::sync::Arc;
 use tokio::sync::Mutex;

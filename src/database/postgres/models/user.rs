@@ -2,18 +2,18 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
-use axum_extra::extract::{cookie::Key, PrivateCookieJar};
+use axum_extra::extract::{PrivateCookieJar, cookie::Key};
 
 use fred::clients::Pool;
-use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Row};
+use sqlx::{Error, FromRow, PgPool, Row, postgres::PgRow};
 use time::OffsetDateTime;
 
 use crate::{
+    C,
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::{get_cookie_ulid, ApplicationState},
-    C,
+    servers::{ApplicationState, get_cookie_ulid},
 };
 
 use super::{

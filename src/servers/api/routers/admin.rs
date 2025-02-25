@@ -1,15 +1,16 @@
 use axum::{
+    Router,
     extract::State,
     http::StatusCode,
     middleware,
     routing::{delete, get, patch},
-    Router,
 };
 use axum_extra::extract::PrivateCookieJar;
 use fred::interfaces::KeysInterface;
 use std::time::SystemTime;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     database::{
         admin::{AdminDevice, AdminModelUser, AdminUserAndSession},
@@ -26,12 +27,11 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
+    servers::{ApiRouter, ApplicationState, StatusOJ, api::authentication, get_cookie_ulid},
     user_io::{
         incoming_json::ij,
         outgoing_json::oj::{self, AdminEmailsCounts},
     },
-    C, S,
 };
 
 struct SysInfo {
@@ -246,18 +246,20 @@ impl AdminRouter {
         user: ModelUser,
         ij::Path(ij::Reset { email }): ij::Path<ij::Reset>,
     ) -> Result<StatusCode, ApiError> {
-        if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
-            if model_user.registered_user_id == user.registered_user_id {
-                Err(ApiError::InvalidValue(S!("Can't de-activate self")))
-            } else {
-                if model_user.active {
-                    RedisSession::delete_all(&state.redis, model_user.registered_user_id).await?;
+        match ModelUser::admin_get(&state.postgres, &email).await? {
+            Some(model_user) => {
+                if model_user.registered_user_id == user.registered_user_id {
+                    Err(ApiError::InvalidValue(S!("Can't de-activate self")))
+                } else {
+                    if model_user.active {
+                        RedisSession::delete_all(&state.redis, model_user.registered_user_id)
+                            .await?;
+                    }
+                    model_user.admin_toggle_active(&state.postgres).await?;
+                    Ok(StatusCode::OK)
                 }
-                model_user.admin_toggle_active(&state.postgres).await?;
-                Ok(StatusCode::OK)
             }
-        } else {
-            Err(ApiError::InvalidValue(S!("unknown user")))
+            _ => Err(ApiError::InvalidValue(S!("unknown user"))),
         }
     }
 
@@ -315,22 +317,23 @@ impl AdminRouter {
         {
             return Err(ApiError::Authorization);
         }
-        if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
-            if let Some(device_id) =
-                ModelDevice::delete_by_name(&state.postgres, &model_user, &device_name).await?
-            {
-                state
-                    .connections
-                    .lock()
-                    .await
-                    .close_by_single_device_id(device_id)
-                    .await;
+        match ModelUser::admin_get(&state.postgres, &email).await? {
+            Some(model_user) => {
+                if let Some(device_id) =
+                    ModelDevice::delete_by_name(&state.postgres, &model_user, &device_name).await?
+                {
+                    state
+                        .connections
+                        .lock()
+                        .await
+                        .close_by_single_device_id(device_id)
+                        .await;
 
-                MessageCache::delete(&state.redis, device_id).await?;
+                    MessageCache::delete(&state.redis, device_id).await?;
+                }
+                Ok(StatusCode::OK)
             }
-            Ok(StatusCode::OK)
-        } else {
-            Err(ApiError::InvalidValue(S!("unknown user")))
+            _ => Err(ApiError::InvalidValue(S!("unknown user"))),
         }
     }
 
@@ -351,25 +354,25 @@ impl AdminRouter {
         {
             return Err(ApiError::Authorization);
         }
-        if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
-            if let Some(device) =
-                ModelDevice::get_by_name(&state.postgres, &model_user, &device_name).await?
-            {
-                state
-                    .connections
-                    .lock()
-                    .await
-                    .close_by_single_device_id(device.device_id)
-                    .await;
-                device
-                    .update_paused(&state.postgres, !device.paused)
-                    .await?;
-                Ok(StatusCode::OK)
-            } else {
-                Err(ApiError::InvalidValue(S!("unknown device")))
+        match ModelUser::admin_get(&state.postgres, &email).await? {
+            Some(model_user) => {
+                match ModelDevice::get_by_name(&state.postgres, &model_user, &device_name).await? {
+                    Some(device) => {
+                        state
+                            .connections
+                            .lock()
+                            .await
+                            .close_by_single_device_id(device.device_id)
+                            .await;
+                        device
+                            .update_paused(&state.postgres, !device.paused)
+                            .await?;
+                        Ok(StatusCode::OK)
+                    }
+                    _ => Err(ApiError::InvalidValue(S!("unknown device"))),
+                }
             }
-        } else {
-            Err(ApiError::InvalidValue(S!("unknown user")))
+            _ => Err(ApiError::InvalidValue(S!("unknown user"))),
         }
     }
 
@@ -390,16 +393,17 @@ impl AdminRouter {
         {
             return Err(ApiError::Authorization);
         }
-        if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
-            if model_user == admin_user {
-                return Err(ApiError::InvalidValue(S!(
-                    "Admin users can't delete their own accounts"
-                )));
+        match ModelUser::admin_get(&state.postgres, &email).await? {
+            Some(model_user) => {
+                if model_user == admin_user {
+                    return Err(ApiError::InvalidValue(S!(
+                        "Admin users can't delete their own accounts"
+                    )));
+                }
+                model_user.delete(&state.postgres, &state.redis).await?;
+                Ok(StatusCode::OK)
             }
-            model_user.delete(&state.postgres, &state.redis).await?;
-            Ok(StatusCode::OK)
-        } else {
-            Err(ApiError::InvalidValue(S!("unknown user")))
+            _ => Err(ApiError::InvalidValue(S!("unknown user"))),
         }
     }
 
@@ -409,24 +413,25 @@ impl AdminRouter {
         user: ModelUser,
         ij::Path(ij::Reset { email }): ij::Path<ij::Reset>,
     ) -> Result<StatusOJ<Vec<AdminDevice>>, ApiError> {
-        if let Some(model_user) = ModelUser::admin_get(&state.postgres, &email).await? {
-            let devices = ModelDevice::get_all(&state.postgres, &model_user).await?;
-            let mut output = vec![];
-            for i in devices {
-                let connections = state
-                    .connections
-                    .lock()
-                    .await
-                    .get_admin_info_device(&user, i.device_id)?;
+        match ModelUser::admin_get(&state.postgres, &email).await? {
+            Some(model_user) => {
+                let devices = ModelDevice::get_all(&state.postgres, &model_user).await?;
+                let mut output = vec![];
+                for i in devices {
+                    let connections = state
+                        .connections
+                        .lock()
+                        .await
+                        .get_admin_info_device(&user, i.device_id)?;
 
-                output.push(AdminDevice {
-                    connections,
-                    device: i,
-                });
+                    output.push(AdminDevice {
+                        connections,
+                        device: i,
+                    });
+                }
+                Ok((StatusCode::OK, oj::OutgoingJson::new(output)))
             }
-            Ok((StatusCode::OK, oj::OutgoingJson::new(output)))
-        } else {
-            Err(ApiError::InvalidValue(S!("unknown user")))
+            _ => Err(ApiError::InvalidValue(S!("unknown user"))),
         }
     }
 
@@ -484,11 +489,11 @@ mod tests {
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::{
-        api_base_url, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME, TEST_EMAIL,
-        TEST_FULL_NAME, TEST_PASSWORD, TEST_USER_AGENT,
+        ANON_EMAIL, ANON_FULL_NAME, Response, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD,
+        TEST_USER_AGENT, TestSetup, api_base_url, start_servers,
     };
     use crate::user_io::incoming_json::ij::{AdminInvite, DevicePost};
-    use crate::{sleep, C, S};
+    use crate::{C, S, sleep};
 
     use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
@@ -878,26 +883,30 @@ mod tests {
                 .unwrap(),
             60
         );
-        assert!((58..60).contains(
-            &result
+        assert!(
+            (58..60).contains(
+                &result
+                    .get(api_index)
+                    .unwrap()
+                    .as_object()
+                    .unwrap()
+                    .get("ttl")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap()
+            )
+        );
+        assert!(
+            !result
                 .get(api_index)
                 .unwrap()
                 .as_object()
                 .unwrap()
-                .get("ttl")
+                .get("blocked")
                 .unwrap()
-                .as_i64()
+                .as_bool()
                 .unwrap()
-        ));
-        assert!(!result
-            .get(api_index)
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("blocked")
-            .unwrap()
-            .as_bool()
-            .unwrap());
+        );
 
         let user_index = result.iter().position(|i| {
             i.as_object()
@@ -937,26 +946,30 @@ mod tests {
         );
 
         // should be 58 or 59
-        assert!((55..60).contains(
-            &result
+        assert!(
+            (55..60).contains(
+                &result
+                    .get(user_index)
+                    .unwrap()
+                    .as_object()
+                    .unwrap()
+                    .get("ttl")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap()
+            )
+        );
+        assert!(
+            !result
                 .get(user_index)
                 .unwrap()
                 .as_object()
                 .unwrap()
-                .get("ttl")
+                .get("blocked")
                 .unwrap()
-                .as_i64()
+                .as_bool()
                 .unwrap()
-        ));
-        assert!(!result
-            .get(user_index)
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("blocked")
-            .unwrap()
-            .as_bool()
-            .unwrap());
+        );
 
         let ws_pro_index = result.iter().position(|i| {
             i.as_object()
@@ -994,26 +1007,30 @@ mod tests {
                 .unwrap(),
             300
         );
-        assert!((58..60).contains(
-            &result
+        assert!(
+            (58..60).contains(
+                &result
+                    .get(ws_pro_index)
+                    .unwrap()
+                    .as_object()
+                    .unwrap()
+                    .get("ttl")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap()
+            )
+        );
+        assert!(
+            !result
                 .get(ws_pro_index)
                 .unwrap()
                 .as_object()
                 .unwrap()
-                .get("ttl")
+                .get("blocked")
                 .unwrap()
-                .as_i64()
+                .as_bool()
                 .unwrap()
-        ));
-        assert!(!result
-            .get(ws_pro_index)
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("blocked")
-            .unwrap()
-            .as_bool()
-            .unwrap());
+        );
 
         let ip_index = result.iter().position(|i| {
             i.as_object()
@@ -1062,15 +1079,17 @@ mod tests {
                 .unwrap(),
             299
         );
-        assert!(result
-            .get(ip_index)
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("blocked")
-            .unwrap()
-            .as_bool()
-            .unwrap());
+        assert!(
+            result
+                .get(ip_index)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .get("blocked")
+                .unwrap()
+                .as_bool()
+                .unwrap()
+        );
     }
 
     #[tokio::test]
@@ -1611,32 +1630,40 @@ mod tests {
         let test_user = result.get(test_index.unwrap()).unwrap();
 
         assert!(test_user.get("sessions").unwrap().is_array());
-        assert!(test_user.get("sessions").unwrap().as_array().unwrap()[0]
-            .get("key")
-            .unwrap()
-            .is_string());
-        assert!(test_user.get("sessions").unwrap().as_array().unwrap()[0]
-            .get("timestamp")
-            .unwrap()
-            .is_number());
-        assert!((21595..=21600).contains(
-            &test_user.get("sessions").unwrap().as_array().unwrap()[0]
-                .get("ttl")
+        assert!(
+            test_user.get("sessions").unwrap().as_array().unwrap()[0]
+                .get("key")
                 .unwrap()
-                .as_i64()
+                .is_string()
+        );
+        assert!(
+            test_user.get("sessions").unwrap().as_array().unwrap()[0]
+                .get("timestamp")
                 .unwrap()
-        ));
+                .is_number()
+        );
+        assert!(
+            (21595..=21600).contains(
+                &test_user.get("sessions").unwrap().as_array().unwrap()[0]
+                    .get("ttl")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap()
+            )
+        );
 
         assert!(test_user.get("user").unwrap().is_object());
-        assert!(!test_user
-            .get("user")
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("two_fa_enabled")
-            .unwrap()
-            .as_bool()
-            .unwrap());
+        assert!(
+            !test_user
+                .get("user")
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .get("two_fa_enabled")
+                .unwrap()
+                .as_bool()
+                .unwrap()
+        );
         assert_eq!(
             test_user
                 .get("user")
@@ -1688,32 +1715,40 @@ mod tests {
 
         let anon_user = result.get(anon_index.unwrap()).unwrap();
         assert!(anon_user.get("sessions").unwrap().is_array());
-        assert!(anon_user.get("sessions").unwrap().as_array().unwrap()[0]
-            .get("key")
-            .unwrap()
-            .is_string());
-        assert!(anon_user.get("sessions").unwrap().as_array().unwrap()[0]
-            .get("timestamp")
-            .unwrap()
-            .is_number());
-        assert!((21595..=21600).contains(
-            &anon_user.get("sessions").unwrap().as_array().unwrap()[0]
-                .get("ttl")
+        assert!(
+            anon_user.get("sessions").unwrap().as_array().unwrap()[0]
+                .get("key")
                 .unwrap()
-                .as_i64()
-                .unwrap(),
-        ));
+                .is_string()
+        );
+        assert!(
+            anon_user.get("sessions").unwrap().as_array().unwrap()[0]
+                .get("timestamp")
+                .unwrap()
+                .is_number()
+        );
+        assert!(
+            (21595..=21600).contains(
+                &anon_user.get("sessions").unwrap().as_array().unwrap()[0]
+                    .get("ttl")
+                    .unwrap()
+                    .as_i64()
+                    .unwrap(),
+            )
+        );
 
         assert!(anon_user.get("user").unwrap().is_object());
-        assert!(anon_user
-            .get("user")
-            .unwrap()
-            .as_object()
-            .unwrap()
-            .get("two_fa_enabled")
-            .unwrap()
-            .as_bool()
-            .unwrap());
+        assert!(
+            anon_user
+                .get("user")
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .get("two_fa_enabled")
+                .unwrap()
+                .as_bool()
+                .unwrap()
+        );
         assert_eq!(
             anon_user
                 .get("user")
@@ -2398,18 +2433,22 @@ mod tests {
         assert!(connections.is_some());
         assert!(connections.unwrap().is_array());
 
-        assert!(connections.unwrap().as_array().unwrap()[0]
-            .as_object()
-            .unwrap()
-            .get("connection_id")
-            .unwrap()
-            .is_i64());
-        assert!(connections.unwrap().as_array().unwrap()[0]
-            .as_object()
-            .unwrap()
-            .get("device_id")
-            .unwrap()
-            .is_i64());
+        assert!(
+            connections.unwrap().as_array().unwrap()[0]
+                .as_object()
+                .unwrap()
+                .get("connection_id")
+                .unwrap()
+                .is_i64()
+        );
+        assert!(
+            connections.unwrap().as_array().unwrap()[0]
+                .as_object()
+                .unwrap()
+                .get("device_id")
+                .unwrap()
+                .is_i64()
+        );
         assert_eq!(
             connections.unwrap().as_array().unwrap()[0]
                 .as_object()
@@ -2430,31 +2469,39 @@ mod tests {
                 .unwrap(),
             "127.0.0.1"
         );
-        assert!(connections.unwrap().as_array().unwrap()[0]
-            .as_object()
-            .unwrap()
-            .get("timestamp")
-            .unwrap()
-            .is_i64());
-        assert!(connections.unwrap().as_array().unwrap()[0]
-            .as_object()
-            .unwrap()
-            .get("ulid")
-            .unwrap()
-            .is_string());
+        assert!(
+            connections.unwrap().as_array().unwrap()[0]
+                .as_object()
+                .unwrap()
+                .get("timestamp")
+                .unwrap()
+                .is_i64()
+        );
+        assert!(
+            connections.unwrap().as_array().unwrap()[0]
+                .as_object()
+                .unwrap()
+                .get("ulid")
+                .unwrap()
+                .is_string()
+        );
 
-        assert!(connections.unwrap().as_array().unwrap()[1]
-            .as_object()
-            .unwrap()
-            .get("connection_id")
-            .unwrap()
-            .is_i64());
-        assert!(connections.unwrap().as_array().unwrap()[1]
-            .as_object()
-            .unwrap()
-            .get("device_id")
-            .unwrap()
-            .is_i64());
+        assert!(
+            connections.unwrap().as_array().unwrap()[1]
+                .as_object()
+                .unwrap()
+                .get("connection_id")
+                .unwrap()
+                .is_i64()
+        );
+        assert!(
+            connections.unwrap().as_array().unwrap()[1]
+                .as_object()
+                .unwrap()
+                .get("device_id")
+                .unwrap()
+                .is_i64()
+        );
         assert_eq!(
             connections.unwrap().as_array().unwrap()[1]
                 .as_object()
@@ -2475,18 +2522,22 @@ mod tests {
                 .unwrap(),
             "127.0.0.1"
         );
-        assert!(connections.unwrap().as_array().unwrap()[1]
-            .as_object()
-            .unwrap()
-            .get("timestamp")
-            .unwrap()
-            .is_i64());
-        assert!(connections.unwrap().as_array().unwrap()[1]
-            .as_object()
-            .unwrap()
-            .get("ulid")
-            .unwrap()
-            .is_string());
+        assert!(
+            connections.unwrap().as_array().unwrap()[1]
+                .as_object()
+                .unwrap()
+                .get("timestamp")
+                .unwrap()
+                .is_i64()
+        );
+        assert!(
+            connections.unwrap().as_array().unwrap()[1]
+                .as_object()
+                .unwrap()
+                .get("ulid")
+                .unwrap()
+                .is_string()
+        );
 
         let device = result.get("device");
         assert!(device.is_some());
@@ -2562,12 +2613,14 @@ mod tests {
 
         assert!(device.get("timestamp_online").is_some());
         assert!(device.get("timestamp_online").as_ref().unwrap().is_string());
-        assert!(device
-            .get("timestamp_online")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&format!("{}", OffsetDateTime::now_utc().date())));
+        assert!(
+            device
+                .get("timestamp_online")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+        );
 
         assert!(device.get("ip").is_some());
         assert!(device.get("ip").as_ref().unwrap().is_string());
@@ -2575,12 +2628,14 @@ mod tests {
 
         assert!(device.get("creation_date").is_some());
         assert!(device.get("creation_date").as_ref().unwrap().is_string());
-        assert!(device
-            .get("creation_date")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&format!("{}", OffsetDateTime::now_utc().date())));
+        assert!(
+            device
+                .get("creation_date")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+        );
     }
 
     // *********************
@@ -2772,14 +2827,16 @@ mod tests {
         assert!(test_setup.query_user_active_devices().await[0].paused);
 
         // assert connections get cut
-        assert!(ws_client
-            .unwrap()
-            .0
-            .next()
-            .await
-            .unwrap()
-            .unwrap()
-            .is_close());
+        assert!(
+            ws_client
+                .unwrap()
+                .0
+                .next()
+                .await
+                .unwrap()
+                .unwrap()
+                .is_close()
+        );
         assert!(ws_pi.unwrap().0.next().await.unwrap().unwrap().is_close());
 
         let result = client
@@ -2835,14 +2892,16 @@ mod tests {
         assert!(test_setup.query_user_active_devices().await.is_empty());
 
         // assert connections get cut
-        assert!(ws_client
-            .unwrap()
-            .0
-            .next()
-            .await
-            .unwrap()
-            .unwrap()
-            .is_close());
+        assert!(
+            ws_client
+                .unwrap()
+                .0
+                .next()
+                .await
+                .unwrap()
+                .unwrap()
+                .is_close()
+        );
         assert!(ws_pi.unwrap().0.next().await.unwrap().unwrap().is_close());
     }
 

@@ -1,15 +1,16 @@
 use axum::{
+    Router,
     body::Bytes,
     extract::{OriginalUri, State},
     http::{StatusCode, Uri},
     routing::{get, post},
-    Router,
 };
 
 use fred::clients::Pool;
 use ulid::Ulid;
 
 use crate::{
+    S,
     api_error::ApiError,
     argon,
     connections::ConnectionType,
@@ -22,9 +23,8 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{check_monthly_bandwidth, ApiRouter, ApplicationState, StatusOJ},
+    servers::{ApiRouter, ApplicationState, StatusOJ, check_monthly_bandwidth},
     user_io::{incoming_json::ij, outgoing_json::oj},
-    S,
 };
 
 define_routes! {
@@ -107,25 +107,27 @@ impl TokenRouter {
             }
 
             if let Some(id) = password_id {
-                if let Some(device_hash) = ModelDevicePasswordHash::get(&state.postgres, id).await?
-                {
-                    if argon::verify_password(password.unwrap_or(""), device_hash.password_hash)
-                        .await?
-                    {
-                        output = Some(
-                            Self::create_access_token(
-                                &state.redis,
-                                device.device_id,
-                                device_type,
-                                &useragent_ip,
-                            )
-                            .await?,
-                        );
-                    } else {
+                match ModelDevicePasswordHash::get(&state.postgres, id).await? {
+                    Some(device_hash) => {
+                        if argon::verify_password(password.unwrap_or(""), device_hash.password_hash)
+                            .await?
+                        {
+                            output = Some(
+                                Self::create_access_token(
+                                    &state.redis,
+                                    device.device_id,
+                                    device_type,
+                                    &useragent_ip,
+                                )
+                                .await?,
+                            );
+                        } else {
+                            return Ok(None);
+                        }
+                    }
+                    _ => {
                         return Ok(None);
                     }
-                } else {
-                    return Ok(None);
                 }
             } else {
                 output = Some(
@@ -188,16 +190,16 @@ impl TokenRouter {
 #[expect(clippy::unwrap_used)]
 mod tests {
     use crate::{
+        C,
         connections::ConnectionType,
-        database::{access_token::AccessToken, user_level::UserLevel, RedisKey},
+        database::{RedisKey, access_token::AccessToken, user_level::UserLevel},
         helpers::gen_random_hex,
         servers::test_setup::{
-            get_keys, start_servers, token_base_url, Response, TestSetup, RATELIMIT_REGEX,
-            RATELIMIT_REGEX_BIG,
+            RATELIMIT_REGEX, RATELIMIT_REGEX_BIG, Response, TestSetup, get_keys, start_servers,
+            token_base_url,
         },
         sleep,
         user_io::incoming_json::ij::DevicePost,
-        C,
     };
     use fred::{
         interfaces::{HashesInterface, KeysInterface},

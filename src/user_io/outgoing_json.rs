@@ -4,9 +4,9 @@ pub mod oj {
     use ulid::Ulid;
 
     use crate::{
+        C,
         connections::ConnectionType,
         database::{device::ModelDevice, user::ModelUser, user_level::UserLevel},
-        C,
     };
 
     pub type AsJsonRes<T> = Json<OutgoingJson<T>>;

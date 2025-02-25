@@ -12,11 +12,11 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres, Transaction};
 
 use crate::{
-    api_error::ApiError,
-    database::{redis::RedisKey, HASH_FIELD},
-    hmap,
-    servers::{get_ip, get_user_agent_header, ApplicationState},
     C, S,
+    api_error::ApiError,
+    database::{HASH_FIELD, redis::RedisKey},
+    hmap,
+    servers::{ApplicationState, get_ip, get_user_agent_header},
 };
 
 use super::new_types::{IpId, UserAgentId};
@@ -170,18 +170,17 @@ WHERE
         let ip_key = RedisKey::CacheIp(ip).to_string();
         let user_agent_key = RedisKey::CacheUseragent(user_agent).to_string();
 
-        if let (Some(ip_id), Some(user_agent_id)) = (
+        match (
             redis.hget(ip_key, HASH_FIELD).await?,
             redis.hget(user_agent_key, HASH_FIELD).await?,
         ) {
-            Ok(Some(Self {
+            (Some(ip_id), Some(user_agent_id)) => Ok(Some(Self {
                 ip,
                 user_agent: S!(user_agent),
                 ip_id,
                 user_agent_id,
-            }))
-        } else {
-            Ok(None)
+            })),
+            _ => Ok(None),
         }
     }
 
@@ -270,17 +269,14 @@ RETURNING
         }
 
         let mut transaction = postgres.begin().await?;
-        let ip_id = if let Some(ip) = Self::get_ip_id(&mut transaction, req).await? {
-            ip
-        } else {
-            Self::insert_ip(&mut transaction, req).await?
+        let ip_id = match Self::get_ip_id(&mut transaction, req).await? {
+            Some(ip) => ip,
+            _ => Self::insert_ip(&mut transaction, req).await?,
         };
-        let user_agent_id =
-            if let Some(user_agent) = Self::get_user_agent(&mut transaction, req).await? {
-                user_agent
-            } else {
-                Self::insert_user_agent(&mut transaction, req).await?
-            };
+        let user_agent_id = match Self::get_user_agent(&mut transaction, req).await? {
+            Some(user_agent) => user_agent,
+            _ => Self::insert_user_agent(&mut transaction, req).await?,
+        };
         transaction.commit().await?;
 
         let output = Self {

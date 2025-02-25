@@ -1,15 +1,16 @@
 use axum::{
+    Router,
     extract::State,
     http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, patch, post},
-    Router,
 };
-use axum_extra::extract::{cookie::Cookie, PrivateCookieJar};
-use futures::{stream::FuturesUnordered, StreamExt};
+use axum_extra::extract::{PrivateCookieJar, cookie::Cookie};
+use futures::{StreamExt, stream::FuturesUnordered};
 use std::fmt;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     argon::ArgonHash,
     database::{
@@ -26,9 +27,8 @@ use crate::{
     define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, gen_random_hex},
-    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
+    servers::{ApiRouter, ApplicationState, StatusOJ, api::authentication, get_cookie_ulid},
     user_io::{incoming_json::ij, outgoing_json::oj},
-    C, S,
 };
 
 define_routes! {
@@ -558,11 +558,11 @@ mod tests {
     use crate::servers::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
     use crate::servers::api::authentication::totp_from_secret;
     use crate::servers::test_setup::{
-        api_base_url, get_keys, start_servers, Response, TestSetup, ANON_EMAIL, ANON_FULL_NAME,
-        ANON_PASSWORD, TEST_EMAIL, TEST_FULL_NAME, TEST_PASSWORD, UNSAFE_PASSWORD,
+        ANON_EMAIL, ANON_FULL_NAME, ANON_PASSWORD, Response, TEST_EMAIL, TEST_FULL_NAME,
+        TEST_PASSWORD, TestSetup, UNSAFE_PASSWORD, api_base_url, get_keys, start_servers,
     };
     use crate::user_io::incoming_json::ij::DevicePost;
-    use crate::{sleep, C, S};
+    use crate::{C, S, sleep};
 
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use futures::{SinkExt, StreamExt};
@@ -988,29 +988,35 @@ mod tests {
         assert_eq!(result.status(), StatusCode::OK);
 
         // Email address removed
-        assert!(ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
+                .await
+                .unwrap()
+                .is_none()
+        );
 
         // connections cut
-        assert!(ws_client
-            .unwrap()
-            .0
-            .next()
-            .await
-            .unwrap()
-            .unwrap()
-            .is_close());
+        assert!(
+            ws_client
+                .unwrap()
+                .0
+                .next()
+                .await
+                .unwrap()
+                .unwrap()
+                .is_close()
+        );
         assert!(ws_pi.unwrap().0.next().await.unwrap().unwrap().is_close());
 
         // device name not deleted!
-        assert!(!sqlx::query("SELECT * FROM device_name")
-            .bind(test_setup.get_user_id().get())
-            .fetch_all(&test_setup.postgres)
-            .await
-            .unwrap()
-            .is_empty());
+        assert!(
+            !sqlx::query("SELECT * FROM device_name")
+                .bind(test_setup.get_user_id().get())
+                .fetch_all(&test_setup.postgres)
+                .await
+                .unwrap()
+                .is_empty()
+        );
 
         // Devices removed
         assert!(
@@ -1027,12 +1033,14 @@ mod tests {
 
         // ip address & user_agent string NOT removed
         let req = TestSetup::gen_req();
-        assert!(sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
-            .bind(req.ip)
-            .fetch_optional(&test_setup.postgres)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
+                .bind(req.ip)
+                .fetch_optional(&test_setup.postgres)
+                .await
+                .unwrap()
+                .is_some()
+        );
         assert!(
             sqlx::query("SELECT * FROM user_agent WHERE user_agent_string = $1")
                 .bind(req.user_agent)
@@ -1086,29 +1094,35 @@ mod tests {
         assert_eq!(result.status(), StatusCode::OK);
 
         // Email address removed
-        assert!(ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
+                .await
+                .unwrap()
+                .is_none()
+        );
 
         // connections cut
-        assert!(ws_client
-            .unwrap()
-            .0
-            .next()
-            .await
-            .unwrap()
-            .unwrap()
-            .is_close());
+        assert!(
+            ws_client
+                .unwrap()
+                .0
+                .next()
+                .await
+                .unwrap()
+                .unwrap()
+                .is_close()
+        );
         assert!(ws_pi.unwrap().0.next().await.unwrap().unwrap().is_close());
 
         // device names removed
-        assert!(sqlx::query("SELECT * FROM device_name")
-            .bind(test_setup.get_user_id().get())
-            .fetch_all(&test_setup.postgres)
-            .await
-            .unwrap()
-            .is_empty());
+        assert!(
+            sqlx::query("SELECT * FROM device_name")
+                .bind(test_setup.get_user_id().get())
+                .fetch_all(&test_setup.postgres)
+                .await
+                .unwrap()
+                .is_empty()
+        );
 
         // Devices removed
         assert!(
@@ -1125,12 +1139,14 @@ mod tests {
 
         // ip address & user_agent string removed
         let req = TestSetup::gen_req();
-        assert!(sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
-            .bind(req.ip)
-            .fetch_optional(&test_setup.postgres)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
+                .bind(req.ip)
+                .fetch_optional(&test_setup.postgres)
+                .await
+                .unwrap()
+                .is_none()
+        );
         assert!(
             sqlx::query("SELECT * FROM user_agent WHERE user_agent_string = $1")
                 .bind(req.user_agent)
@@ -1195,20 +1211,24 @@ mod tests {
         assert_eq!(result.status(), StatusCode::OK);
 
         // Email address removed
-        assert!(ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
+                .await
+                .unwrap()
+                .is_none()
+        );
 
         // connections cut
-        assert!(ws_client
-            .unwrap()
-            .0
-            .next()
-            .await
-            .unwrap()
-            .unwrap()
-            .is_close());
+        assert!(
+            ws_client
+                .unwrap()
+                .0
+                .next()
+                .await
+                .unwrap()
+                .unwrap()
+                .is_close()
+        );
         assert!(ws_pi.unwrap().0.next().await.unwrap().unwrap().is_close());
 
         // Devices removed
@@ -1222,24 +1242,28 @@ mod tests {
         );
 
         // device names NOT removed
-        assert!(!sqlx::query("SELECT * FROM device_name")
-            .bind(test_setup.get_user_id().get())
-            .fetch_all(&test_setup.postgres)
-            .await
-            .unwrap()
-            .is_empty());
+        assert!(
+            !sqlx::query("SELECT * FROM device_name")
+                .bind(test_setup.get_user_id().get())
+                .fetch_all(&test_setup.postgres)
+                .await
+                .unwrap()
+                .is_empty()
+        );
 
         // User removed
         assert!(test_setup.get_model_user().await.is_none());
 
         // ip address & user_agent string NOT removed
         let req = TestSetup::gen_req();
-        assert!(sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
-            .bind(req.ip)
-            .fetch_optional(&test_setup.postgres)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
+                .bind(req.ip)
+                .fetch_optional(&test_setup.postgres)
+                .await
+                .unwrap()
+                .is_some()
+        );
         assert!(
             sqlx::query("SELECT * FROM user_agent WHERE user_agent_string = $1")
                 .bind(req.user_agent)
@@ -1770,13 +1794,17 @@ mod tests {
         // email sent - written to disk when testing & inserted into db
         assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
         assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains("The password for your staticPi account has been changed"));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains("The password for your staticPi account has been changed")
+        );
 
-        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
-            .unwrap()
-            .contains("Password Changed"));
+        assert!(
+            std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
+                .unwrap()
+                .contains("Password Changed")
+        );
 
         let signin_url = format!("{}/incognito/signin", api_base_url(&test_setup.app_env));
 
@@ -1865,13 +1893,17 @@ mod tests {
         // email sent - written to disk when testing & inserted into db
         assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
         assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains("The password for your staticPi account has been changed"));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains("The password for your staticPi account has been changed")
+        );
 
-        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
-            .unwrap()
-            .contains("Password Changed"));
+        assert!(
+            std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
+                .unwrap()
+                .contains("Password Changed")
+        );
     }
 
     // ** *************
@@ -2148,9 +2180,11 @@ mod tests {
             "href=\"https://www.{}/user/settings/",
             test_setup.app_env.domain
         );
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains(&link));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains(&link)
+        );
     }
 
     // ** *******
@@ -2493,13 +2527,17 @@ mod tests {
         );
         assert!(std::fs::exists(EMAIL_HEADERS_LOCATION).unwrap_or_default());
         assert!(std::fs::exists(EMAIL_BODY_LOCATION).unwrap_or_default());
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains("You have disabled Two-Factor Authentication for your staticPi account"));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains("You have disabled Two-Factor Authentication for your staticPi account")
+        );
 
-        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
-            .unwrap()
-            .contains("Two-Factor Disabled"));
+        assert!(
+            std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
+                .unwrap()
+                .contains("Two-Factor Disabled")
+        );
     }
 
     #[tokio::test]
@@ -2693,9 +2731,11 @@ mod tests {
                 .unwrap()
                 .contains("You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure"));
 
-        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
-            .unwrap()
-            .contains("Two-Factor Backup Enabled"));
+        assert!(
+            std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
+                .unwrap()
+                .contains("Two-Factor Backup Enabled")
+        );
     }
 
     #[tokio::test]
@@ -2873,9 +2913,11 @@ mod tests {
                 .unwrap()
                 .contains("You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure."));
 
-        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
-            .unwrap()
-            .contains("Two-Factor Backups re-generated"));
+        assert!(
+            std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
+                .unwrap()
+                .contains("Two-Factor Backups re-generated")
+        );
     }
 
     #[tokio::test]
@@ -3039,9 +3081,11 @@ mod tests {
                 .unwrap()
                 .contains("You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page."));
 
-        assert!(std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
-            .unwrap()
-            .contains("Two-Factor Backup Disabled"));
+        assert!(
+            std::fs::read_to_string(EMAIL_HEADERS_LOCATION)
+                .unwrap()
+                .contains("Two-Factor Backup Disabled")
+        );
     }
 
     // DOWNLOAD DATA - check data includes things, but no ids!

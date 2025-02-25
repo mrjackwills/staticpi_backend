@@ -1,4 +1,4 @@
-use sqlx::{types::time::OffsetDateTime, PgPool};
+use sqlx::{PgPool, types::time::OffsetDateTime};
 use ulid::Ulid;
 
 use super::{

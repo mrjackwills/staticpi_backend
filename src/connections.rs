@@ -3,7 +3,7 @@ use axum::{
     extract::ws::{Message, Utf8Bytes, WebSocket},
     http::Uri,
 };
-use futures::{stream::SplitSink, SinkExt};
+use futures::{SinkExt, stream::SplitSink};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{collections::HashMap, fmt, net::IpAddr, sync::Arc, time::Instant};
@@ -11,6 +11,7 @@ use tokio::sync::Mutex;
 use ulid::Ulid;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     database::{
         connection::ModelConnection,
@@ -25,7 +26,6 @@ use crate::{
         outgoing_json::oj,
         ws_message::wm::{ClientBody, PiBody},
     },
-    C, S,
 };
 
 pub type AMConnections = Arc<Mutex<Connections>>;
@@ -281,13 +281,16 @@ impl ClientConnections {
     }
 
     fn insert(&mut self, ws_sender: WsSender) {
-        if let Some(map) = self.0.get_mut(&ws_sender.device_id) {
-            map.insert(ws_sender.ulid, ws_sender);
-        } else {
-            self.0.insert(
-                ws_sender.device_id,
-                HashMap::from([(ws_sender.ulid, ws_sender)]),
-            );
+        match self.0.get_mut(&ws_sender.device_id) {
+            Some(map) => {
+                map.insert(ws_sender.ulid, ws_sender);
+            }
+            _ => {
+                self.0.insert(
+                    ws_sender.device_id,
+                    HashMap::from([(ws_sender.ulid, ws_sender)]),
+                );
+            }
         }
     }
 
