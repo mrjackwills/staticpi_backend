@@ -2,17 +2,17 @@
 mod template;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     database::{email_log::ModelEmailLog, ip_user_agent::ModelUserAgentIp},
     parse_env::{AppEnv, RunMode},
-    C, S,
 };
 
 use lettre::{
-    address::AddressError,
-    message::{header, Mailbox, MultiPart, SinglePart},
-    transport::smtp::{authentication::Credentials, AsyncSmtpTransportBuilder},
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
+    address::AddressError,
+    message::{Mailbox, MultiPart, SinglePart, header},
+    transport::smtp::{AsyncSmtpTransportBuilder, authentication::Credentials},
 };
 use sqlx::PgPool;
 
@@ -236,7 +236,7 @@ mod tests {
         parse_env,
         servers::{
             api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION},
-            test_setup::{setup, TestSetup, TEST_EMAIL},
+            test_setup::{TEST_EMAIL, TestSetup, setup},
         },
         sleep,
     };

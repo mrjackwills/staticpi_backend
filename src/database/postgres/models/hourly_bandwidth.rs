@@ -1,5 +1,5 @@
 use super::{monthly_bandwidth::ModelMonthlyBandwidth, new_types::DeviceId};
-use crate::{connections::ConnectionType, C};
+use crate::{C, connections::ConnectionType};
 
 use fred::clients::Pool;
 use sqlx::PgPool;

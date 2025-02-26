@@ -8,14 +8,15 @@ use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
 
 use crate::{
+    S,
     api_error::ApiError,
     database::{
         admin::AdminSession,
         new_types::UserId,
-        redis::{RedisKey, HASH_FIELD},
+        redis::{HASH_FIELD, RedisKey},
         user::ModelUser,
     },
-    hmap, redis_hash_to_struct, S,
+    hmap, redis_hash_to_struct,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -129,18 +130,19 @@ impl RedisSession {
         ulid: &Ulid,
     ) -> Result<Option<ModelUser>, ApiError> {
         let key_session = Self::key_session(ulid);
-        if let Some(session) = redis
+        match redis
             .hget::<Option<Self>, &str, &str>(&key_session, HASH_FIELD)
             .await?
         {
-            let user = ModelUser::get(postgres, &session.email).await?;
-            // If, for some reason, user isn't in postgres, delete session
-            if user.is_none() {
-                Self::delete(redis, ulid).await?;
+            Some(session) => {
+                let user = ModelUser::get(postgres, &session.email).await?;
+                // If, for some reason, user isn't in postgres, delete session
+                if user.is_none() {
+                    Self::delete(redis, ulid).await?;
+                }
+                Ok(user)
             }
-            Ok(user)
-        } else {
-            Ok(None)
+            _ => Ok(None),
         }
     }
     /// Check session exists in redis

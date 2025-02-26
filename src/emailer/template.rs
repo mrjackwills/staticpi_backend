@@ -103,15 +103,31 @@ impl EmailTemplate {
         match self {
             Self::Custom(custom_email) => C!(custom_email.line_one),
             Self::DownloadData => S!("You have requested a copy of your user data"),
-            Self::AccountLocked => S!("Due to multiple failed login attempts your account has been locked."),
+            Self::AccountLocked => {
+                S!("Due to multiple failed login attempts your account has been locked.")
+            }
             Self::PasswordChanged => S!("The password for your staticPi account has been changed."),
-            Self::PasswordResetRequested(_) => S!("This password reset link will only be valid for one hour"),
-            Self::TwoFABackupDisabled => S!("You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page."),
-            Self::TwoFABackupEnabled => S!("You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure"),
-            Self::TwoFABackupReGenerated => S!("You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure."),
-            Self::TwoFADisabled => S!("You have disabled Two-Factor Authentication for your staticPi account."),
-            Self::TwoFAEnabled => S!("You have enabled Two-Factor Authentication for your staticPi account, it is recommended to create and save backup codes, these can be generated in the user settings area."),
-            Self::Verify(_) => S!("Welcome to staticPi, before you start we just need you to verify this email address."),
+            Self::PasswordResetRequested(_) => {
+                S!("This password reset link will only be valid for one hour")
+            }
+            Self::TwoFABackupDisabled => S!(
+                "You have removed the Two-Factor Authentication backup codes for your staticPi account. New backup codes can be created at any time from the user settings page."
+            ),
+            Self::TwoFABackupEnabled => S!(
+                "You have created Two-Factor Authentication backup codes for your staticPi account. The codes should be stored somewhere secure"
+            ),
+            Self::TwoFABackupReGenerated => S!(
+                "You have re-generated Two-Factor Authentication backup codes for your staticPi account. Your previous backup codes are now invalid. The new codes should be stored somewhere secure."
+            ),
+            Self::TwoFADisabled => {
+                S!("You have disabled Two-Factor Authentication for your staticPi account.")
+            }
+            Self::TwoFAEnabled => S!(
+                "You have enabled Two-Factor Authentication for your staticPi account, it is recommended to create and save backup codes, these can be generated in the user settings area."
+            ),
+            Self::Verify(_) => S!(
+                "Welcome to staticPi, before you start we just need you to verify this email address."
+            ),
         }
     }
 
@@ -312,8 +328,10 @@ mod tests {
         // line one
         assert!(result.contains("This password reset link will only be valid for one hour"));
         // line two
-        assert!(result
-            .contains("If you did not request a password reset then please ignore this email"));
+        assert!(
+            result
+                .contains("If you did not request a password reset then please ignore this email")
+        );
         // button
         assert!(result.contains("<mj-button"));
         assert!(result.contains("or copy and paste this address into the browser address bar"));
@@ -378,8 +396,10 @@ mod tests {
         // name
         assert!(result.contains("Hi john smith,"));
         // line one
-        assert!(result
-            .contains("You have disabled Two-Factor Authentication for your staticPi account"));
+        assert!(
+            result
+                .contains("You have disabled Two-Factor Authentication for your staticPi account")
+        );
         // button
         assert!(result.contains(
             "If you did not enable this setting, please contact support as soon as possible."

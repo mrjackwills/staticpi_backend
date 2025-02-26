@@ -1,18 +1,18 @@
 use regex::Regex;
 use serde::{
-    de::{self, IntoDeserializer},
     Deserialize, Deserializer,
+    de::{self, IntoDeserializer},
 };
 use std::sync::LazyLock;
 use ulid::Ulid;
 
 use crate::{
+    S,
     connections::ConnectionType,
     database::{
         new_types::{ContactMessageId, DeviceId},
         rate_limit::RateLimit,
     },
-    S,
 };
 
 use super::incoming_json::ij;
@@ -224,10 +224,9 @@ impl IncomingDeserializer {
     where
         D: Deserializer<'de>,
     {
-        if let Some(x) = Option::<String>::deserialize(deserializer)? {
-            Ok(Some(Self::token(x.into_deserializer())?))
-        } else {
-            Ok(None)
+        match Option::<String>::deserialize(deserializer)? {
+            Some(x) => Ok(Some(Self::token(x.into_deserializer())?)),
+            _ => Ok(None),
         }
     }
 
@@ -244,10 +243,9 @@ impl IncomingDeserializer {
     where
         D: Deserializer<'de>,
     {
-        if let Some(x) = Option::<String>::deserialize(deserializer)? {
-            Ok(Some(Self::password(x.into_deserializer())?))
-        } else {
-            Ok(None)
+        match Option::<String>::deserialize(deserializer)? {
+            Some(x) => Ok(Some(Self::password(x.into_deserializer())?)),
+            _ => Ok(None),
         }
     }
 
@@ -271,16 +269,17 @@ impl IncomingDeserializer {
     where
         D: Deserializer<'de>,
     {
-        if let Some(parsed) = Option::<String>::deserialize(deserializer)? {
-            let trimmed = parsed.trim();
-            // remove / ban all spaces?
-            let allowed_len = 1..=64;
-            if !allowed_len.contains(&trimmed.chars().count()) {
-                return Err(de::Error::custom("device_name"));
+        match Option::<String>::deserialize(deserializer)? {
+            Some(parsed) => {
+                let trimmed = parsed.trim();
+                // remove / ban all spaces?
+                let allowed_len = 1..=64;
+                if !allowed_len.contains(&trimmed.chars().count()) {
+                    return Err(de::Error::custom("device_name"));
+                }
+                Ok(Some(S!(trimmed)))
             }
-            Ok(Some(S!(trimmed)))
-        } else {
-            Ok(None)
+            _ => Ok(None),
         }
     }
 
@@ -306,15 +305,16 @@ impl IncomingDeserializer {
     where
         D: Deserializer<'de>,
     {
-        if let Some(parsed) = Option::<String>::deserialize(deserializer)? {
-            let trimmed = parsed.trim();
-            let allowed_len = 1..=64;
-            if !allowed_len.contains(&trimmed.chars().count()) {
-                return Err(de::Error::custom("device_password"));
+        match Option::<String>::deserialize(deserializer)? {
+            Some(parsed) => {
+                let trimmed = parsed.trim();
+                let allowed_len = 1..=64;
+                if !allowed_len.contains(&trimmed.chars().count()) {
+                    return Err(de::Error::custom("device_password"));
+                }
+                Ok(Some(S!(trimmed)))
             }
-            Ok(Some(S!(trimmed)))
-        } else {
-            Ok(None)
+            _ => Ok(None),
         }
     }
 
@@ -376,9 +376,9 @@ impl IncomingDeserializer {
 #[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
     use serde::de::value::{Error as ValueError, StringDeserializer};
-    use serde::de::{value::I64Deserializer, IntoDeserializer};
+    use serde::de::{IntoDeserializer, value::I64Deserializer};
 
-    use rand::{distributions::Alphanumeric, Rng};
+    use rand::{Rng, distributions::Alphanumeric};
 
     use crate::helpers::gen_random_hex;
 
@@ -393,7 +393,8 @@ mod tests {
     }
 
     fn ran_u8() -> u8 {
-        rand::thread_rng().gen()
+        // TODO rand update, but waiting for argon crypto as well
+        rand::thread_rng().r#gen()
     }
 
     fn ran_n() -> i64 {

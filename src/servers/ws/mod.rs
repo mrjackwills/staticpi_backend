@@ -1,20 +1,20 @@
 use tower_http::cors::{Any, CorsLayer};
 
-use axum::{http::Method, middleware, Router};
+use axum::{Router, http::Method, middleware};
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 
 use crate::{
+    C, ServeData,
     api_error::ApiError,
-    servers::{fallback, parse_addr, rate_limiting, ApplicationState},
-    ServeData, C,
+    servers::{ApplicationState, fallback, parse_addr, rate_limiting},
 };
 
 use self::ws_router::WsRouter;
 
 pub use self::ws_router::HandlerData;
 
-use super::{shutdown_signal, ApiRouter, Serve};
+use super::{ApiRouter, Serve, shutdown_signal};
 mod ws_router;
 
 pub struct WsServer;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{connections::AMConnections, C};
+use crate::{C, connections::AMConnections};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 

@@ -1,13 +1,14 @@
 use axum::{
+    Router,
     extract::{Path, State},
     http::StatusCode,
     middleware,
     routing::{delete, patch},
-    Router,
 };
 use std::fmt;
 
 use crate::{
+    C,
     api_error::ApiError,
     database::{
         connection::ModelConnection,
@@ -19,12 +20,11 @@ use crate::{
         user_level::UserLevel,
     },
     define_routes,
-    servers::{api::authentication, ApiRouter, ApplicationState, StatusOJ},
+    servers::{ApiRouter, ApplicationState, StatusOJ, api::authentication},
     user_io::{
         incoming_json::ij,
         outgoing_json::oj::{self, AllDevices},
     },
-    C,
 };
 
 define_routes! {
@@ -243,21 +243,20 @@ impl DeviceRouter {
             return Err(ApiError::Authorization);
         }
 
-        if let Some(device_id) =
-            ModelDevice::delete_by_name(&state.postgres, &user, &device_name).await?
-        {
-            state
-                .connections
-                .lock()
-                .await
-                .close_by_single_device_id(device_id)
-                .await;
+        match ModelDevice::delete_by_name(&state.postgres, &user, &device_name).await? {
+            Some(device_id) => {
+                state
+                    .connections
+                    .lock()
+                    .await
+                    .close_by_single_device_id(device_id)
+                    .await;
 
-            MessageCache::delete(&state.redis, device_id).await?;
+                MessageCache::delete(&state.redis, device_id).await?;
 
-            Ok(StatusCode::OK)
-        } else {
-            Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+                Ok(StatusCode::OK)
+            }
+            _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
         }
     }
 
@@ -291,20 +290,20 @@ impl DeviceRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::DevicePause>,
     ) -> Result<StatusCode, ApiError> {
         // Get device, then operate on device::update etc!
-        if let Some(device) = ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-        {
-            device.update_paused(&state.postgres, body.pause).await?;
-            if body.pause {
-                state
-                    .connections
-                    .lock()
-                    .await
-                    .close_by_single_device_id(device.device_id)
-                    .await;
+        match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+            Some(device) => {
+                device.update_paused(&state.postgres, body.pause).await?;
+                if body.pause {
+                    state
+                        .connections
+                        .lock()
+                        .await
+                        .close_by_single_device_id(device.device_id)
+                        .await;
+                }
+                Ok(StatusCode::OK)
             }
-            Ok(StatusCode::OK)
-        } else {
-            Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+            _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
         }
     }
 
@@ -320,25 +319,24 @@ impl DeviceRouter {
         } else {
             // Get device, then operate on device::update etc!
             if user.structured_data {
-                if let Some(device) =
-                    ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-                {
-                    device
-                        .update_structured_data(&state.postgres, body.structured_data)
-                        .await?;
+                match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+                    Some(device) => {
+                        device
+                            .update_structured_data(&state.postgres, body.structured_data)
+                            .await?;
 
-                    // kill all connections
-                    state
-                        .connections
-                        .lock()
-                        .await
-                        .close_by_single_device_id(device.device_id)
-                        .await;
+                        // kill all connections
+                        state
+                            .connections
+                            .lock()
+                            .await
+                            .close_by_single_device_id(device.device_id)
+                            .await;
 
-                    MessageCache::delete(&state.redis, device.device_id).await?;
-                    Ok(StatusCode::OK)
-                } else {
-                    Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+                        MessageCache::delete(&state.redis, device.device_id).await?;
+                        Ok(StatusCode::OK)
+                    }
+                    _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
                 }
             } else {
                 // this is the wrong response
@@ -410,24 +408,23 @@ impl DeviceRouter {
     ) -> Result<StatusCode, ApiError> {
         if user.device_password {
             // Get device, then operate on device::update etc!
-            if let Some(device) =
-                ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-            {
-                if authentication::check_password_op_token(
-                    &user,
-                    &body.password,
-                    body.token,
-                    &state.postgres,
-                )
-                .await?
-                {
-                    device.remove_password(&state.postgres).await?;
-                    Ok(StatusCode::OK)
-                } else {
-                    Err(ApiError::Authorization)
+            match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+                Some(device) => {
+                    if authentication::check_password_op_token(
+                        &user,
+                        &body.password,
+                        body.token,
+                        &state.postgres,
+                    )
+                    .await?
+                    {
+                        device.remove_password(&state.postgres).await?;
+                        Ok(StatusCode::OK)
+                    } else {
+                        Err(ApiError::Authorization)
+                    }
                 }
-            } else {
-                Err(ApiError::InvalidValue(DeviceResponse::FreeName.to_string()))
+                _ => Err(ApiError::InvalidValue(DeviceResponse::FreeName.to_string())),
             }
         } else {
             Err(ApiError::InvalidValue(
@@ -445,19 +442,18 @@ impl DeviceRouter {
     ) -> Result<StatusCode, ApiError> {
         // user level here, instead of password
         if user.device_password {
-            if let Some(device) =
-                ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-            {
-                device.update_password(&state.postgres, body).await?;
-                state
-                    .connections
-                    .lock()
-                    .await
-                    .close_by_single_device_id(device.device_id)
-                    .await;
-                Ok(StatusCode::OK)
-            } else {
-                Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+            match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+                Some(device) => {
+                    device.update_password(&state.postgres, body).await?;
+                    state
+                        .connections
+                        .lock()
+                        .await
+                        .close_by_single_device_id(device.device_id)
+                        .await;
+                    Ok(StatusCode::OK)
+                }
+                _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
             }
         } else {
             Err(ApiError::InvalidValue(
@@ -475,20 +471,19 @@ impl DeviceRouter {
         ij::IncomingJson(body): ij::IncomingJson<ij::DeviceRename>,
     ) -> Result<StatusCode, ApiError> {
         if user.custom_device_name {
-            if let Some(device) =
-                ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-            {
-                if ModelDevice::get_by_name(&state.postgres, &user, &body.new_name)
-                    .await?
-                    .is_some()
-                {
-                    return Err(ApiError::Conflict(DeviceResponse::NameInUse.to_string()));
-                }
+            match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+                Some(device) => {
+                    if ModelDevice::get_by_name(&state.postgres, &user, &body.new_name)
+                        .await?
+                        .is_some()
+                    {
+                        return Err(ApiError::Conflict(DeviceResponse::NameInUse.to_string()));
+                    }
 
-                device.update_name(&state.postgres, body.new_name).await?;
-                Ok(StatusCode::OK)
-            } else {
-                Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+                    device.update_name(&state.postgres, body.new_name).await?;
+                    Ok(StatusCode::OK)
+                }
+                _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
             }
         } else {
             Err(ApiError::InvalidValue(DeviceResponse::FreeName.to_string()))
@@ -505,21 +500,20 @@ impl DeviceRouter {
         // This isn't great
         if user.max_clients_per_device > 1 {
             if (1..=user.max_clients_per_device).contains(&body.max_clients) {
-                if let Some(device) =
-                    ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-                {
-                    device
-                        .update_max_client(&state.postgres, body.max_clients)
-                        .await?;
-                    state
-                        .connections
-                        .lock()
-                        .await
-                        .close_max_clients(device.device_id, body.max_clients)
-                        .await;
-                    Ok(StatusCode::OK)
-                } else {
-                    Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+                match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+                    Some(device) => {
+                        device
+                            .update_max_client(&state.postgres, body.max_clients)
+                            .await?;
+                        state
+                            .connections
+                            .lock()
+                            .await
+                            .close_max_clients(device.device_id, body.max_clients)
+                            .await;
+                        Ok(StatusCode::OK)
+                    }
+                    _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
                 }
             } else {
                 Err(ApiError::InvalidValue(
@@ -541,30 +535,30 @@ impl DeviceRouter {
         Path(device_name): Path<String>,
         ij::IncomingJson(body): ij::IncomingJson<ij::PasswordToken>,
     ) -> Result<StatusCode, ApiError> {
-        if let Some(device) = ModelDevice::get_by_name(&state.postgres, &user, &device_name).await?
-        {
-            if !authentication::check_password_op_token(
-                &user,
-                &body.password,
-                body.token,
-                &state.postgres,
-            )
-            .await?
-            {
-                return Err(ApiError::Authorization);
+        match ModelDevice::get_by_name(&state.postgres, &user, &device_name).await? {
+            Some(device) => {
+                if !authentication::check_password_op_token(
+                    &user,
+                    &body.password,
+                    body.token,
+                    &state.postgres,
+                )
+                .await?
+                {
+                    return Err(ApiError::Authorization);
+                }
+
+                state
+                    .connections
+                    .lock()
+                    .await
+                    .close_by_single_device_id(device.device_id)
+                    .await;
+
+                ModelApiKey::update(&state.postgres, &user, useragent_ip, &device).await?;
+                Ok(StatusCode::OK)
             }
-
-            state
-                .connections
-                .lock()
-                .await
-                .close_by_single_device_id(device.device_id)
-                .await;
-
-            ModelApiKey::update(&state.postgres, &user, useragent_ip, &device).await?;
-            Ok(StatusCode::OK)
-        } else {
-            Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string()))
+            _ => Err(ApiError::InvalidValue(DeviceResponse::Unknown.to_string())),
         }
     }
 }
@@ -580,10 +574,10 @@ mod tests {
     use crate::database::user_level::UserLevel;
     use crate::helpers::gen_random_hex;
     use crate::servers::test_setup::{
-        api_base_url, get_keys, start_servers, Response, TestSetup, ANON_PASSWORD, TEST_PASSWORD,
+        ANON_PASSWORD, Response, TEST_PASSWORD, TestSetup, api_base_url, get_keys, start_servers,
     };
     use crate::user_io::incoming_json::ij::DevicePost;
-    use crate::{sleep, C, S};
+    use crate::{C, S, sleep};
 
     use futures::{SinkExt, StreamExt};
     use reqwest::StatusCode;
@@ -1243,12 +1237,14 @@ mod tests {
 
         assert!(result.get("creation_date").is_some());
         assert!(result.get("creation_date").as_ref().unwrap().is_string());
-        assert!(result
-            .get("creation_date")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&format!("{}", OffsetDateTime::now_utc().date())));
+        assert!(
+            result
+                .get("creation_date")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+        );
     }
 
     #[tokio::test]
@@ -1280,22 +1276,26 @@ mod tests {
         assert!(result.as_object().unwrap().contains_key("devices"));
         assert!(result.as_object().unwrap().contains_key("limits"));
 
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("devices")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .is_empty());
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("limits")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .is_empty());
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("devices")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("limits")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[tokio::test]
@@ -1394,11 +1394,13 @@ mod tests {
         );
 
         assert!(result_01.get("name_of_device").is_some());
-        assert!(result_01
-            .get("name_of_device")
-            .as_ref()
-            .unwrap()
-            .is_string());
+        assert!(
+            result_01
+                .get("name_of_device")
+                .as_ref()
+                .unwrap()
+                .is_string()
+        );
         assert_eq!(
             result_01.get("name_of_device").unwrap().as_str().unwrap(),
             device_1
@@ -1443,12 +1445,14 @@ mod tests {
 
         assert!(result_01.get("creation_date").is_some());
         assert!(result_01.get("creation_date").as_ref().unwrap().is_string());
-        assert!(result_01
-            .get("creation_date")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&format!("{}", OffsetDateTime::now_utc().date())));
+        assert!(
+            result_01
+                .get("creation_date")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+        );
 
         let result_02 = result[1].as_object().unwrap();
         assert!(result_02.get("device_id").is_none());
@@ -1467,11 +1471,13 @@ mod tests {
         );
 
         assert!(result_02.get("name_of_device").is_some());
-        assert!(result_02
-            .get("name_of_device")
-            .as_ref()
-            .unwrap()
-            .is_string());
+        assert!(
+            result_02
+                .get("name_of_device")
+                .as_ref()
+                .unwrap()
+                .is_string()
+        );
         assert_eq!(
             result_02.get("name_of_device").unwrap().as_str().unwrap(),
             hex_device_name
@@ -1519,12 +1525,14 @@ mod tests {
 
         assert!(result_02.get("creation_date").is_some());
         assert!(result_02.get("creation_date").as_ref().unwrap().is_string());
-        assert!(result_02
-            .get("creation_date")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&format!("{}", OffsetDateTime::now_utc().date())));
+        assert!(
+            result_02
+                .get("creation_date")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+        );
 
         assert_ne!(
             result_01.get("api_key").unwrap().as_str().unwrap(),
@@ -2221,12 +2229,14 @@ mod tests {
             .chars()
             .take(10)
             .collect::<String>();
-        assert!(result
-            .get("timestamp_online")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&ts));
+        assert!(
+            result
+                .get("timestamp_online")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&ts)
+        );
     }
 
     #[tokio::test]
@@ -2292,32 +2302,38 @@ mod tests {
         let result = resp[0].as_object().unwrap();
         assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
 
-        assert!(result
-            .get("timestamp_online")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&ts));
+        assert!(
+            result
+                .get("timestamp_online")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&ts)
+        );
 
         let result = resp[1].as_object().unwrap();
         assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
 
-        assert!(result
-            .get("timestamp_online")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&ts));
+        assert!(
+            result
+                .get("timestamp_online")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&ts)
+        );
 
         let result = resp[2].as_object().unwrap();
         assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
 
-        assert!(result
-            .get("timestamp_online")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .starts_with(&ts));
+        assert!(
+            result
+                .get("timestamp_online")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .starts_with(&ts)
+        );
     }
 
     #[tokio::test]
@@ -3847,12 +3863,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        assert!(test_setup.query_user_active_devices().await[0]
-            .device_password_id
-            .is_some(),);
-        assert!(test_setup.query_user_active_devices().await[0]
-            .client_password_id
-            .is_some(),);
+        assert!(
+            test_setup.query_user_active_devices().await[0]
+                .device_password_id
+                .is_some(),
+        );
+        assert!(
+            test_setup.query_user_active_devices().await[0]
+                .client_password_id
+                .is_some(),
+        );
     }
 
     #[tokio::test]
@@ -3893,11 +3913,15 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
-        assert!(test_setup.query_user_active_devices().await[0]
-            .device_password_id
-            .is_none(),);
-        assert!(test_setup.query_user_active_devices().await[0]
-            .client_password_id
-            .is_none(),);
+        assert!(
+            test_setup.query_user_active_devices().await[0]
+                .device_password_id
+                .is_none(),
+        );
+        assert!(
+            test_setup.query_user_active_devices().await[0]
+                .client_password_id
+                .is_none(),
+        );
     }
 }

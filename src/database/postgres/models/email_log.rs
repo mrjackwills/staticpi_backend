@@ -73,10 +73,9 @@ WHERE
     ) -> Result<Self, ApiError> {
         let mut transaction = postgres.begin().await?;
         let email_address_id =
-            if let Some(model) = ModelEmailAddress::get(&mut *transaction, email_address).await? {
-                model
-            } else {
-                ModelEmailAddress::insert(&mut *transaction, email_address).await?
+            match ModelEmailAddress::get(&mut *transaction, email_address).await? {
+                Some(model) => model,
+                _ => ModelEmailAddress::insert(&mut *transaction, email_address).await?,
             };
 
         let subject = email_template.get_subject();
@@ -97,12 +96,12 @@ WHERE
             email_subject
         } else {
             let query = "
-INSERT INTO
-	email_subject(subject)
-VALUES
-	($1)
-RETURNING
-	email_subject_id";
+        INSERT INTO
+        	email_subject(subject)
+        VALUES
+        	($1)
+        RETURNING
+        	email_subject_id";
             sqlx::query_as::<_, EmailSubject>(query)
                 .bind(&subject)
                 .fetch_one(&mut *transaction)

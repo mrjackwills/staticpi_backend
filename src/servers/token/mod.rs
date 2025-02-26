@@ -1,18 +1,18 @@
 use tower_http::cors::{Any, CorsLayer};
 
-use axum::{http::Method, middleware, Router};
+use axum::{Router, http::Method, middleware};
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 
 use crate::{
+    C, ServeData,
     api_error::ApiError,
-    servers::{parse_addr, rate_limiting, ApplicationState},
-    ServeData, C,
+    servers::{ApplicationState, parse_addr, rate_limiting},
 };
 
 use self::token_router::TokenRouter;
 
-use super::{shutdown_signal, ApiRouter, Serve};
+use super::{ApiRouter, Serve, shutdown_signal};
 mod token_router;
 
 pub struct TokenServer;

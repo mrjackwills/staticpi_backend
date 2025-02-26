@@ -4,6 +4,7 @@ use fred::{clients::Pool, interfaces::KeysInterface, types::scan::Scanner};
 use futures::TryStreamExt;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     database::{
         device::{ModelDevice, ModelWsDevice},
@@ -13,7 +14,6 @@ use crate::{
         user_level::UserLevel,
     },
     user_io::{deserializer::IncomingDeserializer, outgoing_json::oj::AdminLimit},
-    C, S,
 };
 
 const ONE_MINUTE_AS_SEC: i64 = 60;

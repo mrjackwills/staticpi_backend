@@ -7,15 +7,15 @@ use fred::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    C,
     api_error::ApiError,
     database::{
         device::ModelDeviceId,
         new_types::DeviceId,
-        redis::{RedisKey, HASH_FIELD},
+        redis::{HASH_FIELD, RedisKey},
     },
     hmap, redis_hash_to_struct,
     user_io::ws_message::wm,
-    C,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

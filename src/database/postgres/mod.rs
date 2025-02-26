@@ -9,7 +9,7 @@ pub struct Count {
 pub mod db_postgres {
 
     use crate::{api_error::ApiError, parse_env::AppEnv};
-    use sqlx::{postgres::PgPoolOptions, ConnectOptions, PgPool};
+    use sqlx::{ConnectOptions, PgPool, postgres::PgPoolOptions};
 
     pub async fn db_pool(app_env: &AppEnv) -> Result<PgPool, ApiError> {
         let mut options = sqlx::postgres::PgConnectOptions::new_without_pgpass()

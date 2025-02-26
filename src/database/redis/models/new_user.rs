@@ -6,15 +6,16 @@ use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     argon::ArgonHash,
     database::{
         email_address::ModelEmailAddress,
         ip_user_agent::ModelUserAgentIp,
         new_types::{EmailAddressId, IpId, UserAgentId},
-        redis::{RedisKey, HASH_FIELD},
+        redis::{HASH_FIELD, RedisKey},
     },
-    hmap, redis_hash_to_struct, C, S,
+    hmap, redis_hash_to_struct,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

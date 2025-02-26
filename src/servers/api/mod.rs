@@ -4,17 +4,17 @@ mod routers;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
-use axum::{http::HeaderValue, middleware, Extension, Router};
+use axum::{Extension, Router, http::HeaderValue, middleware};
 use std::net::SocketAddr;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     parse_env::RunMode,
-    servers::{fallback, get_api_version, parse_addr, rate_limiting, ApplicationState},
-    C, S,
+    servers::{ApplicationState, fallback, get_api_version, parse_addr, rate_limiting},
 };
 
-use super::{shutdown_signal, ApiRouter, Serve, ServeData};
+use super::{ApiRouter, Serve, ServeData, shutdown_signal};
 
 pub struct ApiServer;
 
@@ -104,14 +104,14 @@ impl Serve for ApiServer {
 pub mod api_tests {
 
     use fred::interfaces::KeysInterface;
-    use rand::{distributions::Alphanumeric, Rng};
+    use rand::{Rng, distributions::Alphanumeric};
     use reqwest::StatusCode;
 
+    use crate::S;
     use crate::servers::get_api_version;
     use crate::servers::test_setup::{
-        api_base_url, start_servers, Response, TestSetup, RATELIMIT_REGEX, RATELIMIT_REGEX_BIG,
+        RATELIMIT_REGEX, RATELIMIT_REGEX_BIG, Response, TestSetup, api_base_url, start_servers,
     };
-    use crate::S;
 
     pub const EMAIL_BODY_LOCATION: &str = "/ramdrive/staticpi/email_body.txt";
     pub const EMAIL_HEADERS_LOCATION: &str = "/ramdrive/staticpi/email_headers.txt";
