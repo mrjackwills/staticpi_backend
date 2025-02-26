@@ -2,9 +2,9 @@ use fred::{
     clients::Pool,
     interfaces::{HashesInterface, KeysInterface, SetsInterface},
 };
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
 pub struct RedisSession {
     pub registered_user_id: UserId,
     pub email: String,
-    pub timestamp: i64,
+    pub timestamp: Timestamp,
 }
 
 redis_hash_to_struct!(RedisSession);
@@ -33,7 +33,7 @@ impl RedisSession {
         Self {
             registered_user_id,
             email: S!(email),
-            timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+            timestamp: Timestamp::now(),
         }
     }
 
@@ -63,7 +63,7 @@ impl RedisSession {
                 output.push(AdminSession {
                     key,
                     ttl,
-                    timestamp: session.timestamp,
+                    timestamp: session.timestamp.as_second(),
                 });
             }
         }
@@ -72,12 +72,12 @@ impl RedisSession {
     }
 
     /// Insert new session & set ttl
-    pub async fn insert(&self, redis: &Pool, ttl: Duration, ulid: Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &Pool, ttl: i64, ulid: Ulid) -> Result<(), ApiError> {
         let key_session = Self::key_session(&ulid);
         let session = serde_json::to_string(&self)?;
         let key_session_set = Self::key_session_set(self.registered_user_id);
 
-        let ttl = ttl.whole_seconds();
+        // let ttl = ttl.whole_seconds();
 
         redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
         redis

@@ -580,9 +580,10 @@ mod tests {
     use crate::{C, S, sleep};
 
     use futures::{SinkExt, StreamExt};
+    use jiff::Timestamp;
+    use jiff::tz::TimeZone;
     use reqwest::StatusCode;
     use std::collections::HashMap;
-    use time::OffsetDateTime;
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
 
@@ -1243,7 +1244,10 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+                .starts_with(&format!(
+                    "{}",
+                    Timestamp::now().to_zoned(TimeZone::UTC).date()
+                ))
         );
     }
 
@@ -1451,7 +1455,10 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+                .starts_with(&format!(
+                    "{}",
+                    Timestamp::now().to_zoned(TimeZone::UTC).date()
+                ))
         );
 
         let result_02 = result[1].as_object().unwrap();
@@ -1531,7 +1538,10 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+                .starts_with(&format!(
+                    "{}",
+                    Timestamp::now().to_zoned(TimeZone::UTC).date()
+                ))
         );
 
         assert_ne!(
@@ -2224,7 +2234,8 @@ mod tests {
         let result = result.as_array().unwrap()[0].as_object().unwrap();
         assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
 
-        let ts = OffsetDateTime::now_utc()
+        let ts = Timestamp::now()
+            .to_zoned(TimeZone::UTC)
             .to_string()
             .chars()
             .take(10)
@@ -2293,7 +2304,8 @@ mod tests {
         let resp = result.as_array().unwrap();
         assert_eq!(resp.len(), 3);
 
-        let ts = OffsetDateTime::now_utc()
+        let ts = Timestamp::now()
+            .to_zoned(TimeZone::UTC)
             .to_string()
             .chars()
             .take(10)

@@ -2,10 +2,10 @@ use axum_extra::extract::{
     PrivateCookieJar,
     cookie::{Cookie, SameSite},
 };
+use cookie::time::Duration;
 use rand::Rng;
 use sqlx::PgPool;
 use std::fmt;
-use time::Duration;
 use ulid::Ulid;
 
 use axum::{
@@ -592,7 +592,7 @@ impl IncognitoRouter {
             cookie.set_max_age(ttl);
 
             RedisSession::new(user.registered_user_id, &user.email)
-                .insert(&state.redis, ttl, ulid)
+                .insert(&state.redis, ttl.whole_seconds(), ulid)
                 .await?;
 
             Ok(jar.add(cookie).into_response())

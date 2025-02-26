@@ -90,7 +90,7 @@ pub mod oj {
                 max_message_size: user.max_message_size_in_bytes,
                 max_devices: user.max_number_of_devices,
                 user_level: user.user_level,
-                timestamp: user.timestamp.to_string(),
+                timestamp: user.timestamp.to_jiff().to_string(),
             }
         }
     }
@@ -108,7 +108,7 @@ pub mod oj {
                 max_message_size: user.max_message_size_in_bytes,
                 max_devices: user.max_number_of_devices,
                 user_level: C!(user.user_level),
-                timestamp: user.timestamp.to_string(),
+                timestamp: user.timestamp.to_jiff().to_string(),
             }
         }
     }
