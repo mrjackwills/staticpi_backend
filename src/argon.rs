@@ -1,10 +1,10 @@
 use argon2::{
-    password_hash::SaltString, Algorithm::Argon2id, Argon2, Params, ParamsBuilder, PasswordHash,
-    Version::V0x13,
+    Algorithm::Argon2id, Argon2, Params, ParamsBuilder, PasswordHash, Version::V0x13,
+    password_hash::SaltString,
 };
 use std::{fmt, sync::LazyLock};
 
-use crate::{api_error::ApiError, C, S};
+use crate::{C, S, api_error::ApiError};
 
 #[expect(clippy::unwrap_used)]
 #[cfg(debug_assertions)]
@@ -91,7 +91,7 @@ pub async fn verify_password(password: &str, argon_hash: ArgonHash) -> Result<bo
 #[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
 
-    use rand::{distributions::Alphanumeric, Rng};
+    use rand::{Rng, distributions::Alphanumeric};
     use regex::Regex;
     use std::sync::LazyLock;
 
@@ -140,7 +140,9 @@ mod tests {
     #[tokio::test]
     async fn argon_mod_verify_known() {
         let password = "This is a known password";
-        let password_hash = ArgonHash(S!("$argon2id$v=19$m=4096,t=5,p=1$rahU5enqn3WcOo9A58Ifjw$I+7yA6+29LuB5jzPUwnxtLoH66Lng7ExWqHdivwj8Es"));
+        let password_hash = ArgonHash(S!(
+            "$argon2id$v=19$m=4096,t=5,p=1$rahU5enqn3WcOo9A58Ifjw$I+7yA6+29LuB5jzPUwnxtLoH66Lng7ExWqHdivwj8Es"
+        ));
 
         // Verify true
         let result = verify_password(password, C!(password_hash)).await;

@@ -76,9 +76,7 @@ macro_rules! redis_hash_to_struct {
 // Generate a hashmap with a fixed key, used for redis hset
 #[macro_export]
 macro_rules! hmap {
-    ($x:expr) => {{
-        std::collections::HashMap::from([(HASH_FIELD, $x)])
-    }};
+    ($x:expr) => {{ std::collections::HashMap::from([(HASH_FIELD, $x)]) }};
 }
 
 pub struct DbRedis;

@@ -2,18 +2,18 @@ use axum::{
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
 };
-use axum_extra::extract::{cookie::Key, PrivateCookieJar};
+use axum_extra::extract::{PrivateCookieJar, cookie::Key};
 
 use fred::clients::Pool;
-use sqlx::{postgres::PgRow, Error, FromRow, PgPool, Row};
-use time::OffsetDateTime;
+use jiff_sqlx::Timestamp;
+use sqlx::{Error, FromRow, PgPool, Row, postgres::PgRow};
 
 use crate::{
+    C,
     api_error::ApiError,
     argon::ArgonHash,
     database::redis::{new_user::RedisNewUser, session::RedisSession},
-    servers::{get_cookie_ulid, ApplicationState},
-    C,
+    servers::{ApplicationState, get_cookie_ulid},
 };
 
 use super::{
@@ -47,7 +47,8 @@ pub struct ModelUser {
     pub max_number_of_devices: i16,
 
     // Join user level job, structured data etc?
-    pub timestamp: OffsetDateTime,
+    // pub timestamp: OffsetDateTime,
+    pub timestamp: Timestamp,
     password_hash: ArgonHash,
 }
 

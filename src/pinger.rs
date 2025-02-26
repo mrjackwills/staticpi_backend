@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::{connections::AMConnections, C};
+use crate::{C, connections::AMConnections};
+use jiff::Zoned;
 use sqlx::PgPool;
-use time::OffsetDateTime;
 
 pub struct Pinger;
 
@@ -21,13 +21,13 @@ macro_rules! sleep {
 impl Pinger {
     /// Ping every connection every 30 seconds
     pub async fn init(connections: AMConnections, postgres: PgPool) {
-        let current_second = OffsetDateTime::now_utc().second();
+        let current_second = Zoned::now().second();
         let wait_for = if current_second > 30 {
             60 - current_second
         } else {
             30 - current_second
         };
-        sleep!(u64::from(wait_for) * 1000);
+        sleep!(u64::try_from(wait_for).unwrap_or_default() * 1000);
         connections.lock().await.ping(&postgres).await;
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
         interval.tick().await;

@@ -79,26 +79,27 @@ WHERE
 	invite = $1
 	AND count > 0";
 
-        if let Some(invite) = sqlx::query_as::<_, Self>(query)
+        match sqlx::query_as::<_, Self>(query)
             .bind(invite)
             .fetch_optional(&mut *transaction)
             .await?
         {
-            let query = "
+            Some(invite) => {
+                let query = "
 UPDATE
 	invite_code
 SET
 	count = count - 1
 WHERE
 	invite_code_id = $1";
-            sqlx::query(query)
-                .bind(invite.invite_code_id.get())
-                .execute(&mut *transaction)
-                .await?;
-            transaction.commit().await?;
-            Ok(true)
-        } else {
-            Ok(false)
+                sqlx::query(query)
+                    .bind(invite.invite_code_id.get())
+                    .execute(&mut *transaction)
+                    .await?;
+                transaction.commit().await?;
+                Ok(true)
+            }
+            _ => Ok(false),
         }
     }
 }

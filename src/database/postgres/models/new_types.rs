@@ -3,7 +3,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize, Serializer};
 use std::sync::LazyLock;
 
-use crate::{api_error::ApiError, helpers::gen_random_hex, S};
+use crate::{S, api_error::ApiError, helpers::gen_random_hex};
 
 /// Api key, [A-F0-9]{128}
 #[derive(Debug, Clone, Eq, PartialEq, sqlx::Decode)]

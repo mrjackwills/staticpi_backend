@@ -8,7 +8,7 @@ use sqlx::PgPool;
 
 use crate::{
     api_error::ApiError,
-    database::{RedisKey, HASH_FIELD},
+    database::{HASH_FIELD, RedisKey},
     hmap, redis_hash_to_struct,
 };
 
@@ -135,15 +135,16 @@ WHERE
 	AND hb.is_counted = TRUE
 	AND ru.registered_user_id = $1";
 
-        if let Some(bandwidth) = sqlx::query_as::<_, Self>(query)
+        match sqlx::query_as::<_, Self>(query)
             .bind(registered_user_id.get())
             .fetch_optional(postgres)
             .await?
         {
-            bandwidth.insert_cache(redis).await?;
-            Ok(Some(bandwidth))
-        } else {
-            Ok(None)
+            Some(bandwidth) => {
+                bandwidth.insert_cache(redis).await?;
+                Ok(Some(bandwidth))
+            }
+            _ => Ok(None),
         }
     }
 }

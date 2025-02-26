@@ -4,15 +4,15 @@ use sqlx::PgPool;
 use totp_rs::{Algorithm, Secret, TOTP};
 
 use crate::{
+    S,
     api_error::ApiError,
     argon::verify_password,
     database::{
         new_types::UserId, session::RedisSession, two_fa_backup::ModelTwoFABackup, user::ModelUser,
         user_level::UserLevel,
     },
-    servers::{get_cookie_ulid, ApplicationState},
+    servers::{ApplicationState, get_cookie_ulid},
     user_io::incoming_json::ij::Token,
-    S,
 };
 
 /// Generate a secret to TOTP from a given secret

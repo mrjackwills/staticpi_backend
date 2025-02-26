@@ -2,27 +2,28 @@ use fred::{
     clients::Pool,
     interfaces::{HashesInterface, KeysInterface, SetsInterface},
 };
+use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use time::{Duration, OffsetDateTime};
 use ulid::Ulid;
 
 use crate::{
+    S,
     api_error::ApiError,
     database::{
         admin::AdminSession,
         new_types::UserId,
-        redis::{RedisKey, HASH_FIELD},
+        redis::{HASH_FIELD, RedisKey},
         user::ModelUser,
     },
-    hmap, redis_hash_to_struct, S,
+    hmap, redis_hash_to_struct,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RedisSession {
     pub registered_user_id: UserId,
     pub email: String,
-    pub timestamp: i64,
+    pub timestamp: Timestamp,
 }
 
 redis_hash_to_struct!(RedisSession);
@@ -32,7 +33,7 @@ impl RedisSession {
         Self {
             registered_user_id,
             email: S!(email),
-            timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+            timestamp: Timestamp::now(),
         }
     }
 
@@ -62,7 +63,7 @@ impl RedisSession {
                 output.push(AdminSession {
                     key,
                     ttl,
-                    timestamp: session.timestamp,
+                    timestamp: session.timestamp.as_second(),
                 });
             }
         }
@@ -71,12 +72,12 @@ impl RedisSession {
     }
 
     /// Insert new session & set ttl
-    pub async fn insert(&self, redis: &Pool, ttl: Duration, ulid: Ulid) -> Result<(), ApiError> {
+    pub async fn insert(&self, redis: &Pool, ttl: i64, ulid: Ulid) -> Result<(), ApiError> {
         let key_session = Self::key_session(&ulid);
         let session = serde_json::to_string(&self)?;
         let key_session_set = Self::key_session_set(self.registered_user_id);
 
-        let ttl = ttl.whole_seconds();
+        // let ttl = ttl.whole_seconds();
 
         redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
         redis
@@ -129,18 +130,19 @@ impl RedisSession {
         ulid: &Ulid,
     ) -> Result<Option<ModelUser>, ApiError> {
         let key_session = Self::key_session(ulid);
-        if let Some(session) = redis
+        match redis
             .hget::<Option<Self>, &str, &str>(&key_session, HASH_FIELD)
             .await?
         {
-            let user = ModelUser::get(postgres, &session.email).await?;
-            // If, for some reason, user isn't in postgres, delete session
-            if user.is_none() {
-                Self::delete(redis, ulid).await?;
+            Some(session) => {
+                let user = ModelUser::get(postgres, &session.email).await?;
+                // If, for some reason, user isn't in postgres, delete session
+                if user.is_none() {
+                    Self::delete(redis, ulid).await?;
+                }
+                Ok(user)
             }
-            Ok(user)
-        } else {
-            Ok(None)
+            _ => Ok(None),
         }
     }
     /// Check session exists in redis

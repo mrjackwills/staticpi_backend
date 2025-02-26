@@ -1,5 +1,5 @@
 use crate::api_error::ApiError;
-use rand::{prelude::SliceRandom, Rng};
+use rand::{Rng, prelude::SliceRandom};
 use sha1::{Digest, Sha1};
 use std::time::SystemTime;
 

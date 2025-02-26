@@ -1,14 +1,14 @@
 use std::net::IpAddr;
 
 use axum::{
+    Router,
     extract::{
-        ws::{Message, Utf8Bytes, WebSocket},
         OriginalUri, State, WebSocketUpgrade,
+        ws::{Message, Utf8Bytes, WebSocket},
     },
     http::StatusCode,
     response::IntoResponse,
     routing::get,
-    Router,
 };
 use fred::clients::Pool;
 use futures::{SinkExt, StreamExt, TryStreamExt};
@@ -17,6 +17,7 @@ use sqlx::PgPool;
 use ulid::Ulid;
 
 use crate::{
+    C, S,
     api_error::ApiError,
     connections::{AMConnections, ConnectionType, SendMessage, WsSender},
     database::{
@@ -31,13 +32,12 @@ use crate::{
     },
     define_routes,
     helpers::calc_uptime,
-    servers::{check_monthly_bandwidth, ApiRouter, ApplicationState},
+    servers::{ApiRouter, ApplicationState, check_monthly_bandwidth},
     user_io::{
         incoming_json::ij,
         outgoing_json::oj,
         ws_message::wm::{self, ClientBody, PiBody},
     },
-    C, S,
 };
 
 const DEFAULT_BUFFER: usize = 1024 * 1024;
@@ -476,18 +476,18 @@ impl WsRouter {
 #[expect(clippy::unwrap_used, clippy::pedantic)]
 mod tests {
     use crate::{
+        C, S,
         connections::ConnectionType,
         database::{
-            access_token::AccessToken, monthly_bandwidth::ModelMonthlyBandwidth,
-            user_level::UserLevel, RedisKey,
+            RedisKey, access_token::AccessToken, monthly_bandwidth::ModelMonthlyBandwidth,
+            user_level::UserLevel,
         },
         helpers::gen_random_hex,
         servers::test_setup::{
-            get_keys, start_servers, token_base_url, ws_base_url, Response, TestSetup,
+            Response, TestSetup, get_keys, start_servers, token_base_url, ws_base_url,
         },
         sleep,
         user_io::incoming_json::ij::DevicePost,
-        C, S,
     };
     use fred::interfaces::{HashesInterface, KeysInterface};
     use futures::{SinkExt, StreamExt};
@@ -496,7 +496,7 @@ mod tests {
     use std::collections::HashMap;
     use tokio_tungstenite::{
         connect_async,
-        tungstenite::{protocol::Message, Error},
+        tungstenite::{Error, protocol::Message},
     };
     use ulid::Ulid;
 

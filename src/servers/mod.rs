@@ -1,4 +1,5 @@
 use crate::{
+    C, S,
     api_error::ApiError,
     connections::{AMConnections, Connections},
     database::{
@@ -8,16 +9,15 @@ use crate::{
     emailer::EmailerEnv,
     parse_env::{AppEnv, RunMode},
     user_io::outgoing_json::oj::{AsJsonRes, OutgoingJson},
-    C, S,
 };
 use axum::{
+    Router,
     extract::{ConnectInfo, FromRef, FromRequestParts, OriginalUri, State},
-    http::{request::Parts, HeaderMap, Request, StatusCode},
+    http::{HeaderMap, Request, StatusCode, request::Parts},
     middleware::Next,
     response::Response,
-    Router,
 };
-use axum_extra::extract::{cookie::Key, PrivateCookieJar};
+use axum_extra::extract::{PrivateCookieJar, cookie::Key};
 
 use fred::clients::Pool;
 use sqlx::PgPool;
@@ -348,14 +348,14 @@ pub mod test_setup {
     use crate::servers::api::authentication::totp_from_secret;
     use crate::sleep;
     use crate::user_io::incoming_json::ij;
-    use crate::{ServeData, C, S};
+    use crate::{C, S, ServeData};
 
     use super::api::{
-        api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION},
         ApiServer,
+        api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION},
     };
     // use super::api::;
-    use super::{get_api_version, token::TokenServer, ws::WsServer, Serve, ServerName};
+    use super::{Serve, ServerName, get_api_version, token::TokenServer, ws::WsServer};
 
     pub const TEST_EMAIL: &str = "test_user@email.com";
     pub const TEST_PASSWORD: &str = "N}}2&zwhgUmfVup[g))EmCchQxcu%R~x";

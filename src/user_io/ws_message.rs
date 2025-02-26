@@ -2,7 +2,7 @@ pub mod wm {
 
     use std::fmt;
 
-    use crate::{user_io::deserializer::IncomingDeserializer as is, S};
+    use crate::{S, user_io::deserializer::IncomingDeserializer as is};
 
     use serde::{self, Deserialize, Serialize};
     use serde_json::Value;

@@ -1,23 +1,24 @@
 use axum_extra::extract::{
-    cookie::{Cookie, SameSite},
     PrivateCookieJar,
+    cookie::{Cookie, SameSite},
 };
+use cookie::time::Duration;
 use rand::Rng;
 use sqlx::PgPool;
 use std::fmt;
-use time::Duration;
 use ulid::Ulid;
 
 use axum::{
+    Router,
     extract::{Path, State},
     http::StatusCode,
     middleware,
     response::IntoResponse,
     routing::{get, post},
-    Router,
 };
 
 use crate::{
+    C, S,
     api_error::ApiError,
     argon::ArgonHash,
     database::{
@@ -38,10 +39,9 @@ use crate::{
     define_routes,
     emailer::{EmailTemplate, Emailer},
     helpers::{self, calc_uptime},
-    servers::{api::authentication, get_cookie_ulid, ApiRouter, ApplicationState, StatusOJ},
+    servers::{ApiRouter, ApplicationState, StatusOJ, api::authentication, get_cookie_ulid},
     sleep,
     user_io::{incoming_json::ij, outgoing_json::oj},
-    C, S,
 };
 
 define_routes! {
@@ -283,62 +283,61 @@ impl IncognitoRouter {
                 ));
             }
 
-            if let Some(reset_user) =
-                ModelPasswordReset::get_by_ulid(&state.postgres, &ulid).await?
-            {
-                if let Some(two_fa_secret) = reset_user.two_fa_secret {
-                    if !authentication::check_token(
-                        body.token,
-                        &state.postgres,
-                        &two_fa_secret,
-                        reset_user.registered_user_id,
-                        reset_user.two_fa_backup_count,
-                    )
-                    .await?
-                    {
-                        return Err(ApiError::Authorization);
+            match ModelPasswordReset::get_by_ulid(&state.postgres, &ulid).await? {
+                Some(reset_user) => {
+                    if let Some(two_fa_secret) = reset_user.two_fa_secret {
+                        if !authentication::check_token(
+                            body.token,
+                            &state.postgres,
+                            &two_fa_secret,
+                            reset_user.registered_user_id,
+                            reset_user.two_fa_backup_count,
+                        )
+                        .await?
+                        {
+                            return Err(ApiError::Authorization);
+                        }
                     }
+
+                    // Check if password is exposed in HIBP or new_password contains users email address
+                    if helpers::pwned_password(&body.password).await?
+                        || body
+                            .password
+                            .to_lowercase()
+                            .contains(&reset_user.email.to_lowercase())
+                    {
+                        return Err(ApiError::InvalidValue(
+                            IncognitoResponse::UnsafePassword.to_string(),
+                        ));
+                    }
+
+                    let password_hash = ArgonHash::new(C!(body.password)).await?;
+
+                    tokio::try_join!(
+                        ModelUser::update_password(
+                            &state.postgres,
+                            reset_user.registered_user_id,
+                            password_hash
+                        ),
+                        ModelPasswordReset::consume(&state.postgres, reset_user.password_reset_id)
+                    )?;
+                    RedisSession::delete_all(&state.redis, reset_user.registered_user_id).await?;
+                    Emailer::new(
+                        &reset_user.full_name,
+                        &reset_user.email,
+                        EmailTemplate::PasswordChanged,
+                        &state.email_env,
+                    )
+                    .send(&state.postgres, &useragent_ip)
+                    .await?;
+                    Ok((
+                        StatusCode::OK,
+                        oj::OutgoingJson::new(IncognitoResponse::ResetPatch.to_string()),
+                    ))
                 }
-
-                // Check if password is exposed in HIBP or new_password contains users email address
-                if helpers::pwned_password(&body.password).await?
-                    || body
-                        .password
-                        .to_lowercase()
-                        .contains(&reset_user.email.to_lowercase())
-                {
-                    return Err(ApiError::InvalidValue(
-                        IncognitoResponse::UnsafePassword.to_string(),
-                    ));
-                }
-
-                let password_hash = ArgonHash::new(C!(body.password)).await?;
-
-                tokio::try_join!(
-                    ModelUser::update_password(
-                        &state.postgres,
-                        reset_user.registered_user_id,
-                        password_hash
-                    ),
-                    ModelPasswordReset::consume(&state.postgres, reset_user.password_reset_id)
-                )?;
-                RedisSession::delete_all(&state.redis, reset_user.registered_user_id).await?;
-                Emailer::new(
-                    &reset_user.full_name,
-                    &reset_user.email,
-                    EmailTemplate::PasswordChanged,
-                    &state.email_env,
-                )
-                .send(&state.postgres, &useragent_ip)
-                .await?;
-                Ok((
-                    StatusCode::OK,
-                    oj::OutgoingJson::new(IncognitoResponse::ResetPatch.to_string()),
-                ))
-            } else {
-                Err(ApiError::InvalidValue(
+                _ => Err(ApiError::InvalidValue(
                     IncognitoResponse::VerifyInvalid.to_string(),
-                ))
+                )),
             }
         } else {
             Err(ApiError::InvalidValue(
@@ -364,18 +363,17 @@ impl IncognitoRouter {
                 ));
             }
 
-            if let Some(valid_reset) =
-                ModelPasswordReset::get_by_ulid(&state.postgres, &ulid).await?
-            {
-                let response = oj::PasswordReset {
-                    two_fa_active: valid_reset.two_fa_secret.is_some(),
-                    two_fa_backup: valid_reset.two_fa_backup_count > 0,
-                };
-                Ok((StatusCode::OK, oj::OutgoingJson::new(response)))
-            } else {
-                Err(ApiError::InvalidValue(
+            match ModelPasswordReset::get_by_ulid(&state.postgres, &ulid).await? {
+                Some(valid_reset) => {
+                    let response = oj::PasswordReset {
+                        two_fa_active: valid_reset.two_fa_secret.is_some(),
+                        two_fa_backup: valid_reset.two_fa_backup_count > 0,
+                    };
+                    Ok((StatusCode::OK, oj::OutgoingJson::new(response)))
+                }
+                _ => Err(ApiError::InvalidValue(
                     IncognitoResponse::VerifyInvalid.to_string(),
-                ))
+                )),
             }
         } else {
             Err(ApiError::InvalidValue(
@@ -401,17 +399,18 @@ impl IncognitoRouter {
                     IncognitoResponse::VerifyInvalid.to_string(),
                 ));
             }
-            if let Some(new_user) = RedisNewUser::get(&state.redis, &ulid).await? {
-                ModelUser::insert(&state.postgres, &new_user).await?;
-                RedisNewUser::delete(&new_user, &state.redis, &ulid).await?;
-                Ok((
-                    StatusCode::OK,
-                    oj::OutgoingJson::new(IncognitoResponse::Verified.to_string()),
-                ))
-            } else {
-                Err(ApiError::InvalidValue(
+            match RedisNewUser::get(&state.redis, &ulid).await? {
+                Some(new_user) => {
+                    ModelUser::insert(&state.postgres, &new_user).await?;
+                    RedisNewUser::delete(&new_user, &state.redis, &ulid).await?;
+                    Ok((
+                        StatusCode::OK,
+                        oj::OutgoingJson::new(IncognitoResponse::Verified.to_string()),
+                    ))
+                }
+                _ => Err(ApiError::InvalidValue(
                     IncognitoResponse::VerifyInvalid.to_string(),
-                ))
+                )),
             }
         } else {
             Err(ApiError::InvalidValue(
@@ -447,22 +446,21 @@ impl IncognitoRouter {
         ip_limit?;
         email_limit?;
 
-        let registered_user_id = if let Some(ulid) = get_cookie_ulid(&state, &jar) {
-            RedisSession::get(&state.redis, &state.postgres, &ulid)
+        let registered_user_id = match get_cookie_ulid(&state, &jar) {
+            Some(ulid) => RedisSession::get(&state.redis, &state.postgres, &ulid)
                 .await?
-                .map(|i| i.registered_user_id)
-        } else {
-            None
+                .map(|i| i.registered_user_id),
+            _ => None,
         };
         let mut transaction = state.postgres.begin().await?;
-        let email_address_id =
-            if let Some(email) = ModelEmailAddress::get(&mut *transaction, &body.email).await? {
-                email.email_address_id
-            } else {
+        let email_address_id = match ModelEmailAddress::get(&mut *transaction, &body.email).await? {
+            Some(email) => email.email_address_id,
+            _ => {
                 ModelEmailAddress::insert(&mut *transaction, &body.email)
                     .await?
                     .email_address_id
-            };
+            }
+        };
         ModelContactMessage::insert(
             &mut *transaction,
             useragent_ip,
@@ -594,7 +592,7 @@ impl IncognitoRouter {
             cookie.set_max_age(ttl);
 
             RedisSession::new(user.registered_user_id, &user.email)
-                .insert(&state.redis, ttl, ulid)
+                .insert(&state.redis, ttl.whole_seconds(), ulid)
                 .await?;
 
             Ok(jar.add(cookie).into_response())
@@ -622,11 +620,11 @@ mod tests {
     use crate::helpers::gen_random_hex;
     use crate::servers::api::api_tests::EMAIL_BODY_LOCATION;
     use crate::servers::test_setup::*;
+    use crate::{C, S, sleep};
     use crate::{
         database::contact_message::ModelContactMessage,
         servers::api::api_tests::EMAIL_HEADERS_LOCATION,
     };
-    use crate::{sleep, C, S};
     use fred::interfaces::{HashesInterface, KeysInterface, SetsInterface};
     use reqwest::StatusCode;
     use std::collections::HashMap;
@@ -719,9 +717,11 @@ mod tests {
         assert!(result.unwrap().contains("Subject: Security Alert"));
         let result = std::fs::read_to_string(EMAIL_BODY_LOCATION);
         assert!(result.is_ok());
-        assert!(result
-            .unwrap()
-            .contains("Due to multiple failed login attempts your account has been locked."));
+        assert!(
+            result
+                .unwrap()
+                .contains("Due to multiple failed login attempts your account has been locked.")
+        );
 
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)
@@ -868,10 +868,12 @@ mod tests {
         assert!(cookie.is_some());
 
         let cookie = cookie.unwrap();
-        assert!(cookie
-            .to_str()
-            .unwrap()
-            .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=21600"));
+        assert!(
+            cookie
+                .to_str()
+                .unwrap()
+                .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=21600")
+        );
 
         // Assert session in db
         let session_vec = get_keys(&test_setup.redis, "session::*").await;
@@ -915,10 +917,12 @@ mod tests {
         assert!(cookie.is_some());
 
         let cookie = cookie.unwrap();
-        assert!(cookie
-            .to_str()
-            .unwrap()
-            .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=14515200"));
+        assert!(
+            cookie
+                .to_str()
+                .unwrap()
+                .contains("HttpOnly; SameSite=Strict; Path=/; Domain=127.0.0.1; Max-Age=14515200")
+        );
 
         // Assert session in db
         let session_vec = get_keys(&test_setup.redis, "session::*").await;
@@ -1112,57 +1116,73 @@ mod tests {
 
         let result = result.json::<Response>().await.unwrap().response;
 
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("hour_in")
-            .unwrap()
-            .is_number());
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("hour_out")
-            .unwrap()
-            .is_number());
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("hour_in")
+                .unwrap()
+                .is_number()
+        );
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("hour_out")
+                .unwrap()
+                .is_number()
+        );
 
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("day_in")
-            .unwrap()
-            .is_number());
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("day_out")
-            .unwrap()
-            .is_number());
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("day_in")
+                .unwrap()
+                .is_number()
+        );
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("day_out")
+                .unwrap()
+                .is_number()
+        );
 
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("month_in")
-            .unwrap()
-            .is_number());
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("month_out")
-            .unwrap()
-            .is_number());
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("month_in")
+                .unwrap()
+                .is_number()
+        );
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("month_out")
+                .unwrap()
+                .is_number()
+        );
 
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("total_in")
-            .unwrap()
-            .is_number());
-        assert!(result
-            .as_object()
-            .unwrap()
-            .get("total_out")
-            .unwrap()
-            .is_number());
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("total_in")
+                .unwrap()
+                .is_number()
+        );
+        assert!(
+            result
+                .as_object()
+                .unwrap()
+                .get("total_out")
+                .unwrap()
+                .is_number()
+        );
     }
 
     // ******************
@@ -1423,9 +1443,11 @@ mod tests {
                 .count,
             1
         );
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains(&link));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains(&link)
+        );
     }
 
     #[tokio::test]
@@ -1463,9 +1485,11 @@ mod tests {
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
         );
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains(&link));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains(&link)
+        );
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)
                 .await
@@ -1564,9 +1588,11 @@ mod tests {
             "href=\"https://www.{}/user/verify/",
             test_setup.app_env.domain
         );
-        assert!(std::fs::read_to_string(EMAIL_BODY_LOCATION)
-            .unwrap()
-            .contains(&link));
+        assert!(
+            std::fs::read_to_string(EMAIL_BODY_LOCATION)
+                .unwrap()
+                .contains(&link)
+        );
 
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)
@@ -1580,9 +1606,11 @@ mod tests {
             ModelInvite::get_all(&test_setup.postgres).await.unwrap()[0].count,
             0
         );
-        assert!(!ModelInvite::valid(&test_setup.postgres, &invite)
-            .await
-            .unwrap());
+        assert!(
+            !ModelInvite::valid(&test_setup.postgres, &invite)
+                .await
+                .unwrap()
+        );
 
         test_setup.flush_redis().await;
 
@@ -1764,9 +1792,11 @@ mod tests {
         // check email has been sent - well written to disk, and contain secret & correct subject
         let result = std::fs::read_to_string(EMAIL_HEADERS_LOCATION);
         assert!(result.is_ok());
-        assert!(result
-            .unwrap()
-            .contains("Subject: Password Reset Requested"));
+        assert!(
+            result
+                .unwrap()
+                .contains("Subject: Password Reset Requested")
+        );
 
         assert_eq!(
             ModelEmailLog::get_count_total(&test_setup.postgres)
@@ -2331,10 +2361,12 @@ mod tests {
             .await
             .unwrap();
         assert!(messages.is_empty());
-        assert!(ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -2362,10 +2394,12 @@ mod tests {
             .await
             .unwrap();
         assert!(messages.is_empty());
-        assert!(ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -2400,10 +2434,12 @@ mod tests {
         assert_eq!(messages[0].user_agent, req.user_agent);
         assert_eq!(messages[0].message, message);
         assert_eq!(messages[0].ip.to_string(), "127.0.0.1");
-        assert!(ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
-            .await
-            .unwrap()
-            .is_some());
+        assert!(
+            ModelEmailAddress::get(&test_setup.postgres, TEST_EMAIL)
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[tokio::test]

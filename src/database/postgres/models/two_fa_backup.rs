@@ -1,7 +1,7 @@
-use sqlx::{types::time::OffsetDateTime, PgPool};
+use sqlx::{PgPool, types::time::OffsetDateTime};
 
 use crate::{
-    api_error::ApiError, argon::ArgonHash, database::redis::two_fa_setup::RedisTwoFASetup, C,
+    C, api_error::ApiError, argon::ArgonHash, database::redis::two_fa_setup::RedisTwoFASetup,
 };
 
 use super::{

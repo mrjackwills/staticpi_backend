@@ -1,8 +1,11 @@
-### 2025-01-13
+### 2025-02-26
 
 ### Chores
-+ alpine & postgres updated, [57c1ccc06c9079867fd8efc87348acf7a7b1b25a]
-+ dependencies updated, [d0d5fbea8d26b609b1f1c4f72eece8e2b17884c2]
-+ Rust 1.84 linting, [85676b7ed6cae9d9e436bc0877786056db96da11]
++ dependencies updated, [96bf610b08a8d44c1d50ebd97b0615ef7a5d7028]
++ .devcontainer updated, [cd8083c97bc49d27d57ebfc0a608abfe4db6c80b]
+
+### Features
++ use jiff for all time methods, [9907d15bde3ed037f5d56c1117d6ecd61072147b]
++ Update to Rust 2024 edition, [3b74cd22536be73b34eb5ca8574179c360fb6103]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
