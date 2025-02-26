@@ -497,9 +497,10 @@ mod tests {
 
     use fred::interfaces::KeysInterface;
     use futures::{SinkExt, StreamExt};
+    use jiff::Timestamp;
+    use jiff::tz::TimeZone;
     use reqwest::{Client, StatusCode};
     use std::collections::HashMap;
-    use time::OffsetDateTime;
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
     use ulid::Ulid;
@@ -2619,7 +2620,10 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+                .starts_with(&format!(
+                    "{}",
+                    Timestamp::now().to_zoned(TimeZone::UTC).date()
+                ))
         );
 
         assert!(device.get("ip").is_some());
@@ -2634,7 +2638,10 @@ mod tests {
                 .unwrap()
                 .as_str()
                 .unwrap()
-                .starts_with(&format!("{}", OffsetDateTime::now_utc().date()))
+                .starts_with(&format!(
+                    "{}",
+                    Timestamp::now().to_zoned(TimeZone::UTC).date()
+                ))
         );
     }
 

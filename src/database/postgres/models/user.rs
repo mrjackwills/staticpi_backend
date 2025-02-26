@@ -5,8 +5,8 @@ use axum::{
 use axum_extra::extract::{PrivateCookieJar, cookie::Key};
 
 use fred::clients::Pool;
+use jiff_sqlx::Timestamp;
 use sqlx::{Error, FromRow, PgPool, Row, postgres::PgRow};
-use time::OffsetDateTime;
 
 use crate::{
     C,
@@ -47,7 +47,8 @@ pub struct ModelUser {
     pub max_number_of_devices: i16,
 
     // Join user level job, structured data etc?
-    pub timestamp: OffsetDateTime,
+    // pub timestamp: OffsetDateTime,
+    pub timestamp: Timestamp,
     password_hash: ArgonHash,
 }
 
