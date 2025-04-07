@@ -190,7 +190,7 @@ impl IncognitoRouter {
             .is_err()
         {
             return Ok(response);
-        };
+        }
 
         if !helpers::xor(body.invite.as_bytes(), state.invite.as_bytes())
             && !ModelInvite::valid(&state.postgres, &body.invite).await?

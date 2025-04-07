@@ -62,7 +62,7 @@ WHERE
             .await
         {
             tracing::error!("{e:?}");
-        };
+        }
     }
 
     pub async fn insert(

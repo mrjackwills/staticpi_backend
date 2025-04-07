@@ -208,7 +208,7 @@ impl UserRouter {
             return Err(ApiError::InvalidValue(S!(
                 "Limited to one download per 24-hours"
             )));
-        };
+        }
 
         // Email user download sent
         Emailer::new(
@@ -337,7 +337,7 @@ impl UserRouter {
                     }
                 }
                 ij::Token::Backup(_) => return err(),
-            };
+            }
         }
         err()
     }
@@ -1033,6 +1033,7 @@ mod tests {
 
         // ip address & user_agent string NOT removed
         let req = TestSetup::gen_req();
+
         assert!(
             sqlx::query("SELECT * FROM ip_address WHERE ip = $1")
                 .bind(req.ip)

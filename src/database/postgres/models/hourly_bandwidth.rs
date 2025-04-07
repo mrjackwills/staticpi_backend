@@ -79,7 +79,7 @@ SET
                     {
                         tracing::error!("{e:?}");
                         tracing::error!("unable to force update cache");
-                    };
+                    }
                 });
             }
         }

@@ -37,6 +37,8 @@ pub enum SendMessage {
 }
 
 impl SendMessage {
+    /// TODO check for this with next clippy version
+    #[allow(clippy::missing_const_for_fn)]
     pub fn get_size(&self) -> usize {
         match self {
             Self::Binary(x) => x.len(),
@@ -252,7 +254,7 @@ impl PiConnections {
         for ws_sender in &mut self.0.values_mut() {
             if ws_sender.ping(now).await.is_err() {
                 to_remove.push((ws_sender.device_id, ws_sender.connection_id));
-            };
+            }
         }
         for i in to_remove {
             self.close_and_remove(i.0).await;
@@ -345,7 +347,7 @@ impl ClientConnections {
             for (ulid, ws_sender) in &mut map.iter_mut() {
                 if ws_sender.ping(now).await.is_err() {
                     to_remove.push((*ulid, ws_sender.device_id, ws_sender.connection_id));
-                };
+                }
             }
         }
 
@@ -439,7 +441,7 @@ impl Connections {
         match ws_sender.device_type {
             ConnectionType::Client => self.client.insert(ws_sender),
             ConnectionType::Pi => self.pi.insert(ws_sender),
-        };
+        }
         Ok(())
     }
 
