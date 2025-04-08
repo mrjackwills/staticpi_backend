@@ -1579,8 +1579,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            test_setup.model_user.unwrap().get_password_hash().0,
-            post_user.get_password_hash().0
+            test_setup
+                .model_user
+                .unwrap()
+                .get_password_hash()
+                .to_string(),
+            post_user.get_password_hash().to_string()
         );
     }
 
@@ -1630,8 +1634,8 @@ mod tests {
                     .as_ref()
                     .unwrap()
                     .get_password_hash()
-                    .0,
-                post_user.get_password_hash().0
+                    .to_string(),
+                post_user.get_password_hash().to_string()
             );
         }
     }
@@ -1681,8 +1685,8 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .get_password_hash()
-                .0,
-            post_user.get_password_hash().0
+                .to_string(),
+            post_user.get_password_hash().to_string()
         );
     }
 
@@ -1733,8 +1737,8 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .get_password_hash()
-                .0,
-            post_user.get_password_hash().0
+                .to_string(),
+            post_user.get_password_hash().to_string()
         );
     }
 
@@ -1780,8 +1784,8 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .get_password_hash()
-                .0,
-            post_user.get_password_hash().0
+                .to_string(),
+            post_user.get_password_hash().to_string()
         );
 
         assert_eq!(
@@ -1880,8 +1884,8 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .get_password_hash()
-                .0,
-            post_user.get_password_hash().0
+                .to_string(),
+            post_user.get_password_hash().to_string()
         );
 
         assert_eq!(

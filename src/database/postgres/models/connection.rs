@@ -1,6 +1,5 @@
 use serde::Serialize;
-use sqlx::PgPool;
-use std::net::IpAddr;
+use sqlx::{FromRow, PgPool, types::ipnetwork::IpNetwork};
 
 use crate::{api_error::ApiError, connections::ConnectionType};
 
@@ -9,11 +8,11 @@ use super::{
     user::ModelUser,
 };
 
-#[derive(Debug, sqlx::FromRow, Serialize)]
+#[derive(Debug, FromRow, Serialize)]
 pub struct ModelConnection {
     pub timestamp_online: String,
     pub timestamp_offline: Option<String>,
-    pub ip: IpAddr,
+    pub ip: IpNetwork,
 }
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
@@ -24,14 +23,17 @@ pub struct ModelConnectionId {
 impl ModelConnection {
     /// Set all connection timestamps to NOW(), for when server is shutdown, make sure db is in sync with the actual connections
     pub async fn update_all_offline(postgres: &PgPool) -> Result<(), ApiError> {
-        let query = r"
+        sqlx::query!(
+            "
 UPDATE
-	connection
+    connection
 SET
-	timestamp_offline = NOW()
+    timestamp_offline = NOW()
 WHERE
-	timestamp_offline IS NULL";
-        sqlx::query(query).execute(postgres).await?;
+    timestamp_offline IS NULL"
+        )
+        .execute(postgres)
+        .await?;
         Ok(())
     }
 
@@ -40,17 +42,18 @@ WHERE
         postgres: &PgPool,
         connection_id: ConnectionId,
     ) -> Result<(), ApiError> {
-        let query = r"
+        sqlx::query!(
+            "
 UPDATE
-	connection
+    connection
 SET
-	timestamp_offline = NOW()
+    timestamp_offline = NOW()
 WHERE
-	connection_id = $1";
-        sqlx::query(query)
-            .bind(connection_id.get())
-            .execute(postgres)
-            .await?;
+    connection_id = $1",
+            connection_id.get()
+        )
+        .execute(postgres)
+        .await?;
         Ok(())
     }
 
@@ -61,28 +64,29 @@ WHERE
         user: &ModelUser,
         name_of_device: &str,
     ) -> Result<Vec<Self>, ApiError> {
-        let query = "
-SELECT
-	ipa.ip,
-	co.timestamp_online::TEXT,
-	co.timestamp_offline::TEXT
+        Ok(sqlx::query_as!(
+            Self,
+            r#"SELECT
+    ipa.ip,
+    co.timestamp_online::TEXT AS "timestamp_online!",
+    co.timestamp_offline::TEXT
 FROM
-	connection co
-	LEFT JOIN ip_address ipa USING(ip_id)
-	LEFT JOIN device de USING(device_id)
-	LEFT JOIN device_name dn ON dn.device_name_id = de.device_name_id
+    connection co
+    JOIN ip_address ipa USING(ip_id)
+    JOIN device de USING(device_id)
+    JOIN device_name dn ON dn.device_name_id = de.device_name_id
 WHERE
-	de.registered_user_id = $1
-	AND co.is_pi = FALSE
-	AND co.timestamp_offline IS NULL
-	AND dn.name_of_device = $2
+    de.registered_user_id = $1
+    AND co.is_pi = FALSE
+    AND co.timestamp_offline IS NULL
+    AND dn.name_of_device = $2
 ORDER BY
-	co.timestamp_online";
-        Ok(sqlx::query_as::<_, Self>(query)
-            .bind(user.registered_user_id.get())
-            .bind(name_of_device)
-            .fetch_all(postgres)
-            .await?)
+    co.timestamp_online"#,
+            user.registered_user_id.get(),
+            name_of_device
+        )
+        .fetch_all(postgres)
+        .await?)
     }
 
     /// Insert a new connection
@@ -92,25 +96,27 @@ ORDER BY
         user_agent_ip: &ModelUserAgentIp,
         device_type: ConnectionType,
     ) -> Result<ConnectionId, ApiError> {
-        let query = r"
+        Ok(sqlx::query_as!(
+            ModelConnectionId,
+            r"
 INSERT INTO
-	connection(
-		device_id,
-		api_key_id,
-		ip_id,
-		user_agent_id,
-		is_pi
-	)
+    connection(
+        device_id,
+        api_key_id,
+        ip_id,
+        user_agent_id,
+        is_pi
+    )
 VALUES
-($1, $2, $3, $4, $5) RETURNING connection_id";
-        Ok(sqlx::query_as::<_, ModelConnectionId>(query)
-            .bind(device.device_id.get())
-            .bind(device.api_key_id.get())
-            .bind(user_agent_ip.ip_id.get())
-            .bind(user_agent_ip.user_agent_id.get())
-            .bind(device_type.is_pi())
-            .fetch_one(postgres)
-            .await?
-            .connection_id)
+($1, $2, $3, $4, $5) RETURNING connection_id",
+            device.device_id.get(),
+            device.api_key_id.get(),
+            user_agent_ip.ip_id.get(),
+            user_agent_ip.user_agent_id.get(),
+            device_type.is_pi()
+        )
+        .fetch_one(postgres)
+        .await?
+        .connection_id)
     }
 }

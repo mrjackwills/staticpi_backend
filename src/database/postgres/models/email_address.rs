@@ -12,30 +12,34 @@ pub struct ModelEmailAddress {
 
 impl ModelEmailAddress {
     pub async fn insert(postgres: impl PgExecutor<'_>, email: &str) -> Result<Self, ApiError> {
-        let query = "
+        Ok(sqlx::query_as!(
+            Self,
+            "
 INSERT INTO
 	email_address(email)
 VALUES
 	($1)
 RETURNING
-	email_address_id, email";
-        Ok(sqlx::query_as::<_, Self>(query)
-            .bind(email)
-            .fetch_one(postgres)
-            .await?)
+	email_address_id, email",
+            email
+        )
+        .fetch_one(postgres)
+        .await?)
     }
 
     pub async fn get(postgres: impl PgExecutor<'_>, email: &str) -> Result<Option<Self>, ApiError> {
-        let query = "
+        Ok(sqlx::query_as!(
+            Self,
+            "
 SELECT
-	*
+    email_address_id, email
 FROM
-	email_address
+    email_address
 WHERE
-	email = $1;";
-        Ok(sqlx::query_as::<_, Self>(query)
-            .bind(email)
-            .fetch_optional(postgres)
-            .await?)
+    email = $1;",
+            email
+        )
+        .fetch_optional(postgres)
+        .await?)
     }
 }

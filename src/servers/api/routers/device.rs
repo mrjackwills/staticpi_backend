@@ -2232,7 +2232,7 @@ mod tests {
 
         let result = resp.json::<Response>().await.unwrap().response;
         let result = result.as_array().unwrap()[0].as_object().unwrap();
-        assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
+        assert_eq!(result.get("ip").unwrap(), "127.0.0.1/32");
 
         let ts = Timestamp::now()
             .to_zoned(TimeZone::UTC)
@@ -2312,7 +2312,7 @@ mod tests {
             .collect::<String>();
 
         let result = resp[0].as_object().unwrap();
-        assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
+        assert_eq!(result.get("ip").unwrap(), "127.0.0.1/32");
 
         assert!(
             result
@@ -2324,7 +2324,7 @@ mod tests {
         );
 
         let result = resp[1].as_object().unwrap();
-        assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
+        assert_eq!(result.get("ip").unwrap(), "127.0.0.1/32");
 
         assert!(
             result
@@ -2336,7 +2336,7 @@ mod tests {
         );
 
         let result = resp[2].as_object().unwrap();
-        assert_eq!(result.get("ip").unwrap(), "127.0.0.1");
+        assert_eq!(result.get("ip").unwrap(), "127.0.0.1/32");
 
         assert!(
             result

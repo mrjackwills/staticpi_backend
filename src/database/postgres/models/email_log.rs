@@ -21,45 +21,48 @@ pub struct ModelEmailLog {
 impl ModelEmailLog {
     // Count of the emails sent in the past hour
     pub async fn get_count_hour(postgres: &PgPool) -> Result<Count, ApiError> {
-        let query = "
+        Ok(sqlx::query_as!(
+            Count,
+            r#"
 SELECT
-	COUNT(*)
+    COUNT(*) AS "count!"
 FROM
-	email_log
+    email_log
 WHERE
-	sent = TRUE
-	AND timestamp >= NOW() - INTERVAL '1 hour'";
-        Ok(sqlx::query_as::<_, Count>(query)
-            .fetch_one(postgres)
-            .await?)
+    sent = TRUE
+    AND timestamp >= NOW() - INTERVAL '1 hour'"#
+        )
+        .fetch_one(postgres)
+        .await?)
     }
 
     // Count of all emails sent
     pub async fn get_count_total(postgres: &PgPool) -> Result<Count, ApiError> {
-        let query = "
-SELECT
-	COUNT(*)
+        Ok(sqlx::query_as!(
+            Count,
+            r#"SELECT
+    COUNT(*) AS "count!"
 FROM
-	email_log";
-        Ok(sqlx::query_as::<_, Count>(query)
-            .fetch_one(postgres)
-            .await?)
+    email_log"#
+        )
+        .fetch_one(postgres)
+        .await?)
     }
 
     /// If email failure, set as sent false, issue with testing when doing this on a separate thread
     /// seemed easier this way
     pub async fn update_sent_false(&self, postgres: &PgPool) {
-        let query = "
-UPDATE
-	email_log
+        if let Err(e) = sqlx::query!(
+            "UPDATE
+    email_log
 SET
-	sent = FALSE
+    sent = FALSE
 WHERE
-	email_log_id = $1";
-        if let Err(e) = sqlx::query(query)
-            .bind(self.email_log_id.get())
-            .execute(postgres)
-            .await
+    email_log_id = $1",
+            self.email_log_id.get()
+        )
+        .execute(postgres)
+        .await
         {
             tracing::error!("{e:?}");
         }
@@ -80,52 +83,55 @@ WHERE
 
         let subject = email_template.get_subject();
 
-        let email_subject_id = if let Some(email_subject) = sqlx::query_as::<_, EmailSubject>(
+        let email_subject_id = if let Some(email_subject) = sqlx::query_as!(
+            EmailSubject,
             "
 SELECT
-	email_subject_id
+    email_subject_id
 FROM
-	email_subject
+    email_subject
 WHERE
-	subject = $1",
+    subject = $1",
+            &subject
         )
-        .bind(&subject)
         .fetch_optional(&mut *transaction)
         .await?
         {
             email_subject
         } else {
-            let query = "
+            sqlx::query_as!(
+                EmailSubject,
+                "
         INSERT INTO
-        	email_subject(subject)
+            email_subject(subject)
         VALUES
-        	($1)
+            ($1)
         RETURNING
-        	email_subject_id";
-            sqlx::query_as::<_, EmailSubject>(query)
-                .bind(&subject)
-                .fetch_one(&mut *transaction)
-                .await?
-        };
-
-        let query = "
-INSERT INTO
-	email_log (
-		ip_id,
-		user_agent_id,
-		email_address_id,
-		email_subject_id
-	)
-VALUES
-	($1, $2, $3, $4) RETURNING email_log_id";
-
-        let email_log = sqlx::query_as::<_, Self>(query)
-            .bind(useragent_ip.ip_id.get())
-            .bind(useragent_ip.user_agent_id.get())
-            .bind(email_address_id.email_address_id.get())
-            .bind(email_subject_id.email_subject_id.get())
+            email_subject_id",
+                &subject
+            )
             .fetch_one(&mut *transaction)
-            .await?;
+            .await?
+        };
+        let email_log = sqlx::query_as!(
+            Self,
+            "
+INSERT INTO
+    email_log (
+        ip_id,
+        user_agent_id,
+        email_address_id,
+        email_subject_id
+    )
+VALUES
+    ($1, $2, $3, $4) RETURNING email_log_id",
+            useragent_ip.ip_id.get(),
+            useragent_ip.user_agent_id.get(),
+            email_address_id.email_address_id.get(),
+            email_subject_id.email_subject_id.get()
+        )
+        .fetch_one(&mut *transaction)
+        .await?;
 
         transaction.commit().await?;
         Ok(email_log)

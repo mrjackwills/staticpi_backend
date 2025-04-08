@@ -852,7 +852,7 @@ pub mod test_setup {
 
         /// Get Test users active devices
         pub async fn query_user_active_devices(&self) -> Vec<DeviceQuery> {
-            let query = r"SELECT de.*, ap.api_key_string FROM device de LEFT JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
+            let query = r"SELECT de.*, ap.api_key_string FROM device de JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
             sqlx::query_as::<_, DeviceQuery>(query)
                 .bind(self.model_user.as_ref().unwrap().registered_user_id.get())
                 .fetch_all(&self.postgres)
@@ -861,7 +861,7 @@ pub mod test_setup {
         }
 
         async fn query_anon_user_active_devices(&self) -> Vec<DeviceQuery> {
-            let query = r"SELECT de.*, ap.api_key_string FROM device de LEFT JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
+            let query = r"SELECT de.*, ap.api_key_string FROM device de JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
             sqlx::query_as::<_, DeviceQuery>(query)
                 .bind(self.anon_user.as_ref().unwrap().registered_user_id.get())
                 .fetch_all(&self.postgres)
@@ -954,10 +954,9 @@ pub mod test_setup {
                 co.connection_id, co.timestamp_online::TEXT, co.timestamp_offline::TEXT
             FROM
                 connection co
-            LEFT JOIN ip_address ipa USING(ip_id)
-            LEFT JOIN device de USING(device_id)
-            LEFT JOIN
-                device_name dn
+            JOIN ip_address ipa USING(ip_id)
+            JOIN device de USING(device_id)
+            JOIN device_name dn
             ON
                 de.device_name_id = dn.device_name_id
             WHERE

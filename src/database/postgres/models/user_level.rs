@@ -57,6 +57,7 @@ pub struct ModelUserLevel {
 
 impl ModelUserLevel {
     pub async fn get(postgres: &PgPool, user_level: UserLevel) -> Result<Self, sqlx::Error> {
+        // todo macro?
         let query = r"
 SELECT
 	ul.user_level_name AS user_level,

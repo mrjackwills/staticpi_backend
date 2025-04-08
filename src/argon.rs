@@ -35,11 +35,23 @@ fn get_hasher() -> Argon2<'static> {
 
 // Fix this to impl from postgres!
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ArgonHash(pub String);
+pub struct ArgonHash(String);
 
 impl fmt::Display for ArgonHash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl From<String> for ArgonHash {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for ArgonHash {
+    fn from(value: &str) -> Self {
+        Self(S!(value))
     }
 }
 

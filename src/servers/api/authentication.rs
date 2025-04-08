@@ -115,6 +115,9 @@ pub async fn check_password_op_token(
     Ok(false)
 }
 
+// TODO when 2f, check password before sending 2fa required back
+// todo sign out all sessions when changing password
+
 /// Middleware for only allowing access to routes if no logged in sessions
 pub async fn not_authenticated(
     State(state): State<ApplicationState>,

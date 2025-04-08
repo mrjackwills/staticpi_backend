@@ -20,47 +20,54 @@ impl ModelInvite {
         user: &ModelUser,
         invite: &str,
     ) -> Result<(), sqlx::Error> {
-        // TODO if user.user_level !== admin, error?
-        let query = "
+        sqlx::query!(
+            "
 INSERT INTO
-	invite_code (
-		registered_user_id,
-		invite,
-		count,
-		ip_id,
-		user_agent_id
-	)
+    invite_code (
+        registered_user_id,
+        invite,
+        count,
+        ip_id,
+        user_agent_id
+    )
 VALUES
-	($1, $2, $3, $4, $5)";
-        sqlx::query(query)
-            .bind(user.registered_user_id.get())
-            .bind(invite)
-            .bind(count)
-            .bind(req.ip_id.get())
-            .bind(req.user_agent_id.get())
-            .execute(postgres)
-            .await?;
+    ($1, $2, $3, $4, $5)",
+            user.registered_user_id.get(),
+            invite,
+            count,
+            req.ip_id.get(),
+            req.user_agent_id.get()
+        )
+        .execute(postgres)
+        .await?;
         Ok(())
     }
 
     /// Should check that the executor is an admin user?
     pub async fn get_all(postgres: &PgPool) -> Result<Vec<Self>, ApiError> {
-        let query = "
+        Ok(sqlx::query_as!(
+            Self,
+            "
 SELECT
-	invite, count, invite_code_id
+    invite, count, invite_code_id
 FROM
-	invite_code";
-        Ok(sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?)
+    invite_code"
+        )
+        .fetch_all(postgres)
+        .await?)
     }
 
     /// Should check that the executor is an admin user?
     pub async fn delete(postgres: &PgPool, invite: String) -> Result<(), ApiError> {
-        let query = "
-DELETE FROM
-	invite_code
+        sqlx::query!(
+            "DELETE FROM
+    invite_code
 WHERE
-	invite = $1";
-        sqlx::query(query).bind(invite).execute(postgres).await?;
+    invite = $1",
+            invite
+        )
+        .execute(postgres)
+        .await?;
         Ok(())
     }
 
@@ -68,38 +75,39 @@ WHERE
     /// make rename it consume?
     pub async fn valid(postgres: &PgPool, invite: &str) -> Result<bool, ApiError> {
         let mut transaction = postgres.begin().await?;
-        let query = "
+        if let Some(invite) = sqlx::query_as!(
+            Self,
+            "
 SELECT
-	invite_code_id,
-	invite,
-	count
+    invite_code_id,
+    invite,
+    count
 FROM
-	invite_code
+    invite_code
 WHERE
-	invite = $1
-	AND count > 0";
-
-        match sqlx::query_as::<_, Self>(query)
-            .bind(invite)
-            .fetch_optional(&mut *transaction)
-            .await?
+    invite = $1
+    AND count > 0",
+            invite
+        )
+        .fetch_optional(&mut *transaction)
+        .await?
         {
-            Some(invite) => {
-                let query = "
+            sqlx::query!(
+                "
 UPDATE
-	invite_code
+    invite_code
 SET
-	count = count - 1
+    count = count - 1
 WHERE
-	invite_code_id = $1";
-                sqlx::query(query)
-                    .bind(invite.invite_code_id.get())
-                    .execute(&mut *transaction)
-                    .await?;
-                transaction.commit().await?;
-                Ok(true)
-            }
-            _ => Ok(false),
+    invite_code_id = $1",
+                invite.invite_code_id.get()
+            )
+            .execute(&mut *transaction)
+            .await?;
+            transaction.commit().await?;
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 }

@@ -53,8 +53,8 @@ SELECT
 	ru.registered_user_id
 FROM
 	hourly_bandwidth hb
-	LEFT JOIN device de USING(device_id)
-	LEFT JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
+	JOIN device de USING(device_id)
+	JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
 WHERE
 	extract(
 		year
@@ -80,7 +80,7 @@ WHERE
 			ru.registered_user_id
 		FROM
 			device de
-			LEFT JOIN registered_user ru USING(registered_user_id)
+			JOIN registered_user ru USING(registered_user_id)
 		WHERE
 			device_id = $1
 	)
@@ -105,14 +105,15 @@ GROUP BY
         if let Some(cache) = Self::get_cache(redis, registered_user_id).await? {
             return Ok(Some(cache));
         }
+        // TODO macro
         let query = r"
 SELECT
 	hb.size_in_bytes::BIGINT AS size_in_bytes,
 	$1 AS registered_user_id
 FROM
 	hourly_bandwidth hb
-	LEFT JOIN device de USING(device_id)
-	LEFT JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
+	JOIN device de USING(device_id)
+	JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
 WHERE
 	extract(
 		year
