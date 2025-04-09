@@ -26,36 +26,36 @@ impl ModelHourlyBandwidth {
                 tokio::spawn(async move {
                     if let Err(e) = sqlx::query!(
                         "INSERT INTO
-						hourly_bandwidth (device_id, size_in_bytes, is_pi, is_counted)
-					VALUES
-						($1, $2, $3, $4) ON CONFLICT (
-							extract(
-								year
-								FROM
-									(timestamp AT TIME ZONE 'UTC')
-							),
-							extract(
-								month
-								FROM
-									(timestamp AT TIME ZONE 'UTC')
-							),
-							extract(
-								day
-								FROM
-									(timestamp AT TIME ZONE 'UTC')
-							),
-							extract(
-								hour
-								FROM
-									(timestamp AT TIME ZONE 'UTC')
-							),
-							device_id,
-							is_pi,
-							is_counted
-						) DO
-					UPDATE
-					SET
-						size_in_bytes = hourly_bandwidth.size_in_bytes + $2",
+                        hourly_bandwidth (device_id, size_in_bytes, is_pi, is_counted)
+                    VALUES
+                        ($1, $2, $3, $4) ON CONFLICT (
+                            extract(
+                                year
+                                FROM
+                                    (timestamp AT TIME ZONE 'UTC')
+                            ),
+                            extract(
+                                month
+                                FROM
+                                    (timestamp AT TIME ZONE 'UTC')
+                            ),
+                            extract(
+                                day
+                                FROM
+                                    (timestamp AT TIME ZONE 'UTC')
+                            ),
+                            extract(
+                                hour
+                                FROM
+                                    (timestamp AT TIME ZONE 'UTC')
+                            ),
+                            device_id,
+                            is_pi,
+                            is_counted
+                        ) DO
+                    UPDATE
+                    SET
+                        size_in_bytes = hourly_bandwidth.size_in_bytes + $2",
                         device_id.get(),
                         size_in_bytes,
                         device_type.is_pi(),
