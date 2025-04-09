@@ -102,7 +102,6 @@ pub struct ModelDownloadData {
     user: User,
 }
 
-// TODO macros
 impl ModelDownloadData {
     #[expect(clippy::too_many_lines)]
     pub async fn get(postgres: &PgPool, registered_user: &ModelUser) -> Result<String, ApiError> {

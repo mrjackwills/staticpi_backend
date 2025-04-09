@@ -266,12 +266,8 @@ async fn rate_limiting(
 
 /// Attempt to extract out a ULID from the cookie jar
 pub fn get_cookie_ulid(state: &ApplicationState, jar: &PrivateCookieJar) -> Option<Ulid> {
-    if let Some(data) = jar.get(&state.cookie_name) {
-        if let Ok(ulid) = Ulid::from_string(data.value()) {
-            return Some(ulid);
-        }
-    }
-    None
+    jar.get(&state.cookie_name)
+        .and_then(|i| Ulid::from_string(i.value()).ok())
 }
 
 #[expect(clippy::expect_used)]
@@ -362,7 +358,7 @@ pub mod test_setup {
     pub const TEST_PASSWORD_HASH: &str = "$argon2id$v=19$m=4096,t=1,p=1$D/DKFfvJbZOBICD6y/798w$ifr1qDS9aQLyRPT+57ZOKmfUnrju+fbkEpiK6w2ADuo";
     pub const TEST_FULL_NAME: &str = "Test user full name";
 
-    pub const UNSAFE_PASSWORD: &str = "iloveyou1234";
+    pub const UNSAFE_PASSWORD: &str = "TEST_PASSWORD_1234";
 
     pub const TEST_USER_AGENT: &str = "test_user_agent";
 

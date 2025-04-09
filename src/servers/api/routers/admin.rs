@@ -884,7 +884,7 @@ mod tests {
                 .unwrap(),
             60
         );
-        // TODO fix me, use a regex
+
         assert!(
             (58..60).contains(
                 &result
