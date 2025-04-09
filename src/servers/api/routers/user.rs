@@ -3426,7 +3426,7 @@ mod tests {
         // allow bandwidths to be inserted
         sleep!(500);
         ws_client.close(None).await.unwrap();
-        sleep!(500);
+        sleep!(200);
 
         let body = HashMap::from([("password", TEST_PASSWORD)]);
         let resp = client
@@ -3477,6 +3477,7 @@ mod tests {
             .to_owned();
         assert_eq!(bandwidth.len(), 4);
         let b_0 = &bandwidth[0];
+		// todo this can fail for some reason
         assert_eq!(b_0.get("is_counted").unwrap().as_str().unwrap(), "false");
         assert_eq!(b_0.get("is_pi").unwrap().as_str().unwrap(), "false");
         assert_eq!(
