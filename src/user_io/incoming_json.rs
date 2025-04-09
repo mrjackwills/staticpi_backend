@@ -234,6 +234,7 @@ pub mod ij {
         #[serde(default)]
         #[serde(deserialize_with = "is::option_token")]
         pub token: Option<Token>,
+        pub remove_sessions: bool,
     }
 
     #[derive(Debug, Deserialize)]

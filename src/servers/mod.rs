@@ -778,6 +778,21 @@ pub mod test_setup {
                 .unwrap();
         }
 
+        /// Sign in with the test user, then return the cookie so that other requests can be authenticated
+        pub async fn signin_cookie(&mut self) -> String {
+            let client = reqwest::Client::new();
+            let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
+            let body = Self::gen_signin_body(None, None, None, None);
+            let signin = client.post(&url).json(&body).send().await.unwrap();
+            signin
+                .headers()
+                .get("set-cookie")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned()
+        }
+
         /// Insert a user, and sign in, then return the cookie so that other requests can be authenticated
         pub async fn authed_user_cookie(&mut self) -> String {
             self.insert_test_user().await;

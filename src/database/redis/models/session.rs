@@ -77,8 +77,6 @@ impl RedisSession {
         let session = serde_json::to_string(&self)?;
         let key_session_set = Self::key_session_set(self.registered_user_id);
 
-        // let ttl = ttl.whole_seconds();
-
         redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
         redis
             .sadd::<(), _, _>(&key_session_set, &key_session)
@@ -121,6 +119,26 @@ impl RedisSession {
             redis.del::<(), _>(key).await?;
         }
         Ok(redis.del(&key_session_set).await?)
+    }
+
+    /// Delete all sessions for a single user, except for current sessions, used when changing password
+    pub async fn delete_all_except_current(
+        redis: &Pool,
+        registered_user_id: UserId,
+        current_session: Ulid,
+    ) -> Result<(), ApiError> {
+        let session_set_key = Self::key_session_set(registered_user_id);
+        let all_keys = redis
+            .smembers::<Vec<String>, &str>(&session_set_key)
+            .await?;
+        for key in all_keys {
+            if current_session.to_string() == key.split_once("::").unwrap_or_default().1 {
+                continue;
+            }
+            redis.del::<(), _>(&key).await?;
+            redis.srem::<(), _, _>(&session_set_key, key).await?;
+        }
+        Ok(())
     }
 
     /// Convert a session into a `ModelUser` object

@@ -170,7 +170,7 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
     let password_hex = hex::encode(sha_digest.finalize()).to_uppercase();
     let split_five = password_hex.split_at(5);
     let _url = format!("{HIBP}{}", split_five.0);
-	Ok(password == "TEST_PASSWORD_1234")
+    Ok(password == "TEST_PASSWORD_1234")
 }
 
 /// cargo watch -q -c -w src/ -x 'test helpers_ -- --test-threads=1 --nocapture'
