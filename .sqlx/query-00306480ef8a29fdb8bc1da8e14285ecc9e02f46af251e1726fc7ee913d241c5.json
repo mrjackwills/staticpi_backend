@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    device_name\nWHERE\n    device_name_id IN (\n        SELECT\n            device_name.device_name_id\n        FROM\n            device_name\n           LEFT JOIN device USING(device_name_id)\n        WHERE\n            device.device_name_id IS NULL\n    )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "00306480ef8a29fdb8bc1da8e14285ecc9e02f46af251e1726fc7ee913d241c5"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    api_key_audit\nWHERE\n    $1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "25384ae43ecbae6317b8e87465a87f9adff8ba88007ac6b35ff61dccbc4afdaf"
+}

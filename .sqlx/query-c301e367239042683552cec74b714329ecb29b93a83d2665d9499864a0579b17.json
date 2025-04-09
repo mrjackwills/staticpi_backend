@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n                        hourly_bandwidth (device_id, size_in_bytes, is_pi, is_counted)\n                    VALUES\n                        ($1, $2, $3, $4) ON CONFLICT (\n                            extract(\n                                year\n                                FROM\n                                    (timestamp AT TIME ZONE 'UTC')\n                            ),\n                            extract(\n                                month\n                                FROM\n                                    (timestamp AT TIME ZONE 'UTC')\n                            ),\n                            extract(\n                                day\n                                FROM\n                                    (timestamp AT TIME ZONE 'UTC')\n                            ),\n                            extract(\n                                hour\n                                FROM\n                                    (timestamp AT TIME ZONE 'UTC')\n                            ),\n                            device_id,\n                            is_pi,\n                            is_counted\n                        ) DO\n                    UPDATE\n                    SET\n                        size_in_bytes = hourly_bandwidth.size_in_bytes + $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c301e367239042683552cec74b714329ecb29b93a83d2665d9499864a0579b17"
+}

@@ -51,6 +51,8 @@ define_routes! {
 }
 
 // Measure message size in bytes
+/// TODO check for this with next clippy version
+#[allow(clippy::missing_const_for_fn)]
 pub fn get_message_size(msg: &Message) -> usize {
     match msg {
         Message::Text(data) => data.len(),
@@ -71,6 +73,8 @@ pub struct HandlerData<'a> {
     pub ulid: Ulid,
 }
 impl<'a> HandlerData<'a> {
+    /// TODO check for this with next clippy version
+    #[allow(clippy::missing_const_for_fn)]
     fn new(
         connection_id: ConnectionId,
         device_type: ConnectionType,
@@ -238,7 +242,7 @@ impl WsRouter {
         if let Err(e) = ModelConnection::update_offline(&state.postgres, connection_id).await {
             tracing::error!("{e:?}");
             tracing::error!("unable to update connection details");
-        };
+        }
     }
 
     /// Deal with text messages when structured data is enabled
@@ -272,7 +276,7 @@ impl WsRouter {
                             }
                             Ok(None) => (),
                             Err(e) => tracing::error!("{:?}", e),
-                        };
+                        }
                     }
                 }
                 Err(_) => Self::send_self(input, wm::Error::InvalidStructure).await,
@@ -288,7 +292,7 @@ impl WsRouter {
                             MessageCache::delete(input.redis, input.device.device_id).await
                         {
                             tracing::error!("{e:?}");
-                        };
+                        }
                     }
 
                     let unique = body.unique;
@@ -311,7 +315,7 @@ impl WsRouter {
                 }
                 Err(_) => Self::send_self(input, wm::Error::InvalidStructure).await,
             },
-        };
+        }
     }
 
     /// This needs to be better!
@@ -464,9 +468,9 @@ impl WsRouter {
                                 state,
                             )
                         }));
-                };
-            };
-        };
+                }
+            }
+        }
         Ok((StatusCode::BAD_REQUEST).into_response())
     }
 }

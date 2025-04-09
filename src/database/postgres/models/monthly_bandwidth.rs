@@ -49,43 +49,43 @@ impl ModelMonthlyBandwidth {
     ) -> Result<(), ApiError> {
         let query = r"
 SELECT
-	COALESCE(SUM(hb.size_in_bytes), 0)::BIGINT AS size_in_bytes,
-	ru.registered_user_id
+    COALESCE(SUM(hb.size_in_bytes), 0)::BIGINT AS size_in_bytes,
+    ru.registered_user_id
 FROM
-	hourly_bandwidth hb
-	LEFT JOIN device de USING(device_id)
-	LEFT JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
+    hourly_bandwidth hb
+    JOIN device de USING(device_id)
+    JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
 WHERE
-	extract(
-		year
-		from
-			hb.timestamp
-	) = extract (
-		year
-		from
-			CURRENT_DATE
-	)
-	AND extract(
-		month
-		from
-			hb.timestamp
-	) = extract (
-		month
-		from
-			CURRENT_DATE
-	)
-	AND hb.is_counted = TRUE
-	AND ru.registered_user_id = (
-		SELECT
-			ru.registered_user_id
-		FROM
-			device de
-			LEFT JOIN registered_user ru USING(registered_user_id)
-		WHERE
-			device_id = $1
-	)
+    extract(
+        year
+        from
+            hb.timestamp
+    ) = extract (
+        year
+        from
+            CURRENT_DATE
+    )
+    AND extract(
+        month
+        from
+            hb.timestamp
+    ) = extract (
+        month
+        from
+            CURRENT_DATE
+    )
+    AND hb.is_counted = TRUE
+    AND ru.registered_user_id = (
+        SELECT
+            ru.registered_user_id
+        FROM
+            device de
+            JOIN registered_user ru USING(registered_user_id)
+        WHERE
+            device_id = $1
+    )
 GROUP BY
-	ru.registered_user_id";
+    ru.registered_user_id";
         if let Some(bandwidth) = sqlx::query_as::<_, Self>(query)
             .bind(device_id.get())
             .fetch_optional(postgres)
@@ -107,33 +107,33 @@ GROUP BY
         }
         let query = r"
 SELECT
-	hb.size_in_bytes::BIGINT AS size_in_bytes,
-	$1 AS registered_user_id
+    hb.size_in_bytes::BIGINT AS size_in_bytes,
+    $1 AS registered_user_id
 FROM
-	hourly_bandwidth hb
-	LEFT JOIN device de USING(device_id)
-	LEFT JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
+    hourly_bandwidth hb
+    JOIN device de USING(device_id)
+    JOIN registered_user ru ON ru.registered_user_id = de.registered_user_id
 WHERE
-	extract(
-		year
-		from
-			hb.timestamp
-	) = extract (
-		year
-		from
-			CURRENT_DATE
-	)
-	AND extract(
-		month
-		from
-			hb.timestamp
-	) = extract (
-		month
-		from
-			CURRENT_DATE
-	)
-	AND hb.is_counted = TRUE
-	AND ru.registered_user_id = $1";
+    extract(
+        year
+        from
+            hb.timestamp
+    ) = extract (
+        year
+        from
+            CURRENT_DATE
+    )
+    AND extract(
+        month
+        from
+            hb.timestamp
+    ) = extract (
+        month
+        from
+            CURRENT_DATE
+    )
+    AND hb.is_counted = TRUE
+    AND ru.registered_user_id = $1";
 
         match sqlx::query_as::<_, Self>(query)
             .bind(registered_user_id.get())

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE\n    login_attempt\nSET\n    login_attempt_number = 0\nWHERE\n    registered_user_id = (\n        SELECT\n            registered_user_id\n        FROM\n            registered_user\n            JOIN email_address USING(email_address_id)\n        WHERE\n            email_address.email = $1\n    )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e5ba5792558680c83fcaf6188b72f456d7debe86a10fb74f7483cad999dc8da5"
+}

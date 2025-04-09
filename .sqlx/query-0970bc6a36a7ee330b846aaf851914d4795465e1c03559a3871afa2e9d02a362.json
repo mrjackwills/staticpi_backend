@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    ipa.ip,\n    co.timestamp_online::TEXT AS \"timestamp_online!\",\n    co.timestamp_offline::TEXT\nFROM\n    connection co\n    JOIN ip_address ipa USING(ip_id)\n    JOIN device de USING(device_id)\n    JOIN device_name dn ON dn.device_name_id = de.device_name_id\nWHERE\n    de.registered_user_id = $1\n    AND co.is_pi = FALSE\n    AND co.timestamp_offline IS NULL\n    AND dn.name_of_device = $2\nORDER BY\n    co.timestamp_online",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ip",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 1,
+        "name": "timestamp_online!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "timestamp_offline",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "0970bc6a36a7ee330b846aaf851914d4795465e1c03559a3871afa2e9d02a362"
+}

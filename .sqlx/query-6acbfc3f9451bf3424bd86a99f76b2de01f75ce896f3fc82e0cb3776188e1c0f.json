@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    two_fa_backup_audit\nWHERE\n    $1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6acbfc3f9451bf3424bd86a99f76b2de01f75ce896f3fc82e0cb3776188e1c0f"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    device\nSET\n    api_key_id = $1\nWHERE\n    device_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7bcf1c3d40c928bee68263ceb1333d8ea56a504add8d911154a67986df4dda29"
+}

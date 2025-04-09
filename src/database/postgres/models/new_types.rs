@@ -67,7 +67,7 @@ impl TryFrom<String> for EmailAddress {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value.is_empty() || !value.contains('@') {
             return Err(ApiError::InvalidValue(S!("Email invalid")));
-        };
+        }
         let email = value.to_lowercase();
 
         if REGEX_EMAIL.is_match(&email) {

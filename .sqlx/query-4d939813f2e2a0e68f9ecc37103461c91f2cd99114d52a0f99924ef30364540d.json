@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE\n    device\nSET\n    paused = $1\nWHERE\n    device_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4d939813f2e2a0e68f9ecc37103461c91f2cd99114d52a0f99924ef30364540d"
+}

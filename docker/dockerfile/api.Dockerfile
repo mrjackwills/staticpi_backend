@@ -2,7 +2,7 @@
 ## Builder ##
 #############
 
-FROM rust:slim AS builder
+FROM --platform=$BUILDPLATFORM rust:1.86.0-slim-bullseye AS builder
 
 WORKDIR /usr/src
 
@@ -14,6 +14,9 @@ COPY Cargo.* /usr/src/staticpi/
 
 # Set the working directory
 WORKDIR /usr/src/staticpi
+
+# Prepared statements required to build for sqlx macros
+COPY .sqlx /usr/src/staticpi/.sqlx
 
 # This is a dummy build to get the dependencies cached - probably not needed - as run via a github action
 RUN cargo build --release
@@ -27,11 +30,11 @@ RUN touch /usr/src/staticpi/src/main.rs
 # This is the actual application build
 RUN cargo build --release
 
-#############
+#############W
 ## Runtime ##
 #############
 
-FROM ubuntu:22.04
+FROM --platform=$BUILDPLATFORM ubuntu:22.04
 
 ARG DOCKER_GUID=1000 \
 	DOCKER_UID=1000 \

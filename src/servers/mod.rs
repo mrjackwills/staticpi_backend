@@ -266,12 +266,8 @@ async fn rate_limiting(
 
 /// Attempt to extract out a ULID from the cookie jar
 pub fn get_cookie_ulid(state: &ApplicationState, jar: &PrivateCookieJar) -> Option<Ulid> {
-    if let Some(data) = jar.get(&state.cookie_name) {
-        if let Ok(ulid) = Ulid::from_string(data.value()) {
-            return Some(ulid);
-        }
-    }
-    None
+    jar.get(&state.cookie_name)
+        .and_then(|i| Ulid::from_string(i.value()).ok())
 }
 
 #[expect(clippy::expect_used)]
@@ -362,7 +358,7 @@ pub mod test_setup {
     pub const TEST_PASSWORD_HASH: &str = "$argon2id$v=19$m=4096,t=1,p=1$D/DKFfvJbZOBICD6y/798w$ifr1qDS9aQLyRPT+57ZOKmfUnrju+fbkEpiK6w2ADuo";
     pub const TEST_FULL_NAME: &str = "Test user full name";
 
-    pub const UNSAFE_PASSWORD: &str = "iloveyou1234";
+    pub const UNSAFE_PASSWORD: &str = "TEST_PASSWORD_1234";
 
     pub const TEST_USER_AGENT: &str = "test_user_agent";
 
@@ -782,6 +778,21 @@ pub mod test_setup {
                 .unwrap();
         }
 
+        /// Sign in with the test user, then return the cookie so that other requests can be authenticated
+        pub async fn signin_cookie(&mut self) -> String {
+            let client = reqwest::Client::new();
+            let url = format!("{}/incognito/signin", api_base_url(&self.app_env));
+            let body = Self::gen_signin_body(None, None, None, None);
+            let signin = client.post(&url).json(&body).send().await.unwrap();
+            signin
+                .headers()
+                .get("set-cookie")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned()
+        }
+
         /// Insert a user, and sign in, then return the cookie so that other requests can be authenticated
         pub async fn authed_user_cookie(&mut self) -> String {
             self.insert_test_user().await;
@@ -852,7 +863,7 @@ pub mod test_setup {
 
         /// Get Test users active devices
         pub async fn query_user_active_devices(&self) -> Vec<DeviceQuery> {
-            let query = r"SELECT de.*, ap.api_key_string FROM device de LEFT JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
+            let query = r"SELECT de.*, ap.api_key_string FROM device de JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
             sqlx::query_as::<_, DeviceQuery>(query)
                 .bind(self.model_user.as_ref().unwrap().registered_user_id.get())
                 .fetch_all(&self.postgres)
@@ -861,7 +872,7 @@ pub mod test_setup {
         }
 
         async fn query_anon_user_active_devices(&self) -> Vec<DeviceQuery> {
-            let query = r"SELECT de.*, ap.api_key_string FROM device de LEFT JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
+            let query = r"SELECT de.*, ap.api_key_string FROM device de JOIN api_key ap USING(api_key_id) WHERE de.registered_user_id = $1 AND de.active = true";
             sqlx::query_as::<_, DeviceQuery>(query)
                 .bind(self.anon_user.as_ref().unwrap().registered_user_id.get())
                 .fetch_all(&self.postgres)
@@ -954,10 +965,9 @@ pub mod test_setup {
                 co.connection_id, co.timestamp_online::TEXT, co.timestamp_offline::TEXT
             FROM
                 connection co
-            LEFT JOIN ip_address ipa USING(ip_id)
-            LEFT JOIN device de USING(device_id)
-            LEFT JOIN
-                device_name dn
+            JOIN ip_address ipa USING(ip_id)
+            JOIN device de USING(device_id)
+            JOIN device_name dn
             ON
                 de.device_name_id = dn.device_name_id
             WHERE

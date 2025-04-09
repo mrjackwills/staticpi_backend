@@ -110,7 +110,7 @@ impl IntoResponse for ApiError {
                         exit();
                     }
                     _ => (),
-                };
+                }
                 internal!(prefix)
             }
             Self::ThreadError(e) => {

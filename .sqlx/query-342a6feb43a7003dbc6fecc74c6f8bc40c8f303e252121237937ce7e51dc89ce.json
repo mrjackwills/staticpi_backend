@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    device_audit\nWHERE\n    $1 IN ((old_values -> 'registered_user_id')::BIGINT, (new_values -> 'registered_user_id')::BIGINT)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "342a6feb43a7003dbc6fecc74c6f8bc40c8f303e252121237937ce7e51dc89ce"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    COUNT(*) AS \"count!\"\nFROM\n    device\nWHERE\n    registered_user_id = $1\n    AND active = TRUE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6b8915dd0cb86336b0ef39c4f8e5f6fe73478670ec44440c68d753e6c99af020"
+}

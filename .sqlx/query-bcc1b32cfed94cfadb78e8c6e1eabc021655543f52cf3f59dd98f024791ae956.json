@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    email_address\nWHERE\n    email_address_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bcc1b32cfed94cfadb78e8c6e1eabc021655543f52cf3f59dd98f024791ae956"
+}

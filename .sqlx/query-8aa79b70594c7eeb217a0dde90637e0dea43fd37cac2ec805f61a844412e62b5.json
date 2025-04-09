@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO\n    invite_code (\n        registered_user_id,\n        invite,\n        count,\n        ip_id,\n        user_agent_id\n    )\nVALUES\n    ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int2",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8aa79b70594c7eeb217a0dde90637e0dea43fd37cac2ec805f61a844412e62b5"
+}

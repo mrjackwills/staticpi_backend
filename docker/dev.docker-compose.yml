@@ -4,11 +4,11 @@ networks:
     name: staticpi-net
 services:
   staticpi_postgres:
-    image: staticpi_postgres:0.1.0
+    image: staticpi_postgres:0.1.1
     container_name: staticpi_postgres
     hostname: staticpi_postgres
     build:
-      context: /workspaces/staticpi
+      context: /workspaces/backend
       dockerfile: ./docker/dockerfile/postgres.Dockerfile
     env_file: ./env/.postgres.env
     cap_drop:
@@ -37,11 +37,11 @@ services:
         limits:
           memory: 256m
   staticpi_redis:
-    image: staticpi_redis:0.1.0
+    image: staticpi_redis:0.1.1
     container_name: staticpi_redis
     hostname: staticpi_redis
     build:
-      context: /workspaces/staticpi
+      context: /workspaces/backend
       dockerfile: ./docker/dockerfile/redis.Dockerfile
     env_file: ./env/.redis.env
     volumes:
@@ -69,7 +69,7 @@ services:
         limits:
           memory: 32M
   staticpi_backup:
-    image: staticpi_backup:0.1.0
+    image: staticpi_backup:0.1.1
     container_name: staticpi_backup
     build:
       context: .
@@ -99,15 +99,15 @@ services:
         limits:
           memory: 64MB
   staticpi_api:
-    image: staticpi_api:0.1.0
+    image: staticpi_api:0.1.1
     container_name: staticpi_api
     hostname: staticpi_api
     build:
-      context: /workspaces/staticpi
+      context: /workspaces/backend
       dockerfile: docker/dockerfile/api.Dockerfile
     volumes:
       - /ramdrive/staticpi/:/logs
-      - /workspaces/staticpi/.env:/app_env/.api.env:ro
+      - /workspaces/backend/.env:/app_env/.api.env:ro
     ports:
       - "127.0.0.1:8008:8008"
       - "127.0.0.1:8009:8009"

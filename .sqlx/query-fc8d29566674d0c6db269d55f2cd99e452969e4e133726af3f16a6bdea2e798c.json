@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n    device_password(password_hash)\nVALUES\n    ($1)\nRETURNING\n    device_password_id, password_hash",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_password_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "password_hash",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "fc8d29566674d0c6db269d55f2cd99e452969e4e133726af3f16a6bdea2e798c"
+}

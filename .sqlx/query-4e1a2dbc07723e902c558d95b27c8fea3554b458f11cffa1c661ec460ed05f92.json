@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_agent_id\nFROM\n    user_agent\nWHERE\n    user_agent_string = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_agent_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4e1a2dbc07723e902c558d95b27c8fea3554b458f11cffa1c661ec460ed05f92"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    device\nSET\n    structured_data = $1\nWHERE\n    device_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6389fb0f8d9bb1e5a1f700619c8e3da7024da3ff4bdb87f8776ab2dc565a56a1"
+}

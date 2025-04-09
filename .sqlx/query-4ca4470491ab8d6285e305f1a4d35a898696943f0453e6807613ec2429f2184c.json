@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE\n    login_attempt\nSET\n    login_attempt_number = 0\nWHERE\n    registered_user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ca4470491ab8d6285e305f1a4d35a898696943f0453e6807613ec2429f2184c"
+}

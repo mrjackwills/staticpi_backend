@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    api_key\nSET\n    active = FALSE\nWHERE\n    api_key_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c7f49a8094d4d1e98c9d7e503956448892ce72f7ec59e48ea68b2ddd393e7ede"
+}

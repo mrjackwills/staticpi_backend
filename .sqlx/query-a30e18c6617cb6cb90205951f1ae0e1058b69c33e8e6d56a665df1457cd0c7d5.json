@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n    device_name(name_of_device)\nVALUES\n    ($1)\nRETURNING\n    device_name_id, name_of_device",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_name_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name_of_device",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a30e18c6617cb6cb90205951f1ae0e1058b69c33e8e6d56a665df1457cd0c7d5"
+}

@@ -40,25 +40,32 @@ update_banned_domains() {
 	EOSQL
 }
 
+# Run any & all migrations
+run_migrations() {
+	if ! psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "${DB_NAME}" -f "/init/migrations.sql"; then
+		echo "Error: Failed to run migrations.sql" >&2
+		exit 1
+	fi
+}
+
 from_pg_dump() {
-	create_staticpi_user
 	create_staticpi_database
 	restore_pg_dump
-	update_banned_domains
 }
 
 from_scratch() {
-	create_staticpi_user
 	bootstrap_from_sql_file
-	update_banned_domains
 }
 
 main() {
+	create_staticpi_user
 	if [ -f "/init/pg_dump.tar" ]; then
 		from_pg_dump
 	else
 		from_scratch
 	fi
+	update_banned_domains
+	run_migrations
 }
 
 main

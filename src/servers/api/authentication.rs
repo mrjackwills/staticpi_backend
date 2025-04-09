@@ -51,7 +51,7 @@ pub async fn check_token(
                     }
                 }
             }
-        };
+        }
     }
     Ok(false)
 }

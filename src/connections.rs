@@ -37,6 +37,8 @@ pub enum SendMessage {
 }
 
 impl SendMessage {
+    /// TODO check for this with next clippy version
+    #[allow(clippy::missing_const_for_fn)]
     pub fn get_size(&self) -> usize {
         match self {
             Self::Binary(x) => x.len(),
@@ -252,7 +254,7 @@ impl PiConnections {
         for ws_sender in &mut self.0.values_mut() {
             if ws_sender.ping(now).await.is_err() {
                 to_remove.push((ws_sender.device_id, ws_sender.connection_id));
-            };
+            }
         }
         for i in to_remove {
             self.close_and_remove(i.0).await;
@@ -345,7 +347,7 @@ impl ClientConnections {
             for (ulid, ws_sender) in &mut map.iter_mut() {
                 if ws_sender.ping(now).await.is_err() {
                     to_remove.push((*ulid, ws_sender.device_id, ws_sender.connection_id));
-                };
+                }
             }
         }
 
@@ -439,7 +441,7 @@ impl Connections {
         match ws_sender.device_type {
             ConnectionType::Client => self.client.insert(ws_sender),
             ConnectionType::Pi => self.pi.insert(ws_sender),
-        };
+        }
         Ok(())
     }
 
@@ -635,60 +637,3 @@ impl Default for Connections {
         }
     }
 }
-
-// previous autoclose implementation, mayeb re-introduce?
-// pub struct AutoClose;
-
-// impl AutoClose {
-//     /// Spawn off a 40 second timeout, which will close the connection, this gets aborted on PONG response, thereby autokilling connections that
-//     /// for whatever reason didn't send a close frame and thus don't return a PONG from the auto sent PING
-//     pub async fn init(
-//         connection_id: ConnectionId,
-//         connections: &AMConnections,
-//         device_id: DeviceId,
-//         device_type: ConnectionType,
-//         ulid: Ulid,
-//         postgres: &PgPool,
-//     ) {
-//         let spawn_connections = Arc::clone(connections);
-//         let duration = std::time::Duration::from_secs(40);
-
-//         // TODO - don't really like this lock?
-//         let mut locked_con = connections.lock().await;
-
-//         let ws_sender = match device_type {
-//             ConnectionType::Pi => locked_con.pi.0.get_mut(&device_id),
-//             ConnectionType::Client => locked_con
-//                 .client
-//                 .0
-//                 .get_mut(&device_id)
-//                 .and_then(|map| map.get_mut(&ulid)),
-//         };
-
-//         // TODO use this instead of a spawner
-//         // use this instead of the spawn below?
-//         // need to combine with the pinger somewhere
-//         let time_to_kill_connection =
-//             std::time::Instant::now() + std::time::Duration::from_secs(40);
-
-//         // if let Some(ws_sender) = ws_sender {
-//         //     let postgres = C!(postgres);
-//         //     ws_sender.auto_close = Some(tokio::spawn(async move {
-//         //         tokio::time::sleep(duration).await;
-//         //         if let Err(e) = ModelConnection::update_offline(&postgres, connection_id).await {
-//         //               tracing::error!("{e:?}");
-//         //             tracing::error!("unable to update connection details");
-//         //         };
-//         //         tokio::time::timeout(
-//         //             std::time::Duration::from_secs(2),
-//         //             spawn_connections
-//         //                 .lock()
-//         //                 .await
-//         //                 .close(device_id, ulid, device_type),
-//         //         )
-//         //         .await
-//         //         .unwrap_or(());
-//         //     }));
-//         // }
-//     }
-// }

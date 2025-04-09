@@ -21,6 +21,12 @@ impl sqlx::Type<sqlx::Postgres> for UserLevel {
     }
 }
 
+impl From<String> for UserLevel {
+    fn from(user_level: String) -> Self {
+        Self::from(user_level.as_str())
+    }
+}
+
 impl From<&str> for UserLevel {
     fn from(user_level: &str) -> Self {
         match user_level {
@@ -57,24 +63,26 @@ pub struct ModelUserLevel {
 
 impl ModelUserLevel {
     pub async fn get(postgres: &PgPool, user_level: UserLevel) -> Result<Self, sqlx::Error> {
-        let query = r"
+        sqlx::query_as!(
+            Self,
+            r"
 SELECT
-	ul.user_level_name AS user_level,
-	ul.max_message_size_in_bytes,
-	ul.max_number_of_devices,
-	ul.structured_data,
-	ul.device_password,
-	ul.max_clients_per_device,
-	ul.max_monthly_bandwidth_in_bytes,
-	ul.user_level_id,
-	ul.custom_device_name
+    ul.user_level_name AS user_level,
+    ul.max_message_size_in_bytes,
+    ul.max_number_of_devices,
+    ul.structured_data,
+    ul.device_password,
+    ul.max_clients_per_device,
+    ul.max_monthly_bandwidth_in_bytes,
+    ul.user_level_id,
+    ul.custom_device_name
 FROM
-	user_level ul
+    user_level ul
 WHERE
-	ul.user_level_name = $1";
-        sqlx::query_as::<_, Self>(query)
-            .bind(user_level.to_string())
-            .fetch_one(postgres)
-            .await
+    ul.user_level_name = $1",
+            user_level.to_string()
+        )
+        .fetch_one(postgres)
+        .await
     }
 }

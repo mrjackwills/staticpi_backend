@@ -190,7 +190,7 @@ impl IncognitoRouter {
             .is_err()
         {
             return Ok(response);
-        };
+        }
 
         if !helpers::xor(body.invite.as_bytes(), state.invite.as_bytes())
             && !ModelInvite::valid(&state.postgres, &body.invite).await?
@@ -670,7 +670,7 @@ mod tests {
             result.json::<Response>().await.unwrap().response,
             "Invalid email address and/or password and/or token"
         );
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 1);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(1));
     }
 
     #[tokio::test]
@@ -693,7 +693,7 @@ mod tests {
             result.json::<Response>().await.unwrap().response,
             "Invalid email address and/or password and/or token"
         );
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 1);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(1));
     }
 
     #[tokio::test]
@@ -743,7 +743,7 @@ mod tests {
             result.json::<Response>().await.unwrap().response,
             "Invalid email address and/or password and/or token"
         );
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 21);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(21));
     }
 
     #[tokio::test]
@@ -770,7 +770,7 @@ mod tests {
             result.json::<Response>().await.unwrap().response,
             "Invalid email address and/or password and/or token"
         );
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 1);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(1));
 
         let body = TestSetup::gen_signin_body(None, None, Some(valid_token), None);
 
@@ -780,7 +780,7 @@ mod tests {
         let login_count = ModelLogin::get(&test_setup.postgres, user.registered_user_id).await;
 
         assert_eq!(result.status(), StatusCode::OK);
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 0);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(0));
     }
 
     #[tokio::test]
@@ -805,7 +805,7 @@ mod tests {
 
         // Login count should increase on a 202 response
         let login_count = ModelLogin::get(&test_setup.postgres, user.registered_user_id).await;
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 1);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(1));
     }
 
     #[tokio::test]
@@ -835,7 +835,7 @@ mod tests {
             result.json::<Response>().await.unwrap().response,
             "Invalid email address and/or password and/or token"
         );
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 1);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(1));
 
         let body = TestSetup::gen_signin_body(None, None, Some(valid_token), None);
 
@@ -845,7 +845,7 @@ mod tests {
         let login_count = ModelLogin::get(&test_setup.postgres, user.registered_user_id).await;
 
         assert_eq!(result.status(), StatusCode::OK);
-        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, 0);
+        assert_eq!(login_count.unwrap().unwrap().login_attempt_number, Some(0));
     }
 
     #[tokio::test]

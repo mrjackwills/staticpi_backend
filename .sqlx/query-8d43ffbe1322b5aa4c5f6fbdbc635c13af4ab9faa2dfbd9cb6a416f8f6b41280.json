@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT api_key_id\nFROM\n    api_key\nWHERE\n    api_key_string = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "api_key_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8d43ffbe1322b5aa4c5f6fbdbc635c13af4ab9faa2dfbd9cb6a416f8f6b41280"
+}

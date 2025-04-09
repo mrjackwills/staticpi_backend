@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO\n            email_subject(subject)\n        VALUES\n            ($1)\n        RETURNING\n            email_subject_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email_subject_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bd684c22db3f4b5dc3f749f6407728ceb151c481ac8ad11e1c6ec0fa6925401a"
+}

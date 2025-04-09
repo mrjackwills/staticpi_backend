@@ -201,6 +201,23 @@ cargo_test() {
 	ask_continue
 }
 
+# Comment out the .env file, for cross-rs sqlx issues
+remove_db_env() {
+	sed -i 's/^DATABASE_URL=/#DATABASE_URL=/' .env
+}
+
+# Uncomment out the .env file, for cross-rs sqlx issues
+add_db_env() {
+	sed -i 's/^#DATABASE_URL=/DATABASE_URL=/' .env
+}
+
+# Create sqlx-data.json file for offline mode
+sqlx_prepare() {
+	echo -e "\n${YELLOW}cargo sqlx prepare${RESET}"
+	cargo sqlx prepare
+	ask_continue
+}
+
 # Check to see if cross is installed - if not then install
 check_cross() {
 	if ! [ -x "$(command -v cross)" ]; then
@@ -212,21 +229,46 @@ check_cross() {
 # Build for linux x86
 cargo_build_x86() {
 	check_cross
+	remove_db_env
 	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
 	cross build --target x86_64-unknown-linux-gnu --release
+	add_db_env
 }
 
 # Build for arm64
 cargo_build_aarch64() {
 	check_cross
+	remove_db_env
 	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-gnu --release${RESET}"
 	cross build --target aarch64-unknown-linux-gnu --release
+	add_db_env
 }
 
 cargo_build_all() {
 	cargo_build_aarch64
 	ask_continue
 	cargo_build_x86
+	ask_continue
+}
+
+# build container for amd64 platform
+build_container_amd64() {
+	echo -e "${YELLOW}docker build  --platform linux/amd64 --no-cache -t staticpi_amd64 --no-cache -f ./docker/dockerfile/api.Dockerfile .; docker save -o /tmp/staticpi_amd64.tar staticpi_amd64${RESET}"
+	docker build --platform linux/amd64 --no-cache -t staticpi_amd64 -f ./docker/dockerfile/api.Dockerfile .
+	docker save -o /tmp/staticpi_amd64.tar staticpi_amd64
+}
+# build container for aarm64 platform
+build_container_arm64() {
+	echo -e "${YELLOW}docker build  --platform linux/arm64 --no-cache -t staticpi_arm64 --no-cache -f ./docker/dockerfile/api.Dockerfile .; docker save -o /tmp/staticpi_arm64.tar staticpi_arm64${RESET}"
+	docker build --platform linux/arm64 --no-cache -t staticpi_arm64 -f ./docker/dockerfile/api.Dockerfile .
+	docker save -o /tmp/staticpi_arm64.tar staticpi_arm64
+}
+
+# Build all the containers, this get executed in the github action
+build_container_all() {
+	build_container_amd64
+	ask_continue
+	build_container_arm64
 	ask_continue
 }
 
@@ -264,8 +306,11 @@ release_flow() {
 	check_git
 	get_git_remote_url
 
+	sqlx_prepare
+
 	cargo_test
 	cargo_build_all
+	build_container_all
 
 	cd "${CWD}" || error_close "Can't find ${CWD}"
 	check_tag
@@ -330,7 +375,7 @@ build_choice() {
 	options=(
 		1 "x86 linux gnu" off
 		2 "aarch64 linux gnu" off
-		5 "all" off
+		3 "all" off
 	)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	exitStatus=$?
@@ -351,8 +396,42 @@ build_choice() {
 			cargo_build_aarch64
 			exit
 			;;
-		5)
+		3)
 			cargo_build_all
+			exit
+			;;
+		esac
+	done
+}
+
+build_container_choice() {
+	cmd=(dialog --backtitle "Choose option" --radiolist "choose" 14 80 16)
+	options=(
+		1 "x86 " off
+		2 "aarch64" off
+		3 "all" off
+	)
+	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+	exitStatus=$?
+	clear
+	if [ $exitStatus -ne 0 ]; then
+		exit
+	fi
+	for choice in $choices; do
+		case $choice in
+		0)
+			exit
+			;;
+		1)
+			build_container_amd64
+			exit
+			;;
+		2)
+			build_container_arm64
+			exit
+			;;
+		3)
+			build_container_all
 			exit
 			;;
 		esac
@@ -365,6 +444,7 @@ main() {
 		1 "test" off
 		2 "release" off
 		3 "build" off
+		4 "docker builds" off
 	)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	exitStatus=$?
@@ -388,6 +468,11 @@ main() {
 			;;
 		3)
 			build_choice
+			main
+			break
+			;;
+		4)
+			build_container_choice
 			main
 			break
 			;;

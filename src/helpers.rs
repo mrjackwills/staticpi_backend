@@ -131,18 +131,7 @@ pub fn xor(input_1: &[u8], input_2: &[u8]) -> bool {
         == 0
 }
 
-// /// Check if two byte arrays match, rather than ==, by hashing, then comparing both inputs
-// pub fn xor_hash(s1: &[u8], s2: &[u8]) -> bool {
-//     calculate_hash(s1) == calculate_hash(s2)
-// }
-
-// /// Create a hash, in order to compare to another hash, instead of using "abc" === "abc", etc
-// fn calculate_hash<T: Hash>(x: T) -> u64 {
-//     let mut hasher = DefaultHasher::new();
-//     x.hash(&mut hasher);
-//     hasher.finish()
-// }
-
+#[cfg(not(test))]
 pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
     let mut sha_digest = Sha1::default();
     sha_digest.update(password.as_bytes());
@@ -171,6 +160,17 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
             Err(ApiError::Internal(S!("hibp request error")))
         }
     }
+}
+
+#[cfg(test)]
+#[allow(clippy::unused_async)]
+pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
+    let mut sha_digest = Sha1::default();
+    sha_digest.update(password.as_bytes());
+    let password_hex = hex::encode(sha_digest.finalize()).to_uppercase();
+    let split_five = password_hex.split_at(5);
+    let _url = format!("{HIBP}{}", split_five.0);
+    Ok(password == "TEST_PASSWORD_1234")
 }
 
 /// cargo watch -q -c -w src/ -x 'test helpers_ -- --test-threads=1 --nocapture'

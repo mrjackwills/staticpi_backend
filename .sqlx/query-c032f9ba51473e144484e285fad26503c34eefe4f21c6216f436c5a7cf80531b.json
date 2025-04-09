@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    ru.registered_user_id,\n    ru.full_name,\n    ea.email,\n    ea.email_address_id,\n    pr.timestamp,\n    pr.password_reset_id,\n    pr.reset_string,\n    tfs.two_fa_secret,\n    (\n        SELECT\n            COALESCE(COUNT(*), 0)\n        FROM\n            two_fa_backup\n        WHERE\n            registered_user_id = ru.registered_user_id\n    ) AS \"two_fa_backup_count!\"\nFROM\n    password_reset pr\n    JOIN registered_user ru USING(registered_user_id)\n    JOIN email_address ea ON ea.email_address_id = ru.email_address_id\n    LEFT JOIN two_fa_secret tfs USING(registered_user_id)\nWHERE\n    pr.reset_string = $1\n    AND ru.active = true\n    AND pr.timestamp >= NOW () - INTERVAL '1 hour'\n    AND pr.consumed IS NOT TRUE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "registered_user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "full_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "email_address_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "password_reset_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "reset_string",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "two_fa_secret",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "two_fa_backup_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "c032f9ba51473e144484e285fad26503c34eefe4f21c6216f436c5a7cf80531b"
+}

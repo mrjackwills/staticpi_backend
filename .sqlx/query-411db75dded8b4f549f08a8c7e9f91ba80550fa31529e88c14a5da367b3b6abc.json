@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO\n    login_attempt (login_attempt_number, registered_user_id)\nVALUES\n    (1, $1)\nON CONFLICT\n    (registered_user_id)\nDO UPDATE\n    SET\n        login_attempt_number = login_attempt.login_attempt_number + 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "411db75dded8b4f549f08a8c7e9f91ba80550fa31529e88c14a5da367b3b6abc"
+}

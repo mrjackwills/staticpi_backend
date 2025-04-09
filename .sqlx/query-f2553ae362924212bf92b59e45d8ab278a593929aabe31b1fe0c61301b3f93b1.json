@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    two_fa_secret\nWHERE\n    registered_user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2553ae362924212bf92b59e45d8ab278a593929aabe31b1fe0c61301b3f93b1"
+}

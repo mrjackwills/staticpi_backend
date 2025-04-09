@@ -16,34 +16,52 @@
 /***********************************************************
  * Alter hourly_bandwidth table to remove redundant columns *
  ***********************************************************/
-ALTER TABLE
-	hourly_bandwidth DROP COLUMN message_date;
+-- ALTER TABLE
+-- 	hourly_bandwidth DROP COLUMN message_date;
 
-ALTER TABLE
-	hourly_bandwidth DROP COLUMN message_hour;
+-- ALTER TABLE
+-- 	hourly_bandwidth DROP COLUMN message_hour;
 
-CREATE UNIQUE INDEX on hourly_bandwidth(
-	extract(
-		year
-		FROM
-			(timestamp AT TIME ZONE 'UTC')
-	),
-	extract(
-		month
-		FROM
-			(timestamp AT TIME ZONE 'UTC')
-	),
-	extract(
-		day
-		FROM
-			(timestamp AT TIME ZONE 'UTC')
-	),
-	extract(
-		hour
-		FROM
-			(timestamp AT TIME ZONE 'UTC')
-	),
-	device_id,
-	is_pi,
-	is_counted
-);
+-- CREATE UNIQUE INDEX on hourly_bandwidth(
+-- 	extract(
+-- 		year
+-- 		FROM
+-- 			(timestamp AT TIME ZONE 'UTC')
+-- 	),
+-- 	extract(
+-- 		month
+-- 		FROM
+-- 			(timestamp AT TIME ZONE 'UTC')
+-- 	),
+-- 	extract(
+-- 		day
+-- 		FROM
+-- 			(timestamp AT TIME ZONE 'UTC')
+-- 	),
+-- 	extract(
+-- 		hour
+-- 		FROM
+-- 			(timestamp AT TIME ZONE 'UTC')
+-- 	),
+-- 	device_id,
+-- 	is_pi,
+-- 	is_counted
+-- );
+
+\echo "device_password password_hash NOT NULL"
+ALTER TABLE device_password
+ALTER COLUMN password_hash SET NOT NULL;
+
+\echo "device max_clients NOT NULL"
+ALTER TABLE device
+ALTER COLUMN max_clients SET NOT NULL;
+
+\echo "device structured_data NOT NULL"
+ALTER TABLE device
+ALTER COLUMN structured_data SET NOT NULL;
+
+
+\echo "contact_message email_address_id NOT NULL"
+ALTER TABLE contact_message
+ALTER COLUMN email_address_id SET NOT NULL;
+

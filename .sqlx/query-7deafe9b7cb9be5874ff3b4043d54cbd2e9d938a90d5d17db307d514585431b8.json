@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    registered_user\nWHERE\n    registered_user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7deafe9b7cb9be5874ff3b4043d54cbd2e9d938a90d5d17db307d514585431b8"
+}

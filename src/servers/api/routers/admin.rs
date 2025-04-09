@@ -884,6 +884,7 @@ mod tests {
                 .unwrap(),
             60
         );
+
         assert!(
             (58..60).contains(
                 &result

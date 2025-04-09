@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    COUNT(*) AS \"count!\"\nFROM\n    email_log",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "54d8a29fda8cb23eb2ddceb5f029bf863b6a6828415d43ec0296667f8662f540"
+}
