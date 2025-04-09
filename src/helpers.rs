@@ -131,6 +131,7 @@ pub fn xor(input_1: &[u8], input_2: &[u8]) -> bool {
         == 0
 }
 
+#[cfg(not(test))]
 pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
     let mut sha_digest = Sha1::default();
     sha_digest.update(password.as_bytes());
@@ -159,6 +160,17 @@ pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
             Err(ApiError::Internal(S!("hibp request error")))
         }
     }
+}
+
+#[cfg(test)]
+#[allow(clippy::unused_async)]
+pub async fn pwned_password(password: &str) -> Result<bool, ApiError> {
+    let mut sha_digest = Sha1::default();
+    sha_digest.update(password.as_bytes());
+    let password_hex = hex::encode(sha_digest.finalize()).to_uppercase();
+    let split_five = password_hex.split_at(5);
+    let _url = format!("{HIBP}{}", split_five.0);
+	Ok(password == "TEST_PASSWORD_1234")
 }
 
 /// cargo watch -q -c -w src/ -x 'test helpers_ -- --test-threads=1 --nocapture'
