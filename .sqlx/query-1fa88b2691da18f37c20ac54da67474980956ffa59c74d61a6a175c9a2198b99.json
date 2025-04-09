@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    contact_message cm\nWHERE\n    cm.email_address_id = (\n        SELECT\n            ru.email_address_id\n        FROM\n            registered_user ru\n        WHERE\n            ru.registered_user_id = $1\n    )\n    OR cm.registered_user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1fa88b2691da18f37c20ac54da67474980956ffa59c74d61a6a175c9a2198b99"
+}

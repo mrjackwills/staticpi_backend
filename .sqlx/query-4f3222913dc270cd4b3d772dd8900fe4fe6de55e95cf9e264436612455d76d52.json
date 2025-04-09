@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO\n\temail_address(email)\nVALUES\n\t($1)\nRETURNING\n\temail_address_id, email",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email_address_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4f3222913dc270cd4b3d772dd8900fe4fe6de55e95cf9e264436612455d76d52"
+}

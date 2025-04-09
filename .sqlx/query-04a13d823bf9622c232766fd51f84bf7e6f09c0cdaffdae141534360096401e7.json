@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE\n    connection\nSET\n    timestamp_offline = NOW()\nWHERE\n    connection_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "04a13d823bf9622c232766fd51f84bf7e6f09c0cdaffdae141534360096401e7"
+}

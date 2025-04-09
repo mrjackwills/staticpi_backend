@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    invite_code_id,\n    invite,\n    count\nFROM\n    invite_code\nWHERE\n    invite = $1\n    AND count > 0",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "invite_code_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "invite",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "count",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "56419e75093a412bf1dc3326e89d870a92c4f42a9142fb284f1223103d563d95"
+}

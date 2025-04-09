@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    device\nSET\n    client_password_id = NULL,\n    device_password_id = NULL\nWHERE\n    device_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "81d7f6e5cfd5cd710ca2094b9b9669fa520b7c36d4a58bbe8c5bb5cb593d779d"
+}

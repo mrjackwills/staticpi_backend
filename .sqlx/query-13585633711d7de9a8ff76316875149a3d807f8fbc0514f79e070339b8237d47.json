@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n    api_key(\n        api_key_string,\n        registered_user_id,\n        ip_id,\n        user_agent_id\n    )\nVALUES\n    ($1, $2, $3, $4) RETURNING api_key_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "api_key_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "13585633711d7de9a8ff76316875149a3d807f8fbc0514f79e070339b8237d47"
+}

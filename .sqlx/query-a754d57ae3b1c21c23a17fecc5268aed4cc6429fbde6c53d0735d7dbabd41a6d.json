@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    email_address_id, email\nFROM\n    email_address\nWHERE\n    email = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email_address_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a754d57ae3b1c21c23a17fecc5268aed4cc6429fbde6c53d0735d7dbabd41a6d"
+}

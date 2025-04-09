@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    email_log\nSET\n    sent = FALSE\nWHERE\n    email_log_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ec5f40d14d1bee41d37468766a2feefb7a4c6d35dfd79affa658dfa966cd2a7e"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n    device\nSET\n    active = FALSE\nWHERE\n    registered_user_id = $1\n    AND device_name_id = (\n        SELECT\n            device_name_id\n        FROM\n            device_name\n        WHERE\n            name_of_device = $2\n    ) RETURNING device_id,\n    api_key_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "device_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "api_key_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "811d3b5c8297ccaa98d8e21369b5bd7767d164c1f0bfa501a4ce52dd700090b7"
+}

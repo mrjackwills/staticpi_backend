@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    two_fa_backup\nWHERE\n    two_fa_backup_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b91927a2587dcba27fcc664d6588631ad2d1babb92abc891040531fd8d0eeff7"
+}

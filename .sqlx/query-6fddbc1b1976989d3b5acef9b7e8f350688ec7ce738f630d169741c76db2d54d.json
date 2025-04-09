@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    COUNT(*) AS \"count!\"\nFROM\n    email_log\nWHERE\n    sent = TRUE\n    AND timestamp >= NOW() - INTERVAL '1 hour'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6fddbc1b1976989d3b5acef9b7e8f350688ec7ce738f630d169741c76db2d54d"
+}

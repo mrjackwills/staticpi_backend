@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO\n    email_log (\n        ip_id,\n        user_agent_id,\n        email_address_id,\n        email_subject_id\n    )\nVALUES\n    ($1, $2, $3, $4) RETURNING email_log_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email_log_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0ebccfb6521a2a60631badcbad3b9917cb7f83c6a7016d4daa0f87128013103b"
+}

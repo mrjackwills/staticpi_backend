@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM\n    device_password\nWHERE\n    device_password_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b61ed89a047d2c9933f420267a559ebfb9a34d94926a712173c3a082cced6798"
+}

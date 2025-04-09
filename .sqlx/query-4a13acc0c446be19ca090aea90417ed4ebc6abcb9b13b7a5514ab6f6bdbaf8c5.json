@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM\n    email_log el\nWHERE\n    el.email_address_id = (\n        SELECT\n            ru.email_address_id\n        FROM\n            registered_user ru\n        WHERE\n            ru.registered_user_id = $1\n    )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4a13acc0c446be19ca090aea90417ed4ebc6abcb9b13b7a5514ab6f6bdbaf8c5"
+}
