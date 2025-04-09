@@ -1,3 +1,17 @@
+### Chores
++ dependencies updated, [2d65b03707b005bdfc7207003bdf37ea65e9285d], [581265c4aa39af7d15c530be5e01df16fcaafc68]
++ Rust 1.86.0 linting, [fb35bbc8a1a82be62b330963e7c3e29188d4e7bb]
+
+### Features
++ remove all sessions on password change, [0e4971e372ce71a8a664fdd6bc98b762b54cabe3]
++ use sqlx macros, [511c790c0cb39fcb7f9c68dd7d0f7c2d0d3e4e32]
+
+### Refactors
++ dead code removed, [d756385d6de0d5c8140682ab28daf22c57db4e37]
+
+### Tests
++ pwned_password test function, [fe1cb1aded8157ac76177223b94479bc576f12c2]
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.1.0'>v0.1.0</a>
 ### 2025-02-26
 
