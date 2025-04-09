@@ -201,6 +201,23 @@ cargo_test() {
 	ask_continue
 }
 
+# Comment out the .env file, for cross-rs sqlx issues
+remove_db_env() {
+	sed -i 's/^DATABASE_URL=/#DATABASE_URL=/' .env
+}
+
+# Uncomment out the .env file, for cross-rs sqlx issues
+add_db_env() {
+	sed -i 's/^#DATABASE_URL=/DATABASE_URL=/' .env
+}
+
+# Create sqlx-data.json file for offline mode
+sqlx_prepare() {
+	echo -e "\n${YELLOW}cargo sqlx prepare${RESET}"
+	cargo sqlx prepare
+	ask_continue
+}
+
 # Check to see if cross is installed - if not then install
 check_cross() {
 	if ! [ -x "$(command -v cross)" ]; then
@@ -212,15 +229,19 @@ check_cross() {
 # Build for linux x86
 cargo_build_x86() {
 	check_cross
+	remove_db_env
 	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
 	cross build --target x86_64-unknown-linux-gnu --release
+	add_db_env
 }
 
 # Build for arm64
 cargo_build_aarch64() {
 	check_cross
+	remove_db_env
 	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-gnu --release${RESET}"
 	cross build --target aarch64-unknown-linux-gnu --release
+	add_db_env
 }
 
 cargo_build_all() {
@@ -284,6 +305,8 @@ release_flow() {
 
 	check_git
 	get_git_remote_url
+
+	sqlx_prepare
 
 	cargo_test
 	cargo_build_all
