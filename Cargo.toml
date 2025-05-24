@@ -68,8 +68,8 @@ sqlx = { version = "0.8", features = [
 	"time",
 ] }
 thiserror = "2.0"
-tokio = { version = "1.44", features = ["full"] }
-totp-rs = { version = "5.6" }
+tokio = { version = "1.45", features = ["full"] }
+totp-rs = { version = "5.7" }
 tower = { version = "0.5", features = ["full"] }
 tower-http = { version = "0.6", features = ["full"] }
 tracing = "0.1"
