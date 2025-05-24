@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS two_fa_secret (
 	registered_user_id BIGINT UNIQUE REFERENCES registered_user(registered_user_id) ON DELETE CASCADE,
 	ip_id BIGINT REFERENCES ip_address(ip_id) NOT NULL,
 	user_agent_id BIGINT REFERENCES user_agent(user_agent_id) NOT NULL,
-	two_fa_secret TEXT DEFAULT NULL,
+	two_fa_secret TEXT,
 	always_required BOOLEAN DEFAULT FALSE
 );
 
@@ -317,7 +317,7 @@ CREATE TABLE IF NOT EXISTS device (
 	paused BOOLEAN DEFAULT FALSE NOT NULL,
 	client_password_id BIGINT UNIQUE REFERENCES device_password(device_password_id) ON DELETE CASCADE,
 	device_password_id BIGINT UNIQUE REFERENCES device_password(device_password_id) ON DELETE CASCADE,
-	max_clients SMALLINT DEFAULT NOT NULL 1 CHECK(
+	max_clients SMALLINT DEFAULT 1 NOT NULL CHECK(
 		max_clients > 0
 		AND max_clients < 101
 	),
