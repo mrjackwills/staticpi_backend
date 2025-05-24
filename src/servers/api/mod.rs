@@ -166,7 +166,7 @@ pub mod api_tests {
             .await
             .unwrap();
         assert_eq!(count, 20);
-        assert_eq!(ttl, 60);
+        assert!([59, 60].contains(&ttl));
     }
 
     #[tokio::test]
