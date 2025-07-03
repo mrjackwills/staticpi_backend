@@ -238,7 +238,9 @@ impl IncognitoRouter {
             ModelUser::get(&state.postgres, &body.email)
         )?;
 
-        if let (Some(user), None) = (op_user, op_reset_in_progress) {
+        if let Some(user) = op_user
+            && op_reset_in_progress.is_none()
+        {
             let ulid = Ulid::new();
             ModelPasswordReset::insert(
                 &state.postgres,

@@ -1656,7 +1656,7 @@ mod tests {
         }
     }
 
-    //    /// Patch passwords
+    /// Patch passwords
     #[derive(Debug, Serialize)]
     struct TestPatchPassword {
         current_password: String,
@@ -1665,7 +1665,6 @@ mod tests {
         remove_sessions: bool,
     }
 
-    // todo!("remove sessions test")
     #[tokio::test]
     /// user's password is unchanged if current password supplied isn't correct
     async fn api_router_user_password_patch_authenticated_invalid_current_password() {

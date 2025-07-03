@@ -19,7 +19,9 @@ impl CustomEmail {
         hyper_link: Option<String>,
         button_text: Option<String>,
     ) -> Self {
-        let button = if let (Some(link), Some(text)) = (hyper_link, button_text) {
+        let button = if let Some(link) = hyper_link
+            && let Some(text) = button_text
+        {
             Some(EmailButton { link, text })
         } else {
             None

@@ -50,9 +50,7 @@ define_routes! {
     Pi => "pi/{access_token}"
 }
 
-// Measure message size in bytes
-/// TODO check for this with next clippy version
-#[allow(clippy::missing_const_for_fn)]
+/// Measure message size in bytes
 pub fn get_message_size(msg: &Message) -> usize {
     match msg {
         Message::Text(data) => data.len(),
@@ -73,8 +71,6 @@ pub struct HandlerData<'a> {
     pub ulid: Ulid,
 }
 impl<'a> HandlerData<'a> {
-    /// TODO check for this with next clippy version
-    #[allow(clippy::missing_const_for_fn)]
     fn new(
         connection_id: ConnectionId,
         device_type: ConnectionType,
