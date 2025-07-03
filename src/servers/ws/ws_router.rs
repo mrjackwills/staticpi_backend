@@ -246,7 +246,7 @@ impl WsRouter {
     }
 
     /// Deal with text messages when structured data is enabled
-	#[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::cognitive_complexity)]
     async fn structured_text_handler(input: &HandlerData<'_>, data: Utf8Bytes) {
         match input.device_type {
             ConnectionType::Client => match serde_json::from_str::<wm::ClientBody>(&data) {
@@ -385,7 +385,7 @@ impl WsRouter {
     }
 
     /// Send an api_version & uptime response, then close socket
-	#[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::cognitive_complexity)]
     async fn online_message_handler(mut socket: WebSocket, state: ApplicationState) {
         if let Ok(response) = serde_json::to_string(&oj::Online {
             uptime: calc_uptime(state.start_time),
