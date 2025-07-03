@@ -60,7 +60,7 @@ impl EmailerEnv {
         self.port
     }
 
-    pub fn get_domain(&self) -> &str {
+    pub const fn get_domain(&self) -> &str {
         self.domain.as_str()
     }
 
