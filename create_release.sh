@@ -43,7 +43,9 @@ ask_yn() {
 # ask continue, or quit
 ask_continue() {
 	if ! ask_yn "continue"; then
+		if ask_yn "are you sure you want to quit"; then
 		exit
+		fi
 	fi
 }
 
@@ -189,7 +191,8 @@ check_tag() {
 			break
 			;;
 		*)
-			error_close "invalid option $REPLY"
+			echo -e "\n\"${REPLY}\" ${RED}- invalid option. Please select 1, 2, or 3.${RESET}"
+			continue
 			;;
 		esac
 	done
@@ -371,7 +374,7 @@ release_flow() {
 }
 
 build_choice() {
-	cmd=(dialog --backtitle "Choose option" --radiolist "choose" 14 80 16)
+	cmd=(dialog --backtitle "Choose option" --keep-tite --radiolist "choose" 14 80 16)
 	options=(
 		1 "x86 linux gnu" off
 		2 "aarch64 linux gnu" off
@@ -405,7 +408,7 @@ build_choice() {
 }
 
 build_container_choice() {
-	cmd=(dialog --backtitle "Choose option" --radiolist "choose" 14 80 16)
+	cmd=(dialog --backtitle "Choose option" --keep-tite --radiolist "choose" 14 80 16)
 	options=(
 		1 "x86 " off
 		2 "aarch64" off
@@ -439,7 +442,7 @@ build_container_choice() {
 }
 
 main() {
-	cmd=(dialog --backtitle "Choose option" --radiolist "choose" 14 80 16)
+	cmd=(dialog --backtitle "Choose option" --keep-tite --radiolist "choose" 14 80 16)
 	options=(
 		1 "test" off
 		2 "release" off

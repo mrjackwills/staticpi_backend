@@ -37,8 +37,6 @@ pub enum SendMessage {
 }
 
 impl SendMessage {
-    /// TODO check for this with next clippy version
-    #[allow(clippy::missing_const_for_fn)]
     pub fn get_size(&self) -> usize {
         match self {
             Self::Binary(x) => x.len(),

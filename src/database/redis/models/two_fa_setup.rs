@@ -21,7 +21,7 @@ pub struct RedisTwoFASetup(String);
 redis_hash_to_struct!(RedisTwoFASetup);
 
 impl RedisTwoFASetup {
-    pub fn value(&self) -> &str {
+    pub const fn value(&self) -> &str {
         self.0.as_str()
     }
 

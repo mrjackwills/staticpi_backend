@@ -2,7 +2,7 @@
 ## Builder ##
 #############
 
-FROM --platform=$BUILDPLATFORM rust:1.86.0-slim-bullseye AS builder
+FROM --platform=$BUILDPLATFORM rust:1.88.0-slim-bullseye AS builder
 
 WORKDIR /usr/src
 

@@ -60,7 +60,7 @@ impl EmailerEnv {
         self.port
     }
 
-    pub fn get_domain(&self) -> &str {
+    pub const fn get_domain(&self) -> &str {
         self.domain.as_str()
     }
 
@@ -113,6 +113,7 @@ impl Emailer {
 
     // Handle all errors in this function, just trace on any issues
     #[cfg(test)]
+    #[allow(clippy::cognitive_complexity)]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
         use crate::servers::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
 
@@ -155,6 +156,7 @@ impl Emailer {
 
     /// Handle all errors in this function, just tracing::error!(e) on any issues
     #[cfg(not(test))]
+    #[allow(clippy::cognitive_complexity)]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
         if let (Ok(from), Ok(to)) = (emailer.env.get_from_mailbox(), to_box) {
