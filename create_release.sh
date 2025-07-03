@@ -43,7 +43,7 @@ ask_yn() {
 # ask continue, or quit
 ask_continue() {
 	if ! ask_yn "continue"; then
-		if ! ask_yn "are you sure you want to quit"; then
+		if ask_yn "are you sure you want to quit"; then
 		exit
 		fi
 	fi
