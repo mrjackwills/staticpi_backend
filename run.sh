@@ -139,7 +139,7 @@ production_rebuild() {
 }
 
 select_containers() {
-	cmd=(dialog --separate-output --backtitle "Dev containers selection" --checklist "select: postgres + redis +" 14 80 16)
+	cmd=(dialog --separate-output --backtitle "Dev containers selection" --keep-tite --checklist "select: postgres + redis +" 14 80 16)
 	options=(
 		1 "${SERVER_API}" off
 	)
@@ -196,7 +196,7 @@ run_migrations() {
 }
 
 main() {
-	cmd=(dialog --backtitle "Start ${APP_NAME} containers" --radiolist "choose environment" 14 80 16)
+	cmd=(dialog --backtitle "Start ${APP_NAME} containers" --keep-tite --radiolist "choose environment" 14 80 16)
 	options=(
 		1 "${DEV} up" off
 		2 "${DEV} down" off
