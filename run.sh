@@ -139,7 +139,7 @@ production_rebuild() {
 }
 
 select_containers() {
-	cmd=(dialog --separate-output --backtitle "Dev containers selection" --checklist "select: postgres + redis +" 14 80 16)
+	cmd=(dialog --separate-output --backtitle "Dev containers selection" --keep-tite --checklist "select: postgres + redis +" 14 80 16)
 	options=(
 		1 "${SERVER_API}" off
 	)
@@ -169,10 +169,12 @@ git_pull_branch() {
 	git fetch --tags
 	latest_tag=$(git tag | sort -V | tail -n 1)
 	git checkout -b "$latest_tag"
-	sleep 10
+	sleep 5
 }
 
 pull_branch() {
+	current_version=$(git tag | sort -V | tail -n 1)
+	echo -e "current version: ${YELLOW}${current_version}${RESET}"
 	GIT_CLEAN=$(git status --porcelain)
 	if [ -n "$GIT_CLEAN" ]; then
 		echo -e "\n${RED}GIT NOT CLEAN${RESET}\n"
@@ -194,7 +196,7 @@ run_migrations() {
 }
 
 main() {
-	cmd=(dialog --backtitle "Start ${APP_NAME} containers" --radiolist "choose environment" 14 80 16)
+	cmd=(dialog --backtitle "Start ${APP_NAME} containers" --keep-tite --radiolist "choose environment" 14 80 16)
 	options=(
 		1 "${DEV} up" off
 		2 "${DEV} down" off

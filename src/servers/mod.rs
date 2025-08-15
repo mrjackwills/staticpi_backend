@@ -241,10 +241,10 @@ async fn get_ratelimiter(
     jar: PrivateCookieJar,
     parts: &mut Parts,
 ) -> Result<RateLimit, ApiError> {
-    if let Some(ulid) = get_cookie_ulid(state, &jar) {
-        if let Some(user) = RedisSession::exists(&state.redis, &ulid).await? {
-            return Ok(RateLimit::User(user.registered_user_id));
-        }
+    if let Some(ulid) = get_cookie_ulid(state, &jar)
+        && let Some(user) = RedisSession::exists(&state.redis, &ulid).await?
+    {
+        return Ok(RateLimit::User(user.registered_user_id));
     }
     let addr = ConnectInfo::<SocketAddr>::from_request_parts(parts, &state).await?;
     let ip = get_ip(&parts.headers, addr);

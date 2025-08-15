@@ -208,13 +208,12 @@ impl DeviceRouter {
         }
 
         // Check if a given device name is already in user by the user
-        if let Some(device_name) = body.name.as_ref() {
-            if ModelDevice::get_by_name(&state.postgres, &user, device_name)
+        if let Some(device_name) = body.name.as_ref()
+            && ModelDevice::get_by_name(&state.postgres, &user, device_name)
                 .await?
                 .is_some()
-            {
-                return Err(ApiError::Conflict(DeviceResponse::NameInUse.to_string()));
-            }
+        {
+            return Err(ApiError::Conflict(DeviceResponse::NameInUse.to_string()));
         }
 
         Ok((

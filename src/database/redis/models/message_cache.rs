@@ -39,13 +39,12 @@ impl MessageCache {
         let spawn_self = C!(self);
         let spawn_redis = C!(redis);
         tokio::spawn(async move {
-            if let Ok(data) = serde_json::to_string(&spawn_self) {
-                if let Err(e) = spawn_redis
+            if let Ok(data) = serde_json::to_string(&spawn_self)
+                && let Err(e) = spawn_redis
                     .hset::<(), String, HashMap<&str, String>>(Self::key(device_id), hmap!(data))
                     .await
-                {
-                    tracing::error!("{e:?}");
-                }
+            {
+                tracing::error!("{e:?}");
             }
         });
     }

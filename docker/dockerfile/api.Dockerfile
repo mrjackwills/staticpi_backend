@@ -2,7 +2,8 @@
 ## Builder ##
 #############
 
-FROM --platform=$BUILDPLATFORM rust:1.88.0-slim-bullseye AS builder
+# TODO update me on eash Rust release
+FROM --platform=$BUILDPLATFORM rust:1.89.0-slim-bullseye AS builder
 
 WORKDIR /usr/src
 

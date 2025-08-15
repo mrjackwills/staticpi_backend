@@ -118,7 +118,9 @@ impl Emailer {
         use crate::servers::api::api_tests::{EMAIL_BODY_LOCATION, EMAIL_HEADERS_LOCATION};
 
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
-        if let (Ok(from), Ok(to)) = (emailer.env.get_from_mailbox(), to_box) {
+        if let Ok(from) = emailer.env.get_from_mailbox()
+            && let Ok(to) = to_box
+        {
             let subject = emailer.template.get_subject();
             if let Some(html_string) = create_html_string(&emailer) {
                 let message_builder = Message::builder()
@@ -159,7 +161,9 @@ impl Emailer {
     #[allow(clippy::cognitive_complexity)]
     async fn _send(emailer: Self, postgres: PgPool, email_log: ModelEmailLog) {
         let to_box = format!("{} <{}>", emailer.name, emailer.email_address).parse::<Mailbox>();
-        if let (Ok(from), Ok(to)) = (emailer.env.get_from_mailbox(), to_box) {
+        if let Ok(from) = emailer.env.get_from_mailbox()
+            && let Ok(to) = to_box
+        {
             let subject = emailer.template.get_subject();
             if let Some(html_string) = create_html_string(&emailer) {
                 let message_builder = Message::builder()

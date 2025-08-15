@@ -332,22 +332,22 @@ impl UserRouter {
                 ij::Token::Totp(token) => {
                     let known_totp = authentication::totp_from_secret(two_fa_setup.value())?;
 
-                    if let Ok(valid_token) = known_totp.check_current(&token) {
-                        if valid_token {
-                            RedisTwoFASetup::delete(&state.redis, &user).await?;
-                            ModelTwoFA::insert(&state.postgres, two_fa_setup, &useragent_ip, &user)
-                                .await?;
-
-                            Emailer::new(
-                                &user.full_name,
-                                &user.email,
-                                EmailTemplate::TwoFAEnabled,
-                                &state.email_env,
-                            )
-                            .send(&state.postgres, &useragent_ip)
+                    if let Ok(valid_token) = known_totp.check_current(&token)
+                        && valid_token
+                    {
+                        RedisTwoFASetup::delete(&state.redis, &user).await?;
+                        ModelTwoFA::insert(&state.postgres, two_fa_setup, &useragent_ip, &user)
                             .await?;
-                            return Ok(StatusCode::OK);
-                        }
+
+                        Emailer::new(
+                            &user.full_name,
+                            &user.email,
+                            EmailTemplate::TwoFAEnabled,
+                            &state.email_env,
+                        )
+                        .send(&state.postgres, &useragent_ip)
+                        .await?;
+                        return Ok(StatusCode::OK);
                     }
                 }
                 ij::Token::Backup(_) => return err(),

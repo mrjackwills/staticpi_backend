@@ -1,11 +1,9 @@
 pub mod oj {
     use axum::Json;
     use serde::Serialize;
-    use ulid::Ulid;
 
     use crate::{
         C,
-        connections::ConnectionType,
         database::{device::ModelDevice, user::ModelUser, user_level::UserLevel},
     };
 
@@ -54,12 +52,6 @@ pub mod oj {
     #[derive(Serialize)]
     pub struct SigninAccepted {
         pub two_fa_backup: bool,
-    }
-
-    #[derive(Serialize)]
-    pub struct Photo {
-        pub converted: String,
-        pub original: String,
     }
 
     #[derive(Serialize)]
@@ -124,12 +116,6 @@ pub mod oj {
     }
 
     #[derive(Serialize)]
-    pub struct BackupFile {
-        pub file_name: String,
-        pub file_size: u64,
-    }
-
-    #[derive(Serialize)]
     pub struct AdminMemory {
         pub uptime: u64,
         pub uptime_app: u64,
@@ -158,11 +144,11 @@ pub mod oj {
         pub total: i64,
     }
 
-    #[derive(Serialize, Debug)]
-    pub struct AdminConnection {
-        pub device_type: ConnectionType,
-        pub ip: String,
-        pub timestamp: i64,
-        pub ulid: Ulid,
-    }
+    // #[derive(Serialize, Debug)]
+    // pub struct AdminConnection {
+    //     pub device_type: ConnectionType,
+    //     pub ip: String,
+    //     pub timestamp: i64,
+    //     pub ulid: Ulid,
+    // }
 }
