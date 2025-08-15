@@ -119,11 +119,7 @@ impl IncomingDeserializer {
         let parsed = Self::parse_string(deserializer, name)?;
         let (_, suffix) = parsed.split_once("::").unwrap_or_default();
         let as_ulid = Ulid::from_string(suffix);
-        if let (_, Ok(ulid)) = ("session", as_ulid) {
-            Ok(ulid)
-        } else {
-            Err(de::Error::custom(name))
-        }
+        as_ulid.map_or_else(|_| Err(de::Error::custom(name)), Ok)
     }
 
     /// Check is a valid ulid, used for access tokens
