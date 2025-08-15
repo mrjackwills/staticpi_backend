@@ -522,20 +522,19 @@ impl Connections {
     /// Will only send if the sendee is a Pi
     pub async fn send_unique(&mut self, input: &HandlerData<'_>, msg: SendMessage, ulid: Ulid) {
         let message = Message::from(msg);
-        if input.device_type == ConnectionType::Pi {
-            if let Some(map) = self.client.0.get_mut(&input.device.device_id) {
-                if let Some(ws_sender) = map.get_mut(&ulid) {
-                    ModelHourlyBandwidth::insert(
-                        input.device.device_id,
-                        ConnectionType::Client,
-                        true,
-                        input.msg_size,
-                        input.postgres,
-                        input.redis,
-                    );
-                    ws_sender.socket.send(message).await.ok();
-                }
-            }
+        if input.device_type == ConnectionType::Pi
+            && let Some(map) = self.client.0.get_mut(&input.device.device_id)
+            && let Some(ws_sender) = map.get_mut(&ulid)
+        {
+            ModelHourlyBandwidth::insert(
+                input.device.device_id,
+                ConnectionType::Client,
+                true,
+                input.msg_size,
+                input.postgres,
+                input.redis,
+            );
+            ws_sender.socket.send(message).await.ok();
         }
     }
 

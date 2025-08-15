@@ -386,10 +386,9 @@ impl WsRouter {
         if let Ok(response) = serde_json::to_string(&oj::Online {
             uptime: calc_uptime(state.start_time),
             api_version: S!(env!("CARGO_PKG_VERSION")),
-        }) {
-            if let Err(e) = socket.send(Message::Text(response.into())).await {
-                tracing::debug!("online_ws::send::{:?}", e);
-            }
+        }) && let Err(e) = socket.send(Message::Text(response.into())).await
+        {
+            tracing::debug!("online_ws::send::{:?}", e);
         }
 
         match tokio::time::timeout(std::time::Duration::from_secs(2), socket.close()).await {

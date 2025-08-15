@@ -169,10 +169,12 @@ git_pull_branch() {
 	git fetch --tags
 	latest_tag=$(git tag | sort -V | tail -n 1)
 	git checkout -b "$latest_tag"
-	sleep 10
+	sleep 5
 }
 
 pull_branch() {
+	current_version=$(git tag | sort -V | tail -n 1)
+	echo -e "current version: ${YELLOW}${current_version}${RESET}"
 	GIT_CLEAN=$(git status --porcelain)
 	if [ -n "$GIT_CLEAN" ]; then
 		echo -e "\n${RED}GIT NOT CLEAN${RESET}\n"

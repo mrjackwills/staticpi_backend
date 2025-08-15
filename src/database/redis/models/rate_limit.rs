@@ -245,20 +245,20 @@ impl RateLimit {
 
     /// If currently rate limited, return ttl, else 0
     pub async fn limited_ttl(&self, redis: &Pool) -> Result<i64, ApiError> {
-        if let Some(count) = self.get_count(redis).await? {
-            if count >= self.get_limit() {
-                return self.ttl(redis).await;
-            }
+        if let Some(count) = self.get_count(redis).await?
+            && count >= self.get_limit()
+        {
+            return self.ttl(redis).await;
         }
         Ok(0)
     }
 
     /// Return true if rate limit is exceeded by factor of 4
     pub async fn exceeded(&self, redis: &Pool) -> Result<bool, ApiError> {
-        if let Some(i) = self.get_count(redis).await? {
-            if i >= self.get_limit() * 4 {
-                return Ok(true);
-            }
+        if let Some(i) = self.get_count(redis).await?
+            && i >= self.get_limit() * 4
+        {
+            return Ok(true);
         }
         Ok(false)
     }
