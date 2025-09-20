@@ -122,7 +122,7 @@ impl IntoResponse for ApiError {
                 internal!(prefix)
             }
         };
-        op_body.map_or((status).into_response(), |body| {
+        op_body.map_or_else(||(status).into_response(), |body| {
             (status, body).into_response()
         })
     }
