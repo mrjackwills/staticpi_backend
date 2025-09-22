@@ -254,7 +254,9 @@ cargo_clean() {
 
 # $1 is 0 or 1, if 1 won't run ask_continue
 cross_build_all() {
-	cargo_clean
+	if ask_yn "cargo clean"; then
+		cargo_clean
+	fi
 	skip_confirm=$1
 	cargo_build_aarch64
 	[ "$skip_confirm" -ne 1 ] && ask_continue
