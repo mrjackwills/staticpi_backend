@@ -230,20 +230,30 @@ check_cross() {
 }
 
 # Build for linux x86
-cargo_build_x86() {
+cross_build_x86() {
 	check_cross
 	remove_db_env
-	echo -e "${YELLOW}cargo build --target x86_64-unknown-linux-gnu --release${RESET}"
+	echo -e "${YELLOW}cross build --target x86_64-unknown-linux-gnu --release${RESET}"
 	cross build --target x86_64-unknown-linux-gnu --release
 	add_db_env
 }
 
 # Build for arm64
-cargo_build_aarch64() {
+cross_build_aarch64() {
 	check_cross
 	remove_db_env
 	echo -e "${YELLOW}cross build --target aarch64-unknown-linux-gnu --release${RESET}"
 	cross build --target aarch64-unknown-linux-gnu --release
+	add_db_env
+}
+
+
+# Build for arm64
+cargo_build() {
+	check_cross
+	remove_db_env
+	echo -e "${YELLOW}cargo build --release${RESET}"
+	cargo build --release
 	add_db_env
 }
 
@@ -253,14 +263,16 @@ cargo_clean() {
 }
 
 # $1 is 0 or 1, if 1 won't run ask_continue
-cross_build_all() {
+cargo_cross_build_all() {
 	if ask_yn "cargo clean"; then
 		cargo_clean
 	fi
 	skip_confirm=$1
-	cargo_build_aarch64
+	cargo_build
 	[ "$skip_confirm" -ne 1 ] && ask_continue
-	cargo_build_x86
+	cross_build_aarch64
+	[ "$skip_confirm" -ne 1 ] && ask_continue
+	cross_build_x86
 	[ "$skip_confirm" -ne 1 ] && ask_continue
 }
 
@@ -324,7 +336,7 @@ release_flow() {
 	sqlx_prepare
 
 	cargo_test
-	cross_build_all 0
+	cargo_cross_build_all 0
 	build_container_all 0
 
 	cd "${CWD}" || error_close "Can't find ${CWD}"
@@ -405,19 +417,19 @@ build_choice() {
 			exit
 			;;
 		1)
-			cargo_build_x86
+			cross_build_x86
 			exit
 			;;
 		2)
-			cargo_build_aarch64
+			cross_build_aarch64
 			exit
 			;;
 		3)
-			cross_build_all 0
+			cargo_cross_build_all 0
 			exit
 			;;
 		4)
-			cross_build_all 1
+			cargo_cross_build_all 1
 			exit
 			;;
 		esac
