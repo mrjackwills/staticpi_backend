@@ -1,3 +1,14 @@
+# <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.1.5'>v0.1.5</a>
+### 2025-09-24
+
+### Chores
++ api.DockerFile updated, [cebb0410](https://github.com/mrjackwills/staticpi_backend/commit/cebb0410710a676936f66d1672be011df9c802e3),
++ create_release.sh updated, [20d18d9c](https://github.com/mrjackwills/staticpi_backend/commit/20d18d9ca372d386238a5fca46bbe88af364b84a),, [dac8f382](https://github.com/mrjackwills/staticpi_backend/commit/dac8f3829fc6cd3762f3d4a76a015952fe3894b4),
++ create_release.sh updated, [f230fb48](https://github.com/mrjackwills/staticpi_backend/commit/f230fb4823512dddb175267b47a8cf7fbd33693d),
++ dependencies updated, [7184e885](https://github.com/mrjackwills/staticpi_backend/commit/7184e8856735430a544d4e81d13ed69ee097c58a),, [81b613e2](https://github.com/mrjackwills/staticpi_backend/commit/81b613e23479337485433a4ed02e319f02a82a14),, [d8c9224e](https://github.com/mrjackwills/staticpi_backend/commit/d8c9224e331fded835669c11b4dde435e2a0ee2f),
++ GitHub workflow updated, [83452bbf](https://github.com/mrjackwills/staticpi_backend/commit/83452bbf0cb9478dd2688b5be8b5dcf89c5ed39a),, [d5fba60d](https://github.com/mrjackwills/staticpi_backend/commit/d5fba60de8bcd23a79ca17880d7ed6a7ae3a655d),
++ Rust 1.90 linting, [6e69ab48](https://github.com/mrjackwills/staticpi_backend/commit/6e69ab48a563e0a2d47db5951e382829c0b4ee74),, [f41d0851](https://github.com/mrjackwills/staticpi_backend/commit/f41d0851110dd9e8212bd24f121b295134623b92),
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.1.4'>v0.1.4</a>
 ### 2025-08-16
 
@@ -32,7 +43,7 @@
 ### 2025-04-09
 
 ### Chores
-+ dependencies updated, [2d65b037](https://github.com/mrjackwills/staticpi_backend/commit/2d65b03707b005bdfc7207003bdf37ea65e9285d),, [581265c4](https://github.com/mrjackwills/staticpi_backend/commit/581265c4aa39af7d15c530be5e01df16fcaafc68),, [e43afa29](https://github.com/mrjackwills/staticpi_backend/commit/e43afa29e02efd57e5c96f4fc3b234159aa244d4),
++ dependencies updated, [2d65b037](https://github.com/mrjackwills/staticpi_backend/commit/2d65b03707b005bdfc7207003bdf37ea65e9285d), [581265c4](https://github.com/mrjackwills/staticpi_backend/commit/581265c4aa39af7d15c530be5e01df16fcaafc68), [e43afa29](https://github.com/mrjackwills/staticpi_backend/commit/e43afa29e02efd57e5c96f4fc3b234159aa244d4),
 + Rust 1.86.0 linting, [fb35bbc8](https://github.com/mrjackwills/staticpi_backend/commit/fb35bbc8a1a82be62b330963e7c3e29188d4e7bb),
 + dockerfile updates, [a5504eaa](https://github.com/mrjackwills/staticpi_backend/commit/a5504eaacfc9709031dc16a5ab058d12a19a15bb),
 
@@ -81,15 +92,15 @@
 
 ### Chores
 + .devcontainer updated, [334a7677](https://github.com/mrjackwills/staticpi_backend/commit/334a7677dcfa1025205460c72ec19e4bb0120e67),
-+ dependences updated, [11a452fd](https://github.com/mrjackwills/staticpi_backend/commit/11a452fdbab603ffb5391d6a718e7fcb674a08a5),, [59236e9e](https://github.com/mrjackwills/staticpi_backend/commit/59236e9eb2a0508a9956be2ced185fcc9877be28),, [9e6e15e2](https://github.com/mrjackwills/staticpi_backend/commit/9e6e15e24fb1cd0c1e3e39b9039cef6e843730f4),
-+ run.sh & create_release.sh updated, [1384d174](https://github.com/mrjackwills/staticpi_backend/commit/1384d1745b3fbbe1a3eb82a6f07a3b567398a2b4),, [ab5b7d78](https://github.com/mrjackwills/staticpi_backend/commit/ab5b7d78d15cce4eec07654cf15490ec28fef994),
++ dependences updated, [11a452fd](https://github.com/mrjackwills/staticpi_backend/commit/11a452fdbab603ffb5391d6a718e7fcb674a08a5), [59236e9e](https://github.com/mrjackwills/staticpi_backend/commit/59236e9eb2a0508a9956be2ced185fcc9877be28), [9e6e15e2](https://github.com/mrjackwills/staticpi_backend/commit/9e6e15e24fb1cd0c1e3e39b9039cef6e843730f4),
++ run.sh & create_release.sh updated, [1384d174](https://github.com/mrjackwills/staticpi_backend/commit/1384d1745b3fbbe1a3eb82a6f07a3b567398a2b4), [ab5b7d78](https://github.com/mrjackwills/staticpi_backend/commit/ab5b7d78d15cce4eec07654cf15490ec28fef994),
 
 ### Features
 + show run mode on start, [521da7bf](https://github.com/mrjackwills/staticpi_backend/commit/521da7bf810d626c9c94bbf4668e320f6bc23742),
 + use C! macro, [1a7e07c0](https://github.com/mrjackwills/staticpi_backend/commit/1a7e07c0a97f25992727aa91ec9fb08cd25bb31d),
 
 ### Refactors
-+ dead code removed, [1f9fb29f](https://github.com/mrjackwills/staticpi_backend/commit/1f9fb29f1c52f6b196cf8cf55657febf2be7b072),, [66780e41](https://github.com/mrjackwills/staticpi_backend/commit/66780e41970bcaa9e5b954278ad67ae6c210b406),, [9c5eebdb](https://github.com/mrjackwills/staticpi_backend/commit/9c5eebdb66ad70b654348ecfdcd8382a11a4a90f),
++ dead code removed, [1f9fb29f](https://github.com/mrjackwills/staticpi_backend/commit/1f9fb29f1c52f6b196cf8cf55657febf2be7b072), [66780e41](https://github.com/mrjackwills/staticpi_backend/commit/66780e41970bcaa9e5b954278ad67ae6c210b406), [9c5eebdb](https://github.com/mrjackwills/staticpi_backend/commit/9c5eebdb66ad70b654348ecfdcd8382a11a4a90f),
 + GitHub release action, [867fcae9](https://github.com/mrjackwills/staticpi_backend/commit/867fcae97270f1c224ba96104bf1e66c92ce72ef),
 + qualify all tracing macros, [56c39ca0](https://github.com/mrjackwills/staticpi_backend/commit/56c39ca09b674a40a9fe893cd0d62304ffa5fae5),
 + ratelimit from &str, [5e509e8f](https://github.com/mrjackwills/staticpi_backend/commit/5e509e8fa9eb77f662a61f4e378892738490759b),
@@ -153,7 +164,7 @@
 ### 2024-06-17
 
 ### Chores
-+ dependencies updated, [95d94b92](https://github.com/mrjackwills/staticpi_backend/commit/95d94b9299574fca5c43f5852b11677029f26d14),, [f0cedb14](https://github.com/mrjackwills/staticpi_backend/commit/f0cedb14a3eaaad39050b359c4b5591da51e0aa6),
++ dependencies updated, [95d94b92](https://github.com/mrjackwills/staticpi_backend/commit/95d94b9299574fca5c43f5852b11677029f26d14), [f0cedb14](https://github.com/mrjackwills/staticpi_backend/commit/f0cedb14a3eaaad39050b359c4b5591da51e0aa6),
 + Docker alpine version bump, [52f41024](https://github.com/mrjackwills/staticpi_backend/commit/52f41024fb5359595f3455337143a776247fe056),
 + linting, [4481bdf4](https://github.com/mrjackwills/staticpi_backend/commit/4481bdf46b9dbf2e0996686cf066218bac84cb77),
 + run.sh v0.3.0, [37d20bdf](https://github.com/mrjackwills/staticpi_backend/commit/37d20bdf841b9b5860f925e84c6b9251a4a68b9c),
@@ -175,7 +186,7 @@
 ### 2024-05-07
 
 ### Chores
-+ dependencies updated, [d5b3cfab](https://github.com/mrjackwills/staticpi_backend/commit/d5b3cfabed95357f3bec23468a3abdc622b5df80),, [026d3e33](https://github.com/mrjackwills/staticpi_backend/commit/026d3e3330d348364a3320c1ee0acba66caa74f5),, [00918885](https://github.com/mrjackwills/staticpi_backend/commit/009188855c57da335c80279fb0946190060234f0),
++ dependencies updated, [d5b3cfab](https://github.com/mrjackwills/staticpi_backend/commit/d5b3cfabed95357f3bec23468a3abdc622b5df80), [026d3e33](https://github.com/mrjackwills/staticpi_backend/commit/026d3e3330d348364a3320c1ee0acba66caa74f5), [00918885](https://github.com/mrjackwills/staticpi_backend/commit/009188855c57da335c80279fb0946190060234f0),
 
 ### Features
 + show name & version at application start, [90c046b4](https://github.com/mrjackwills/staticpi_backend/commit/90c046b4e45f6553f0d8525da3a0a34def7077bc),
@@ -216,7 +227,7 @@
 ### Chores
 + create_release.sh v0.5.3, [aa566d2c](https://github.com/mrjackwills/staticpi_backend/commit/aa566d2cc00574537dd6f2454f8426c625cbcfbe),
 + .devcontainer updated, [9fc5b448](https://github.com/mrjackwills/staticpi_backend/commit/9fc5b4484b0ee7c4337d90b9c982d9a89e4cfa9c),
-+ dependencies updated, [3cd915c4](https://github.com/mrjackwills/staticpi_backend/commit/3cd915c47885c1460dd5072ce0f4007e7f97601a),, [974412ad](https://github.com/mrjackwills/staticpi_backend/commit/974412ad38719eaeb3f46fcc9432526130f22de7),
++ dependencies updated, [3cd915c4](https://github.com/mrjackwills/staticpi_backend/commit/3cd915c47885c1460dd5072ce0f4007e7f97601a), [974412ad](https://github.com/mrjackwills/staticpi_backend/commit/974412ad38719eaeb3f46fcc9432526130f22de7),
 
 ### Features
 + switch redis client to Fred, [e55a0918](https://github.com/mrjackwills/staticpi_backend/commit/e55a0918a0f63034a0f15e0bfba97d08ce1337a0),
@@ -254,7 +265,7 @@
 
 ### Chores
 + Docker TZ updated, [861a5a07](https://github.com/mrjackwills/staticpi_backend/commit/861a5a072717877cca799e9b04a3a1d82a45c1fc),
-+ dependencies updated, [12edddae](https://github.com/mrjackwills/staticpi_backend/commit/12edddaec1aac46a740e08432f4e194867b5a655),, [2ca492f0](https://github.com/mrjackwills/staticpi_backend/commit/2ca492f0e96a5321acca77d519a8ad7a0b870693),
++ dependencies updated, [12edddae](https://github.com/mrjackwills/staticpi_backend/commit/12edddaec1aac46a740e08432f4e194867b5a655), [2ca492f0](https://github.com/mrjackwills/staticpi_backend/commit/2ca492f0e96a5321acca77d519a8ad7a0b870693),
 
 ### Fixes
 + session_set expire temp fix, [718393ba](https://github.com/mrjackwills/staticpi_backend/commit/718393bae630d043ff7ea9bca92b0f7f816d49bd),
@@ -268,7 +279,7 @@
 
 ### Chores
 + Rust 1.75.0 linting, [c8ce91aa](https://github.com/mrjackwills/staticpi_backend/commit/c8ce91aa153bc87b6eae128d7e3f48b36a22472f),
-+ dependencies updated, redis method updated, [4000dab9](https://github.com/mrjackwills/staticpi_backend/commit/4000dab991893a52c8f591834a5f817e9f7e36f3),, [da528da6](https://github.com/mrjackwills/staticpi_backend/commit/da528da68a1cb0498cee515c9b32901e635dd767),
++ dependencies updated, redis method updated, [4000dab9](https://github.com/mrjackwills/staticpi_backend/commit/4000dab991893a52c8f591834a5f817e9f7e36f3), [da528da6](https://github.com/mrjackwills/staticpi_backend/commit/da528da68a1cb0498cee515c9b32901e635dd767),
 + bump alpine to 3.19, [d491323a](https://github.com/mrjackwills/staticpi_backend/commit/d491323a0e298568241edb8a25e488266116be63),
 
 ### Features
@@ -280,8 +291,8 @@
 ### Chores
 + bump PostgreSQL to v16, [9ec8330b](https://github.com/mrjackwills/staticpi_backend/commit/9ec8330b2d47f6250bffd6f896d7c230b26da798),
 + lints moved from main.rs to Cargo.toml, [be39164d](https://github.com/mrjackwills/staticpi_backend/commit/be39164da90d58ed103462b06829e46f00642eb4),
-+ .devcontainer updated, [d3dc2225](https://github.com/mrjackwills/staticpi_backend/commit/d3dc222596f50e999f20502eff551ca45fdc1460),, [6094305a](https://github.com/mrjackwills/staticpi_backend/commit/6094305a4c78badb2cdfc916e085d90d6952701d),
-+ dependencies updated, [08d693a2](https://github.com/mrjackwills/staticpi_backend/commit/08d693a26141ad28f3527b85136a2cffb190e2ba),, [6f87e1d4](https://github.com/mrjackwills/staticpi_backend/commit/6f87e1d4c88222c901607ff1432371557c22819f),, [39ba2d18](https://github.com/mrjackwills/staticpi_backend/commit/39ba2d18a4ea72d5efe28352f556bf2d9c212779),, [d4e2a1e4](https://github.com/mrjackwills/staticpi_backend/commit/d4e2a1e4440c876139768c6a09bf723e0a20d841),, [88ca9711](https://github.com/mrjackwills/staticpi_backend/commit/88ca9711b5b7bc439daf48cfababefa7a5dd4de6),, [1c4c6a9b](https://github.com/mrjackwills/staticpi_backend/commit/1c4c6a9b7eb273d3a568729a5fad831cf5ebaa22),
++ .devcontainer updated, [d3dc2225](https://github.com/mrjackwills/staticpi_backend/commit/d3dc222596f50e999f20502eff551ca45fdc1460), [6094305a](https://github.com/mrjackwills/staticpi_backend/commit/6094305a4c78badb2cdfc916e085d90d6952701d),
++ dependencies updated, [08d693a2](https://github.com/mrjackwills/staticpi_backend/commit/08d693a26141ad28f3527b85136a2cffb190e2ba), [6f87e1d4](https://github.com/mrjackwills/staticpi_backend/commit/6f87e1d4c88222c901607ff1432371557c22819f), [39ba2d18](https://github.com/mrjackwills/staticpi_backend/commit/39ba2d18a4ea72d5efe28352f556bf2d9c212779), [d4e2a1e4](https://github.com/mrjackwills/staticpi_backend/commit/d4e2a1e4440c876139768c6a09bf723e0a20d841), [88ca9711](https://github.com/mrjackwills/staticpi_backend/commit/88ca9711b5b7bc439daf48cfababefa7a5dd4de6), [1c4c6a9b](https://github.com/mrjackwills/staticpi_backend/commit/1c4c6a9b7eb273d3a568729a5fad831cf5ebaa22),
 + Rust 1.74.0 linting, [7d32e3ff](https://github.com/mrjackwills/staticpi_backend/commit/7d32e3ff3e90b588f38cb790f84b336d6e0419bd),
 + Rust 1.73.0 linting, [5a518c32](https://github.com/mrjackwills/staticpi_backend/commit/5a518c32171848af0618770329ea45d6fd5d6715),
 + update to axum 0.7, [a23754c8](https://github.com/mrjackwills/staticpi_backend/commit/a23754c81ca45eb748332056c1db21d8a775a17e),
@@ -330,12 +341,12 @@
 
 ### Chores
 + Drop linting, [50bce1a4](https://github.com/mrjackwills/staticpi_backend/commit/50bce1a441e0aa540ad56889ac66c993a0d25f90),
-+ dependencies updated, [9dd7c2a1](https://github.com/mrjackwills/staticpi_backend/commit/9dd7c2a1ad60637ef7e24d0ffc07c40f2b30cd09),, [4209ff7d](https://github.com/mrjackwills/staticpi_backend/commit/4209ff7dc1a552aed74b8fc7725c3a07ec65fca3),
++ dependencies updated, [9dd7c2a1](https://github.com/mrjackwills/staticpi_backend/commit/9dd7c2a1ad60637ef7e24d0ffc07c40f2b30cd09), [4209ff7d](https://github.com/mrjackwills/staticpi_backend/commit/4209ff7dc1a552aed74b8fc7725c3a07ec65fca3),
 + Dockerfile bumps, use Ubuntu, [8d5d7bb3](https://github.com/mrjackwills/staticpi_backend/commit/8d5d7bb3a2fe81c99268df827c2ada4d16370a53),
 
 ### Features
 + use `totp-rs` for two factor authentication, [52cb876c](https://github.com/mrjackwills/staticpi_backend/commit/52cb876c83389de4d7c367f4e6ccea21597c54f8),
-+ `sleep!` & `define_routes!` macros, [7dc41721](https://github.com/mrjackwills/staticpi_backend/commit/7dc417217795ed66855a211b24062ee79f72c40f),, [54597748](https://github.com/mrjackwills/staticpi_backend/commit/54597748a0b21c47b172bd9bfae4b9c2f7a46a1e),
++ `sleep!` & `define_routes!` macros, [7dc41721](https://github.com/mrjackwills/staticpi_backend/commit/7dc417217795ed66855a211b24062ee79f72c40f), [54597748](https://github.com/mrjackwills/staticpi_backend/commit/54597748a0b21c47b172bd9bfae4b9c2f7a46a1e),
 
 ### Fixes
 + api Dockerfile fix, [c78fbb60](https://github.com/mrjackwills/staticpi_backend/commit/c78fbb6038b74c563491934677ff786f1ae8f474),
@@ -353,12 +364,12 @@
 ### 2023-03-10
 
 ### Chores
-+ dependencies updated, [fddecdcb](https://github.com/mrjackwills/staticpi_backend/commit/fddecdcb47a703ae696a186cadc967d82740020c),, [d6ad0eb6](https://github.com/mrjackwills/staticpi_backend/commit/d6ad0eb6b22d7a577b429fd92fbc358370c210dc),
++ dependencies updated, [fddecdcb](https://github.com/mrjackwills/staticpi_backend/commit/fddecdcb47a703ae696a186cadc967d82740020c), [d6ad0eb6](https://github.com/mrjackwills/staticpi_backend/commit/d6ad0eb6b22d7a577b429fd92fbc358370c210dc),
 + Rust 1.68.0 linting, [d3ab2cef](https://github.com/mrjackwills/staticpi_backend/commit/d3ab2ceff7f62b91f4fc3811d2c300c807bdde4c),
 + devcontainer sparse protocol index, [8a974849](https://github.com/mrjackwills/staticpi_backend/commit/8a974849d6b49dba4fd6c39544a74c9bb19b6b66),
 
 ### Features
-+ SysInfo make async, [cb0eb394](https://github.com/mrjackwills/staticpi_backend/commit/cb0eb394c205e894af31c1f7b23c1d0c431fca00),, [823e362c](https://github.com/mrjackwills/staticpi_backend/commit/823e362cd5df03a8c1f35da59b46c1367ee5ca0f),
++ SysInfo make async, [cb0eb394](https://github.com/mrjackwills/staticpi_backend/commit/cb0eb394c205e894af31c1f7b23c1d0c431fca00), [823e362c](https://github.com/mrjackwills/staticpi_backend/commit/823e362cd5df03a8c1f35da59b46c1367ee5ca0f),
 
 ### Refactors
 + `unwrap`, to `ok()` or `_default()`, [afb73acb](https://github.com/mrjackwills/staticpi_backend/commit/afb73acb1e4fd4e6087b4d2c4a9dbab5e34db27a),
@@ -367,7 +378,7 @@
 ### 2023-03-06
 
 ### Chores
-+ dependencies updated, [d7a5d5e7](https://github.com/mrjackwills/staticpi_backend/commit/d7a5d5e73b781636f8d75f80ac50957e8eb3ae84),, [e3490c8d](https://github.com/mrjackwills/staticpi_backend/commit/e3490c8d6cdc1818594581400cac6da3e29758ac),
++ dependencies updated, [d7a5d5e7](https://github.com/mrjackwills/staticpi_backend/commit/d7a5d5e73b781636f8d75f80ac50957e8eb3ae84), [e3490c8d](https://github.com/mrjackwills/staticpi_backend/commit/e3490c8d6cdc1818594581400cac6da3e29758ac),
 + devcontainer updated, [e907057f](https://github.com/mrjackwills/staticpi_backend/commit/e907057f1321839f8df1ecc2d57a9f2d9c20fefc),
 
 ### Docs

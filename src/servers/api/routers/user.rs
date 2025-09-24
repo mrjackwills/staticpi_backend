@@ -374,8 +374,8 @@ impl UserRouter {
                     UserResponse::TwoFANotEnabled.to_string(),
                 ));
             }
-            ModelTwoFA::update_always_required(&state.postgres, body.always_required, &user)
-                .await?;
+            // ModelTwoFA::update_always_required(&state.postgres, body.always_required, &user)
+            //     .await?;
         } else {
             if !user.two_fa_always_required {
                 return Err(ApiError::Conflict(
@@ -395,9 +395,8 @@ impl UserRouter {
             {
                 return Err(ApiError::Authorization);
             }
-            ModelTwoFA::update_always_required(&state.postgres, body.always_required, &user)
-                .await?;
         }
+        ModelTwoFA::update_always_required(&state.postgres, body.always_required, &user).await?;
         Ok(StatusCode::OK)
     }
 
