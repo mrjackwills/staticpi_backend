@@ -24,7 +24,25 @@ impl ModelHourlyBandwidth {
             let redis = C!(redis);
             if let Ok(size_in_bytes) = i64::try_from(msg_size) {
                 tokio::spawn(async move {
+                    // INSERT INTO hourly_bandwidth (device_id, size_in_bytes, is_pi, is_counted)
+                    // VALUES ($1, $2, $3, $4)
+                    // ON CONFLICT (year, month, day, hour, device_id, is_pi, is_counted)
+                    // DO UPDATE
+                    // SET size_in_bytes = hourly_bandwidth.size_in_bytes + EXCLUDED.size_in_bytes;
+
+                    // -- Add generated columns for the time parts
+                    // ALTER TABLE hourly_bandwidth
+                    //   ADD COLUMN year  int GENERATED ALWAYS AS (extract(year  FROM timestamp AT TIME ZONE 'UTC')) STORED,
+                    //   ADD COLUMN month int GENERATED ALWAYS AS (extract(month FROM timestamp AT TIME ZONE 'UTC')) STORED,
+                    //   ADD COLUMN day   int GENERATED ALWAYS AS (extract(day   FROM timestamp AT TIME ZONE 'UTC')) STORED,
+                    //   ADD COLUMN hour  int GENERATED ALWAYS AS (extract(hour  FROM timestamp AT TIME ZONE 'UTC')) STORED;
+
+                    // -- Create unique index
+                    // CREATE UNIQUE INDEX hourly_bandwidth_uk
+                    //   ON hourly_bandwidth (year, month, day, hour, device_id, is_pi, is_counted);
                     if let Err(e) = sqlx::query!(
+                        // WHY?
+                        // TODO this is wrong
                         "INSERT INTO
                         hourly_bandwidth (device_id, size_in_bytes, is_pi, is_counted)
                     VALUES

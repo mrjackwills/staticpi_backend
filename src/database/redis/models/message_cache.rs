@@ -56,9 +56,12 @@ impl MessageCache {
 
     /// Remove multiple device's message cache
     pub async fn delete_all(redis: &Pool, device_ids: &[ModelDeviceId]) -> Result<(), ApiError> {
-        for device in device_ids {
-            redis.del::<(), _>(Self::key(device.device_id)).await?;
-        }
+        futures::future::try_join_all(
+            device_ids
+                .iter()
+                .map(|device| redis.del::<(), _>(Self::key(device.device_id))),
+        )
+        .await?;
         Ok(())
     }
 

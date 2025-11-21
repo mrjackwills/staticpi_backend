@@ -73,12 +73,19 @@ impl fmt::Display for RateLimit {
 
 /// Return AdminLimit object for a given rate_limit
 async fn get_admin_limit(rate_limit: RateLimit, redis: &Pool) -> Result<AdminLimit, ApiError> {
-    let blocked = rate_limit.exceeded(redis).await?;
-    let ttl = rate_limit.ttl(redis).await?;
-    let points = rate_limit.get_count(redis).await?.unwrap_or_default();
+    // TODO remove me
+    // let blocked = rate_limit.exceeded(redis).await?;
+    // let ttl = rate_limit.ttl(redis).await?;
+    // let points = rate_limit.get_count(redis).await?.unwrap_or_default();
+
+    let (blocked, ttl, points) = tokio::try_join!(
+        rate_limit.exceeded(redis),
+        rate_limit.ttl(redis),
+        rate_limit.get_count(redis)
+    )?;
     Ok(AdminLimit {
         key: rate_limit.to_string(),
-        points,
+        points: points.unwrap_or_default(),
         max: rate_limit.get_limit(),
         ttl,
         blocked,

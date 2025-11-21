@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use ulid::Ulid;
 
 use crate::{
-    S,
+    C, S,
     api_error::ApiError,
     database::{
         admin::AdminSession,
@@ -77,10 +77,15 @@ impl RedisSession {
         let session = serde_json::to_string(&self)?;
         let key_session_set = Self::key_session_set(self.registered_user_id);
 
-        redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
-        redis
-            .sadd::<(), _, _>(&key_session_set, &key_session)
-            .await?;
+        tokio::try_join!(
+            redis.hset::<(), _, _>(&key_session, hmap!(session)),
+            redis.sadd::<(), _, _>(&key_session_set, &key_session),
+        )?;
+        // todo remove me
+        // redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
+        // redis
+        //     .sadd::<(), _, _>(&key_session_set, &key_session)
+        //     .await?;
         // This won't work as expected, should set TTL to the max at all times
         // redis.expire(&key_session_set, ttl).await?;
         Ok(redis.expire(&key_session, ttl, None).await?)
@@ -115,9 +120,9 @@ impl RedisSession {
         let key_session_set = Self::key_session_set(registered_user_id);
 
         let session_set: Vec<String> = redis.smembers(&key_session_set).await?;
-        for key in session_set {
-            redis.del::<(), _>(key).await?;
-        }
+        futures::future::try_join_all(session_set.iter().map(|key| redis.del::<(), _>(key)))
+            .await?;
+
         Ok(redis.del(&key_session_set).await?)
     }
 
@@ -131,13 +136,20 @@ impl RedisSession {
         let all_keys = redis
             .smembers::<Vec<String>, &str>(&session_set_key)
             .await?;
+
+        let mut futs_del = vec![];
+        let mut futs_srem = vec![];
         for key in all_keys {
             if current_session.to_string() == key.split_once("::").unwrap_or_default().1 {
                 continue;
             }
-            redis.del::<(), _>(&key).await?;
-            redis.srem::<(), _, _>(&session_set_key, key).await?;
+            futs_del.push(redis.del::<(), _>(C!(key)));
+            futs_srem.push(redis.srem::<(), _, _>(C!(session_set_key), C!(key)));
         }
+        tokio::try_join!(
+            futures::future::try_join_all(futs_del),
+            futures::future::try_join_all(futs_srem)
+        )?;
         Ok(())
     }
 
