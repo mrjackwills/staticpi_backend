@@ -76,10 +76,6 @@ services:
       - $HOME/logs.d/staticpi:/logs:ro
     networks:
       - staticpi-net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "16m"
     depends_on:
       staticpi_postgres:
         condition: service_healthy
@@ -111,9 +107,6 @@ services:
     restart: always
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     deploy:
       resources:
         limits:

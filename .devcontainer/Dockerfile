@@ -8,7 +8,7 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo 
 ENV PATH="/home/vscode/.cargo/bin:${PATH}"
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-	&& apt-get -y install --no-install-recommends postgresql-client-15 build-essential pkg-config libssl-dev
+	&& apt-get -y install --no-install-recommends postgresql-client-18 build-essential pkg-config libssl-dev
 
 USER vscode
 

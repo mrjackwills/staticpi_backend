@@ -24,9 +24,6 @@ services:
       - 127.0.0.1:5432:5432
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     healthcheck:
       test: ["CMD", "/healthcheck/health_postgres.sh"]
       interval: 30s
@@ -56,9 +53,6 @@ services:
       - 127.0.0.1:6379:6379
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     healthcheck:
       test: ["CMD", "/healthcheck/health_redis.sh"]
       interval: 30s
@@ -86,10 +80,6 @@ services:
       - /ramdrive/staticpi/logs:/logs:ro
     networks:
       - staticpi-net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "16m"
     depends_on:
       staticpi_postgres:
         condition: service_healthy
@@ -120,9 +110,6 @@ services:
     restart: always
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     deploy:
       resources:
         limits:
