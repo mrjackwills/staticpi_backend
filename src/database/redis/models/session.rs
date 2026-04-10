@@ -81,11 +81,6 @@ impl RedisSession {
             redis.hset::<(), _, _>(&key_session, hmap!(session)),
             redis.sadd::<(), _, _>(&key_session_set, &key_session),
         )?;
-        // todo remove me
-        // redis.hset::<(), _, _>(&key_session, hmap!(session)).await?;
-        // redis
-        //     .sadd::<(), _, _>(&key_session_set, &key_session)
-        //     .await?;
         // This won't work as expected, should set TTL to the max at all times
         // redis.expire(&key_session_set, ttl).await?;
         Ok(redis.expire(&key_session, ttl, None).await?)
