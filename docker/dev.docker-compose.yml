@@ -4,7 +4,7 @@ networks:
     name: staticpi-net
 services:
   staticpi_postgres:
-    image: staticpi_postgres:0.1.5
+    image: staticpi_postgres:0.1.6
     container_name: staticpi_postgres
     hostname: staticpi_postgres
     build:
@@ -24,9 +24,6 @@ services:
       - 127.0.0.1:5432:5432
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     healthcheck:
       test: ["CMD", "/healthcheck/health_postgres.sh"]
       interval: 30s
@@ -37,7 +34,7 @@ services:
         limits:
           memory: 256m
   staticpi_redis:
-    image: staticpi_redis:0.1.5
+    image: staticpi_redis:0.1.6
     container_name: staticpi_redis
     hostname: staticpi_redis
     build:
@@ -56,9 +53,6 @@ services:
       - 127.0.0.1:6379:6379
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     healthcheck:
       test: ["CMD", "/healthcheck/health_redis.sh"]
       interval: 30s
@@ -69,7 +63,7 @@ services:
         limits:
           memory: 32M
   staticpi_backup:
-    image: staticpi_backup:0.1.5
+    image: staticpi_backup:0.1.6
     container_name: staticpi_backup
     build:
       context: .
@@ -86,10 +80,6 @@ services:
       - /ramdrive/staticpi/logs:/logs:ro
     networks:
       - staticpi-net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "16m"
     depends_on:
       staticpi_postgres:
         condition: service_healthy
@@ -99,7 +89,7 @@ services:
         limits:
           memory: 64MB
   staticpi_api:
-    image: staticpi_api:0.1.5
+    image: staticpi_api:0.1.6
     container_name: staticpi_api
     hostname: staticpi_api
     build:
@@ -120,9 +110,6 @@ services:
     restart: always
     networks:
       - staticpi-net
-    logging:
-      options:
-        max-size: 10m
     deploy:
       resources:
         limits:

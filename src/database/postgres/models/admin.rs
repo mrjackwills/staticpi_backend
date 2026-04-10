@@ -362,10 +362,14 @@ FROM
         let users = sqlx::query_as::<_, Self>(query).fetch_all(postgres).await?;
 
         let mut output = vec![];
+
+        // TODO we are close with this
+        // Ok(futures::future::try_join_all(g).await?.into_iter().flatten().map(|i|AdminUserAndSession { user, sessions }).collect::<Vec<_>>())
         for user in users {
             let sessions = RedisSession::admin_get_all(redis, user.registered_user_id).await?;
             output.push(AdminUserAndSession { user, sessions });
         }
+
         Ok(output)
     }
 }

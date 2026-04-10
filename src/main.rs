@@ -77,9 +77,18 @@ async fn start() -> Result<(), ApiError> {
     );
 
     clear_postgres_connections(&app_env).await?;
+    // TODO make this a message handler with async_channels
     let connections = Arc::new(Mutex::new(Connections::default()));
 
-    let auth_data = ServeData::new(&app_env, &connections, ServerName::Token).await?;
+    let (api_data, auth_data, ws_data, postgres_pinger) = tokio::try_join!(
+        ServeData::new(&app_env, &connections, ServerName::Api),
+        ServeData::new(&app_env, &connections, ServerName::Token),
+        ServeData::new(&app_env, &connections, ServerName::Ws),
+        database::db_postgres::db_pool(&app_env)
+    )?;
+
+    let connections_ping = Arc::clone(&connections);
+
     tokio::spawn(async move {
         if let Err(e) = TokenServer::serve(auth_data).await {
             tracing::error!("{e:?}");
@@ -87,7 +96,6 @@ async fn start() -> Result<(), ApiError> {
         }
     });
 
-    let ws_data = ServeData::new(&app_env, &connections, ServerName::Ws).await?;
     tokio::spawn(async move {
         if let Err(e) = WsServer::serve(ws_data).await {
             tracing::error!("{e:?}");
@@ -95,13 +103,10 @@ async fn start() -> Result<(), ApiError> {
         }
     });
 
-    let connections_ping = Arc::clone(&connections);
-    let postgres_pinger = database::db_postgres::db_pool(&app_env).await?;
     tokio::spawn(async move {
         Pinger::init(connections_ping, postgres_pinger).await;
     });
 
-    let api_data = ServeData::new(&app_env, &connections, ServerName::Api).await?;
     ApiServer::serve(api_data).await
 }
 

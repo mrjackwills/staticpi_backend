@@ -53,11 +53,15 @@ impl ServeData {
         connections: &AMConnections,
         server_name: ServerName,
     ) -> Result<Self, ApiError> {
+        let (postgres, redis) = tokio::try_join!(
+            database::db_postgres::db_pool(app_env),
+            database::DbRedis::get_pool(app_env),
+        )?;
         Ok(Self {
             app_env: C!(app_env),
             connections: Arc::clone(connections),
-            postgres: database::db_postgres::db_pool(app_env).await?,
-            redis: database::DbRedis::get_pool(app_env).await?,
+            postgres,
+            redis,
             server_name,
         })
     }
@@ -1065,6 +1069,7 @@ pub mod test_setup {
         test_setup.clean_up().await;
         test_setup
     }
+
     pub async fn get_keys(redis: &Pool, pattern: &str) -> Vec<String> {
         let mut scanner = redis.next().scan(pattern, Some(100), None);
         let mut output = vec![];

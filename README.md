@@ -33,7 +33,7 @@
 	<br>
 	The backend is a CRUD api, token server, and websocket message forwarder, with the following features;
 	<ul>
-		<li><a href="https://github.com/tokio-rs/axum" target='_blank' rel='noopener noreferrer'>axum</a> based with <a href='https://www.tokio.rs' target='_blank' rel='noopener noreferrer'>tokio</a> async mutlithreading</a>
+		<li><a href="https://github.com/tokio-rs/axum" target='_blank' rel='noopener noreferrer'>axum</a> based with <a href='https://www.tokio.rs' target='_blank' rel='noopener noreferrer'>tokio</a> async multithreading</a>
 		<li>Websocket connection & message forwarding</li>
 		<li>Time sensitive, IP locked, token generation</li>
 		<li>Password hashing with argon2</li>

@@ -67,24 +67,25 @@ impl RedisNewUser {
 
         let new_user_as_string = serde_json::to_string(&self)?;
 
-        redis
-            .hset::<(), _, _>(&key_email, hmap!(ulid.to_string()))
-            .await?;
-        redis
-            .expire::<(), _>(key_email, Self::TTL_AS_SEC.into(), None)
-            .await?;
-        redis
-            .hset::<(), _, _>(&key_secret, hmap!(new_user_as_string))
-            .await?;
-        Ok(redis
-            .expire(key_secret, Self::TTL_AS_SEC.into(), None)
-            .await?)
+        tokio::try_join!(
+            redis.hset::<(), _, _>(&key_email, hmap!(ulid.to_string())),
+            redis.hset::<(), _, _>(&key_secret, hmap!(new_user_as_string))
+        )?;
+
+        tokio::try_join!(
+            redis.expire::<(), _>(key_email, Self::TTL_AS_SEC.into(), None),
+            redis.expire::<(), _>(key_secret, Self::TTL_AS_SEC.into(), None)
+        )?;
+        Ok(())
     }
 
     /// Remove both verify keys from redis
     pub async fn delete(&self, redis: &Pool, ulid: &Ulid) -> Result<(), ApiError> {
-        redis.del::<(), _>(Self::key_secret(ulid)).await?;
-        Ok(redis.del(Self::key_email(&self.email)).await?)
+        tokio::try_join!(
+            redis.del::<(), _>(Self::key_secret(ulid)),
+            redis.del::<(), _>(Self::key_email(&self.email))
+        )?;
+        Ok(())
     }
 
     /// Just check if a email is in redis cache, so that if a user has register but not yet verified, cannot sign up again

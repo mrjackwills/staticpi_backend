@@ -101,6 +101,7 @@ pub fn calc_uptime(start_time: SystemTime) -> u64 {
         .duration_since(start_time)
         .map_or(0, |value| value.as_secs())
 }
+
 /// Generate a random, uppercase, hex string of length `output_len`
 pub fn gen_random_hex(output_len: u8) -> String {
     (0..output_len)
