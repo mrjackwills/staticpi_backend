@@ -1,11 +1,7 @@
-### 2025-09-24
+### 2026-04-10
 
 ### Chores
-+ api.DockerFile updated, [cebb0410710a676936f66d1672be011df9c802e3]
-+ create_release.sh updated, [20d18d9ca372d386238a5fca46bbe88af364b84a], [dac8f3829fc6cd3762f3d4a76a015952fe3894b4]
-+ create_release.sh updated, [f230fb4823512dddb175267b47a8cf7fbd33693d]
-+ dependencies updated, [7184e8856735430a544d4e81d13ed69ee097c58a], [81b613e23479337485433a4ed02e319f02a82a14], [d8c9224e331fded835669c11b4dde435e2a0ee2f]
-+ GitHub workflow updated, [83452bbf0cb9478dd2688b5be8b5dcf89c5ed39a], [d5fba60de8bcd23a79ca17880d7ed6a7ae3a655d]
-+ Rust 1.90 linting, [6e69ab48a563e0a2d47db5951e382829c0b4ee74], [f41d0851110dd9e8212bd24f121b295134623b92]
++ GitHub workflow updated, [a8173b5b1add3246933f40d6727fdbeaef5577ba], [0698d50662ce5f1baaffd655a277569de6686992]
++ dependencies updated, [d21b75917db8f795f6db999b49746aa671ee6f9f], [f4bbd295cd424e99a88e0f3bc04e8f1f9d4f1144], [948fad601e9a5bb0075fb4432ba12eb54a798802], [a6a8775ad7c5accc7b2c6cac968d01df0a316af1]
 
 see <a href='https://github.com/mrjackwills/staticpi_backend/blob/main/CHANGELOG.md'>CHANGELOG.md</a> for more details
