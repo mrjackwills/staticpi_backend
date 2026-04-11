@@ -1,3 +1,6 @@
+### Fixes
++ Cross.toml added, [dadfab89d9f7d9ea9fa72a4f671f64d8a2e206e3]
+
 # <a href='https://github.com/mrjackwills/staticpi_backend/releases/tag/v0.1.6'>v0.1.6</a>
 ### 2026-04-10
 
