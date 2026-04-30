@@ -108,22 +108,22 @@ impl TokenRouter {
 
             if let Some(id) = password_id {
                 match ModelDevicePasswordHash::get(&state.postgres, id).await? {
-                    Some(device_hash) => {
-                        if argon::verify_password(password.unwrap_or(""), device_hash.password_hash)
-                            .await?
-                        {
-                            output = Some(
-                                Self::create_access_token(
-                                    &state.redis,
-                                    device.device_id,
-                                    device_type,
-                                    &useragent_ip,
-                                )
-                                .await?,
-                            );
-                        } else {
-                            return Ok(None);
-                        }
+                    Some(device_hash)
+                        if argon::verify_password(
+                            password.unwrap_or(""),
+                            device_hash.password_hash.clone(),
+                        )
+                        .await? =>
+                    {
+                        output = Some(
+                            Self::create_access_token(
+                                &state.redis,
+                                device.device_id,
+                                device_type,
+                                &useragent_ip,
+                            )
+                            .await?,
+                        );
                     }
                     _ => {
                         return Ok(None);
